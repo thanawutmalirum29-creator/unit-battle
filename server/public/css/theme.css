@@ -378,6 +378,32 @@ button.buy[disabled]{ background:#374151 !important; color:#9ca3af !important; }
 
 .card.locked, .card-box.locked{ opacity:.4; pointer-events:none; filter:grayscale(.4); }
 
+/* ✅ กรอบไฮไลท์การ์ดที่ถูกเลือกเข้าทีม */
+.card.selected{
+  border:2px solid var(--good, #2fd47a) !important;
+  box-shadow:0 0 0 2px rgba(47,212,122,.35), 0 0 14px rgba(47,212,122,.6) !important;
+  transform:translateY(-2px);
+}
+
+/* 🔢 เลขลำดับทีม มุมซ้ายบน */
+.team-order-badge{
+  position:absolute;
+  top:4px;
+  left:4px;
+  min-width:16px;
+  height:16px;
+  padding:0 3px;
+  border-radius:50%;
+  background:var(--good, #2fd47a);
+  color:#04150f;
+  font-size:10px;
+  font-weight:800;
+  line-height:16px;
+  text-align:center;
+  box-shadow:0 1px 3px rgba(0,0,0,.5);
+  z-index:2;
+}
+
 .footer-note{ margin-top:10px; opacity:.6; font-size:11px; text-align:center; }
 
 /* ---------------- RARITY SYSTEM (shared everywhere) ---------------- */
@@ -498,10 +524,11 @@ button.upgrade-btn:disabled{ background:#3a3f4a; color:#9aa1ab; }
 /* ---------------- BATTLEFIELD ---------------- */
 .right{ display:flex; flex-direction:column; gap:14px; max-width:100%; }
 #battlefield{
-  flex-wrap:wrap !important;   /* override inline style so columns drop to a new line instead of overflowing the page */
+  display:grid !important;
+  grid-template-columns:1fr 1fr !important; /* บังคับซ้าย-ขวาเสมอ ไม่ตกบรรทัดเป็นบน-ล่าง */
+  gap:10px !important;
 }
 .team-box{
-  flex:1 1 240px;
   min-width:0;                  /* allow shrinking below content size (classic flex overflow fix) */
   max-width:100%;
   min-height:120px;
