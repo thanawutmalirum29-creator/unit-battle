@@ -163,12 +163,13 @@ function renderDeck() {
 const rarityFactor = DUPLICATE_COST_BY_RARITY[rarity] || 1;
 const need = (card.stars - 4) * rarityFactor;
         const have = deck.filter((cc, j) => cc.name === card.name && j !== idx && !cc.locked).length;
+        const cantStarUp = have < need;
         extraHTML = `
           <div class="meta" style="color:#ffeb3b;font-weight:bold;"></div>
           <div class="meta">🌟 ต้องใช้การ์ด: ${have}/${need}</div>
           <div class="meta">${sim.note}: HP → ${sim.next.hp} | ATK → ${sim.next.atk} | DEF → ${sim.next.def}</div>
           <div class="progress-bar"><div id="progress-${idx}" class="progress-fill" style="width:${Math.min(100,(have/need)*100)}%"></div></div>
-          <button id="upgrade-btn-${idx}" onclick="upgradeCard(${idx})">⬆️ ขึ้นดาว</button>
+          <button id="upgrade-btn-${idx}" onclick="upgradeCard(${idx})" ${cantStarUp ? "disabled title=\"การ์ดซ้ำไม่พอ\"" : ""}>⬆️ ขึ้นดาว</button>
         `;
       } else {
         // การอัปเกรดปกติ
@@ -195,12 +196,15 @@ const successRate = Math.max(1, (SUCCESS_RATE_TABLE[card.level] ?? 50) - (card.s
         const needShards = 10;
         const haveShards = bag[shardKey] || 0;
 
+        const cantAffordMoney = money < cost;
+        const cantAffordShards = haveShards < needShards;
+
         extraHTML = `
           <div class="meta">💰 Cost: ${cost} | 🎯 Success: ${successRate}%</div>
           <div class="meta">: HP → ${sim.next.hp} | ATK → ${sim.next.atk} | DEF → ${sim.next.def}${maxNote}</div>
           <div class="progress-bar"><div id="progress-${idx}" class="progress-fill"></div></div>
-          <button id="upgrade-btn-${idx}" onclick="upgradeCard(${idx})">⬆️ อัพเกรด</button>
-          <button onclick="guaranteeUpgrade(${idx})">💎 การันตี (${haveShards}/${needShards})</button>
+          <button id="upgrade-btn-${idx}" onclick="upgradeCard(${idx})" ${cantAffordMoney ? "disabled title=\"เงินไม่พอ\"" : ""}>⬆️ อัพเกรด</button>
+          <button onclick="guaranteeUpgrade(${idx})" ${cantAffordShards ? "disabled title=\"ชาร์ดไม่พอ\"" : ""}>💎 การันตี (${haveShards}/${needShards})</button>
         `;
       }
     } else {
