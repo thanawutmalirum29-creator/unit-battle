@@ -1,0 +1,18 @@
+{
+  "name": "unitbattle-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "migrate": "node db/migrate.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.12.0",
+    "cors": "^2.8.5",
+    "express-rate-limit": "^7.4.0",
+    "uuid": "^9.0.1",
+    "dotenv": "^16.4.5"
+  }
+}
