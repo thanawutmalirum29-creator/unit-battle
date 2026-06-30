@@ -197,6 +197,20 @@ a > button, .mode-button, button{
   transform:translateY(-2px);
   box-shadow:0 6px 16px rgba(92,139,255,.35);
 }
+
+/* current-page nav button: highlighted + inert (clicking it does nothing — already here) */
+.mode-buttons button.active,
+.mode-buttons button.mode-button.active{
+  background:linear-gradient(135deg,var(--accent),#3f63d6);
+  border-color:transparent;
+  color:#fff;
+  font-weight:800;
+  box-shadow:0 0 0 2px rgba(123,214,255,.5), 0 6px 16px rgba(92,139,255,.35);
+  cursor:default;
+  opacity:1; /* override the generic button:disabled dimming — this isn't "unavailable", it's "you are here" */
+  transform:none;
+}
+
 a{ text-decoration:none; }
 
 /* ---------------- WRAPPING CARD GRID (upgrade / upgrade-skills card lists) ----------------
