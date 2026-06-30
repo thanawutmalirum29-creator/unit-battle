@@ -152,30 +152,41 @@ h3{ font-size:15px; color:var(--accent-2); margin-top:18px; }
 /* ---------------- NAV / MODE BUTTONS ---------------- */
 .mode-buttons, .gacha-actions,
 body > div[style*="flex-wrap:wrap"]{
-  display:flex;
-  flex-wrap:wrap;
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
   gap:8px;
   margin:0 0 16px;
 }
+@media (min-width:480px){
+  .mode-buttons, .gacha-actions{ grid-template-columns:repeat(3,1fr); }
+}
+@media (min-width:768px){
+  .mode-buttons, .gacha-actions{ grid-template-columns:repeat(4,1fr); }
+}
+.mode-buttons a{ display:block; }
 
 a > button, .mode-button, button{
   font-family:var(--font);
 }
 
-/* generic nav-style buttons (mode select links) */
+/* generic nav-style buttons (mode select links) — same fixed height/width so every
+   page's nav row lines up evenly regardless of label length */
 .topbar + div a button,
 .mode-buttons a button,
 .mode-button{
+  width:100%;
   background:var(--panel);
   border:1px solid var(--border);
   color:var(--text);
-  padding:9px 14px;
+  padding:9px 10px;
   border-radius:999px;
   font-weight:600;
   font-size:13px;
   cursor:pointer;
   transition:.15s;
   white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 .topbar + div a button:hover,
 .mode-buttons a button:hover,
@@ -187,6 +198,24 @@ a > button, .mode-button, button{
   box-shadow:0 6px 16px rgba(92,139,255,.35);
 }
 a{ text-decoration:none; }
+
+/* ---------------- WRAPPING CARD GRID (upgrade / upgrade-skills card lists) ----------------
+   #deck-wrapper defaults to a single-row horizontal scroll strip (good for the compact
+   in-battle team picker), but the upgrade pages list many cards at once — cram them into
+   one long unscrollable row instead. .upgrade-grid overrides it to wrap into a normal grid. */
+#deck-wrapper.upgrade-grid{
+  display:grid !important;
+  flex-wrap:unset !important;
+  grid-template-columns:repeat(auto-fill,minmax(160px,1fr)) !important;
+  overflow-x:visible !important;
+  overflow-y:visible !important;
+  gap:12px !important;
+}
+#deck-wrapper.upgrade-grid .card,
+#deck-wrapper.upgrade-grid .card-box{
+  width:auto;
+  flex:unset;
+}
 
 /* ---------------- GENERIC PANEL ---------------- */
 .panel{
