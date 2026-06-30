@@ -16,6 +16,17 @@
   </div>
 </header>
 
+<div class="mode-buttons">
+  <a href="game.html"><button class="mode-button">🎴 NORMAL</button></a>
+  <a href="inf.html"><button class="mode-button">🌀 INF_MODE</button></a>
+  <button class="mode-button active" aria-current="page" disabled>👹 BOSS</button>
+  <a href="shop.html"><button class="mode-button">🏪 SHOP</button></a>
+  <a href="upgrade.html"><button class="mode-button">🌟 UPGRADE</button></a>
+  <a href="upgradeskills.html"><button class="mode-button">💪 SKILLS</button></a>
+  <a href="GACHA.html"><button class="mode-button">🔮 GACHA</button></a>
+  <a href="GACHAE.html"><button class="mode-button">👔 EQUIPMENT</button></a>
+</div>
+
 <h3>🎒 กระเป๋า</h3>
 <div id="bag">
   <div>💙 ความทรงจำ Rare: <span id="memoryRare">0</span></div>
@@ -30,16 +41,6 @@
   <div>🟡 ชาร์ดทอง: <span id="shardGold">0</span></div>
   <div>🔴 ชาร์ดแดง: <span id="shardRed">0</span></div>
   <div>🌌 ชาร์ดฟ้า: <span id="shardSky">0</span></div>
-</div>
-<div class="mode-buttons">
-  <a href="game.html"><button class="mode-button">🎴 NORMAL</button></a>
-  <a href="inf.html"><button class="mode-button">🌀 INF_MODE</button></a>
-  <button class="mode-button active" aria-current="page" disabled>👹 BOSS</button>
-  <a href="shop.html"><button class="mode-button">🏪 SHOP</button></a>
-  <a href="upgrade.html"><button class="mode-button">🌟 UPGRADE</button></a>
-  <a href="upgradeskills.html"><button class="mode-button">💪 SKILLS</button></a>
-  <a href="GACHA.html"><button class="mode-button">🔮 GACHA</button></a>
-  <a href="GACHAE.html"><button class="mode-button">👔 EQUIPMENT</button></a>
 </div>
 <section>
   <h3>เลือก Boss</h3>
@@ -58,7 +59,7 @@
   <button class="speed-btn" data-mul="4">×4</button>
 </div>
 
-<button id="cancelBattleBtn">❌ ยกเลิกการต่อสู้</button>
+<button id="cancelBattleBtn" style="display:none">❌ ยกเลิกการต่อสู้</button>
 
 <div class="panel">
   <h3>สนามต่อสู้</h3>
