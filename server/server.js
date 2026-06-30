@@ -24,7 +24,7 @@ app.use('/api/leaderboard', leaderboardRoute);
 app.use('/api/progress', progressRoute);
 
 // serve the cleaned-up game client
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/health', (req, res) => res.json({ ok: true }));
 
