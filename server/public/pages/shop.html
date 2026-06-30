@@ -5,164 +5,25 @@
   <title>🛒 SHOP — ซื้อการ์ด</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="../css/game.css" />
-  <style>
-  /* บังคับทุก element ไม่ให้ล้นจอ */
-* {
-  box-sizing: border-box;
-  max-width: 100%;
-}
-
-/* body ไม่ให้ scroll แนวนอน */
-body {
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
-}
-
-/* panel / header ให้กว้างไม่เกินจอ */
-.panel, header.panel {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-/* grid ปรับ responsive */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  width: 100%;
-}
-    body { background:#0b0f13; color:#e6edf3; }
-    header.panel { display:flex; align-items:center; gap:8px; }
-    .money-box { margin-left:auto; font-weight:700; }
-    .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
-    .card {
-      background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07);
-      padding:12px; border-radius:14px; box-shadow:0 8px 20px rgba(0,0,0,0.25);
-      display:flex; flex-direction:column; justify-content:space-between; gap:8px;
-    }
-    .title { display:flex; justify-content:space-between; align-items:center; gap:8px; }
-    .rarity-Common{
-  border:2px solid var(--c-common); 
-  background:#111216;
-}
-.rarity-Rare {
-  border: 2px solid var(--c-rare);
-  background: radial-gradient(circle at top left, #0b1f3d, #07132a, #02060f);
-  box-shadow: 0 0 10px rgba(22, 58, 122, 0.4),
-              0 0 18px rgba(0, 102, 204, 0.25);
-  color: #d6e4ff;
-}
-
-/* ชื่อการ์ด Rare */
-.rarity-Rare .title {
-  background: linear-gradient(90deg, #4facfe, #00f2fe);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: bold;
-  text-shadow: 0 0 6px rgba(79, 172, 254, 0.6),
-               0 0 12px rgba(0, 242, 254, 0.5);
-}
-
-.rarity-Epic {
-  border: 2px solid var(--c-epic);
-  background: radial-gradient(circle at top left, #1a0b2e, #10061b, #050009);
-  box-shadow: 0 0 14px rgba(75,42,99,0.5),
-              0 0 28px rgba(155,89,182,0.3);
-  color: #f0e6ff;
-}
-
-/* ชื่อการ์ด Epic */
-.rarity-Epic .title {
-  background: linear-gradient(90deg, #c471ed, #f64f59);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: bold;
-  text-shadow: 0 0 8px rgba(196,113,237,0.6),
-               0 0 16px rgba(246,79,89,0.5);
-}
-
-.rarity-Legendary {
-  border: 2px solid var(--c-legend);
-  background: radial-gradient(circle at top left, #3a2800, #2b1f00, #120a00);
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5),
-              0 0 40px rgba(255, 165, 0, 0.3);
-  color: #fff8dc;
-}
-
-/* ชื่อการ์ด Legendary */
-.rarity-Legendary .title {
-  background: linear-gradient(90deg, #ffd700, #ffa500, #ffcc00);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 900;
-  text-shadow: 0 0 10px rgba(255,215,0,0.8),
-               0 0 20px rgba(255,165,0,0.6),
-               0 0 30px rgba(255,140,0,0.5);
-}
-.rarity-Mythical {
-  border: 2px solid var(--c-mythical);
-  background: radial-gradient(circle at top left, #330018, #1a0010, #000000);
-  box-shadow: 0 0 24px rgba(255, 102, 204, 0.6),
-              0 0 40px rgba(179, 0, 89, 0.4);
-  color: #ffe6f7;
-}
-
-/* ชื่อการ์ด Mythical */
-.rarity-Mythical .title {
-  background: linear-gradient(90deg, #ff66cc, #ff1493, #ff80bf);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 900;
-  text-shadow: 0 0 12px rgba(255, 102, 204, 0.8),
-               0 0 24px rgba(179, 0, 89, 0.6),
-               0 0 36px rgba(255, 20, 147, 0.5);
-}
-/* การ์ดพื้นหลัง Cosmic */
-.rarity-Cosmic {
-  border: 2px solid #7f00ff; 
-  background: radial-gradient(circle at top left, #0a0018, #001830, #000000);
-  box-shadow: 0 0 24px rgba(127,0,255,0.5),
-              0 0 36px rgba(0,210,255,0.4);
-  color: #e0e8ff; /* fallback ถ้าข้อความไม่มีสไตล์ */
-}
-
-/* ชื่อการ์ด Cosmic */
-.rarity-Cosmic .title {
-  background: linear-gradient(90deg, #7f00ff, #00d2ff, #ff00ff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: bold;
-  text-shadow: 0 0 10px rgba(127,0,255,0.7),
-               0 0 20px rgba(0,210,255,0.6);
-}
-    .stats { font-size:13px; opacity:.9; display:grid; grid-template-columns:1fr 1fr; gap:6px 10px; }
-    .price { font-weight:700; }
-    .actions { display:flex; gap:8px; }
-    .searchbar { display:flex; gap:8px; margin:8px 0 16px; }
-    input[type="text"],select{
-      padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.1);
-      background:rgba(255,255,255,.03); color:#e6edf3;
-    }
-    button.buy { width:100%; padding:10px 12px; border-radius:12px; border:none;
-      background:#10b981; color:#071218; font-weight:800; cursor:pointer; }
-    button.buy[disabled]{ background:#374151; color:#9ca3af; cursor:not-allowed; }
-    .muted{ opacity:.7; font-size:12px; }
-    .footer-note{ margin-top:12px; opacity:.6; font-size:12px; }
-    .card.locked {
-  opacity: 0.4;
-  pointer-events: none;
-}
-  </style>
-</head>
+  <link rel="stylesheet" href="../css/theme.css" />
+  </head>
 <body>
-  <header class="panel">
-    <h1>🛒 SHOP</h1>
-     <button onclick="goBack()">🔙 กลับ</button>
-   
-    <div class="money-box" id="moneyWindow">💰 0</div>
+  <header class="topbar">
+    <h1>🛒 Shop</h1>
+    <div class="right-group">
+      <div class="money-box" id="moneyWindow">💰 0</div>
+      <button class="back-btn" onclick="goBack()">🔙 กลับ</button>
+    </div>
   </header>
+  <div class="mode-buttons">
+    <a href="game.html"><button>🎴 NORMAL</button></a>
+    <a href="inf.html"><button>🌀 INF_MODE</button></a>
+    <a href="boss.html"><button>👹 BOSS</button></a>
+    <a href="upgrade.html"><button>🌟 UPGRADE</button></a>
+    <a href="upgradeskills.html"><button>💪 SKILLS</button></a>
+    <a href="GACHA.html"><button>🔮 GACHA</button></a>
+    <a href="GACHAE.html"><button>👔 EQUIPMENT</button></a>
+  </div>
 <div id="refresh-timer" class="footer-note"></div>
   <div class="panel">
     <div class="searchbar">

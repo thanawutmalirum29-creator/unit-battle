@@ -6,17 +6,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="../css/game.css" />
   <link rel="stylesheet" href="../css/skills.css" />
+  <link rel="stylesheet" href="../css/theme.css" />
 </head>
 <body>
-<header class="panel">
-    <div style="flex:1">
-  <h1>🌀 INF_Mode</h1>
-  <div style="display:flex; align-items:center; justify-content:space-between;">
-    <div style="display:flex; gap:8px;">
-      
-    </div>
-   
-  </div>
+<header class="topbar">
+  <h1>🌀 Infinite Mode</h1>
 </header>
  <div id="moneyWindow">💰 400</div>
    <h3>🎒 กระเป๋า</h3>
@@ -37,15 +31,15 @@
     <div>🔴 ชาร์ดแดง: <span id="shardRed">0</span></div>
     <div>🌌 ชาร์ดฟ้า: <span id="shardSky">0</span></div>
   </div>
-</div>
-       <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px;">
-   <a href="upgradeskills.html"><button>💪 UPGRADESKILLS</button></a>
-       <a href="upgrade.html"><button>🌟 UPGRADE</button></a>
-       <a href="shop.html"><button>🏪 SHOP</button></a>
-      <a href="GACHA.html"><button>🔮GACHA</button></a>
-      <a href="GACHAE.html"><button> 👔equipment</button></a>
-     <a href="game.html"><button>🎴 N-MORD</button></a>
-       <a href="boss.html"><button>👹 BOSS</button></a
+
+<div class="mode-buttons">
+   <a href="upgradeskills.html"><button>💪 SKILLS</button></a>
+   <a href="upgrade.html"><button>🌟 UPGRADE</button></a>
+   <a href="shop.html"><button>🏪 SHOP</button></a>
+   <a href="GACHA.html"><button>🔮 GACHA</button></a>
+   <a href="GACHAE.html"><button>👔 EQUIPMENT</button></a>
+   <a href="game.html"><button>🎴 NORMAL</button></a>
+   <a href="boss.html"><button>👹 BOSS</button></a>
 </div>
    <button id="cancelBattleBtn">❌ ยกเลิกการต่อสู้</button>
 
@@ -66,7 +60,7 @@
     <hr>
     <h3>INF Stage</h3>
     <div id="infStageInfo">ยังไม่เริ่ม</div>
-  </div>
+
   <div class="right">
     <div class="panel">
       <h3>สนามต่อสู้</h3>
@@ -81,7 +75,6 @@
       <div id="result"></div>
     </div>
   </div>
-</div>
 <script src="../js/data/equip.js"></script>
 <script src="../js/core/render.js"></script>
 

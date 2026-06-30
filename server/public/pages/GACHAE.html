@@ -3,79 +3,23 @@
 <head>
   <meta charset="utf-8">
   <title>🎰 กาชาอุปกรณ์</title>
-  <style>
-    body {
-      background: #0d0d0d;
-      color: #f5f5f5;
-      font-family: "Segoe UI", sans-serif;
-      text-align: center;
-      margin: 0;
-      padding: 20px;
-    }
-
-    h1 {
-      margin-bottom: 20px;
-      text-shadow: 0 0 8px #ff9800, 0 0 16px #ff5722;
-    }
-
-    .gacha-actions {
-      margin: 20px 0;
-    }
-
-    .gacha-actions button {
-      margin: 8px;
-      padding: 12px 24px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: bold;
-      background: linear-gradient(135deg, #ff9800, #ff5722);
-      color: #fff;
-      box-shadow: 0 0 10px rgba(255, 87, 34, 0.7);
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .gacha-actions button:hover {
-      transform: scale(1.08);
-      box-shadow: 0 0 18px rgba(255, 87, 34, 0.9);
-    }
-
-    #equipOverlay {
-      display: none;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 16px;
-      margin-top: 30px;
-    }
-
-    .equip-card {
-      background: #1e1e1e;
-      border-radius: 12px;
-      padding: 12px 16px;
-      min-width: 140px;
-      text-align: center;
-      font-weight: bold;
-      animation: pop 0.5s ease;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-    }
-
-    /* สีตาม rarity */
-    .rarity-Common { color: #aaa; border: 1px solid #aaa; }
-    .rarity-Rare { color: deepskyblue; border: 1px solid deepskyblue; box-shadow: 0 0 8px deepskyblue; }
-    .rarity-Epic { color: violet; border: 1px solid violet; box-shadow: 0 0 10px violet; }
-    .rarity-Legendary { color: gold; border: 1px solid gold; box-shadow: 0 0 12px gold; }
-
-    @keyframes pop {
-      0%   { transform: scale(0.5); opacity: 0; }
-      60%  { transform: scale(1.2); opacity: 1; }
-      100% { transform: scale(1); }
-    }
-  </style>
-</head>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="stylesheet" href="../css/theme.css" />
+  </head>
 <body>
-  <h1>🎰 กาชาอุปกรณ์</h1>
- <button onclick="goBack()">🔙 กลับ</button>
+<header class="topbar">
+  <h1>👔 กาชาอุปกรณ์</h1>
+  <button class="back-btn" onclick="goBack()">🔙 กลับ</button>
+</header>
+<div class="mode-buttons">
+  <a href="game.html"><button>🎴 NORMAL</button></a>
+  <a href="inf.html"><button>🌀 INF_MODE</button></a>
+  <a href="boss.html"><button>👹 BOSS</button></a>
+  <a href="shop.html"><button>🏪 SHOP</button></a>
+  <a href="upgrade.html"><button>🌟 UPGRADE</button></a>
+  <a href="upgradeskills.html"><button>💪 SKILLS</button></a>
+  <a href="GACHA.html"><button>🔮 GACHA</button></a>
+</div>
   <div class="gacha-actions">
     <button onclick="gachaEquipPull(1)">สุ่ม 1 ชิ้น</button>
     <button onclick="gachaEquipPull(10)">สุ่ม 10 ชิ้น</button>
