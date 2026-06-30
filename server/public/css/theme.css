@@ -42,10 +42,10 @@ html{
 }
 
 body{
-  margin:0;
-  padding:0 10px 32px;
+  margin:0 auto;
+  padding:14px 14px 32px;
   width:100%;
-  max-width:100%;
+  max-width:1180px;
   background:transparent;
   color:var(--text);
   font-family:var(--font);
@@ -63,7 +63,7 @@ hr{ border:none; border-top:1px solid var(--border); margin:16px 0; }
 .topbar, header, header.panel{
   background:linear-gradient(180deg,rgba(20,29,43,.95),rgba(15,21,31,.95)) !important;
   border:1px solid var(--border) !important;
-  border-radius:0 0 var(--radius) var(--radius) !important;
+  border-radius:var(--radius) !important;
   padding:14px 16px !important;
   display:flex !important;
   flex-wrap:wrap;
@@ -659,6 +659,14 @@ body.no-scroll{ overflow:hidden; height:100%; }
   height:auto;
   min-height:120px;
   width:150px;
+}
+.card-box.player-card{
+  border-color:rgba(16,185,129,.45);
+  background:linear-gradient(160deg,rgba(16,185,129,.16),rgba(8,18,15,.9));
+}
+.card-box.enemy-card{
+  border-color:rgba(239,68,68,.45);
+  background:linear-gradient(160deg,rgba(239,68,68,.16),rgba(20,9,9,.9));
 }
 .hp-bar{
   flex-shrink:0;
