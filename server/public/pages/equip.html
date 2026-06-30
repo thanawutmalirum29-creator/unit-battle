@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <title>🛡️ สวมใส่อุปกรณ์</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="../css/theme.css" />
+</head>
+<body>
+<header class="topbar">
+  <h1>🛡️ สวมใส่อุปกรณ์</h1>
+</header>
+<div class="mode-buttons">
+  <a href="game.html"><button class="mode-button">🎴 NORMAL</button></a>
+  <a href="inf.html"><button class="mode-button">🌀 INF_MODE</button></a>
+  <a href="boss.html"><button class="mode-button">👹 BOSS</button></a>
+  <a href="shop.html"><button class="mode-button">🏪 SHOP</button></a>
+  <a href="upgrade.html"><button class="mode-button">🌟 UPGRADE</button></a>
+  <a href="upgradeskills.html"><button class="mode-button">💪 SKILLS</button></a>
+  <a href="GACHA.html"><button class="mode-button">🔮 GACHA</button></a>
+  <a href="GACHAE.html"><button class="mode-button">🎰 กาชาอุปกรณ์</button></a>
+  <button class="mode-button active" aria-current="page" disabled>🛡️ สวมอุปกรณ์</button>
+</div>
+
+<section>
+  <h3>เด็คของฉัน — คลิก "ใส่อุปกรณ์" เพื่อเลือกจากกระเป๋า</h3>
+  <div id="deckList" class="upgrade-grid"></div>
+</section>
+
+<section>
+  <h3>🎒 กระเป๋าอุปกรณ์</h3>
+  <div id="equipBag"></div>
+</section>
+
+<div id="equipPopup" class="equip-popup"></div>
+
+<script src="../js/data/equip.js"></script>
+</body>
+</html>
