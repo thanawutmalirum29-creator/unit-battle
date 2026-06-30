@@ -124,9 +124,11 @@ function renderDeck() {
 // ใหม่
 const stats = getRenderStats(card);
 
+    const selectOrder = selectedIndexes.indexOf(card.id); // -1 ถ้ายังไม่ถูกเลือก
+
     const el = document.createElement("div");
     el.className = `card rarity-${card.rarity}` + 
-                   (selectedIndexes.includes(card.id) ? " selected" : "");
+                   (selectOrder !== -1 ? " selected" : "");
     el.style.position = "relative";
 
     // ✅ เลือกการ์ดเข้าทีม
@@ -194,6 +196,14 @@ const stats = getRenderStats(card);
       </div>
     `;
     el.appendChild(lockBtn);
+
+    // 🔢 เลขลำดับทีม (มุมซ้ายบน) แสดงเฉพาะการ์ดที่ถูกเลือกเข้าทีม
+    if (selectOrder !== -1) {
+      const orderBadge = document.createElement("div");
+      orderBadge.className = "team-order-badge";
+      orderBadge.textContent = selectOrder + 1;
+      el.appendChild(orderBadge);
+    }
 
     if (card.locked) {
       el.style.boxShadow = "inset 0 0 6px 3px ";
