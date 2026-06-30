@@ -6,6 +6,21 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="../css/theme.css" />
   <style>
+    /* ⚠️ override กฎเก่าใน theme.css ที่ทำไว้สำหรับกระเป๋าอุปกรณ์แบบลิสต์บรรทัดเดียว
+       (display:flex; flex-wrap:wrap บน #equipBag ทำให้พาเนลกริดใหม่ถูกบีบให้แคบกว่าที่ควร) */
+    #equipBag{
+      display:block !important;
+      gap:0 !important;
+      margin-bottom:0 !important;
+    }
+    .equip-bag-panel{
+      width:100%;
+    }
+    .equip-card{
+      display:block !important;
+      justify-content:initial !important;
+    }
+
     /* ===== กระเป๋าอุปกรณ์ ===== */
     .equip-bag-panel{
       background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
@@ -57,7 +72,7 @@
     .equip-card{
       position:relative;
       border-radius:12px;
-      padding:10px 8px 8px;
+      padding:14px 10px 12px;
       text-align:center;
       cursor:pointer;
       user-select:none;
@@ -65,6 +80,7 @@
       border:1.5px solid rgba(255,255,255,0.15);
       transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
       overflow:hidden;
+      min-height:100px;
     }
     .equip-card:hover{
       transform:translateY(-3px) scale(1.03);
@@ -75,10 +91,10 @@
     .equip-card.rarity-Epic     { border-color:#a855f7; box-shadow:0 0 8px rgba(168,85,247,.4); }
     .equip-card.rarity-Legendary{ border-color:#f59e0b; box-shadow:0 0 10px rgba(245,158,11,.5); }
 
-    .equip-card-icon{ font-size:22px; line-height:1; margin-bottom:4px; }
-    .equip-card-name{ font-size:12px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .equip-card-rarity{ font-size:10px; opacity:.8; margin-top:2px; }
-    .equip-card-bonus{ font-size:11px; margin-top:4px; font-weight:600; color:#34d399; }
+    .equip-card-icon{ font-size:26px; line-height:1; margin-bottom:6px; }
+    .equip-card-name{ font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .equip-card-rarity{ font-size:11px; opacity:.8; margin-top:3px; }
+    .equip-card-bonus{ font-size:12px; margin-top:6px; font-weight:600; color:#34d399; }
 
     .equip-bag-pager{
       display:flex;
