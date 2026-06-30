@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>Skill Upgrade</title>
+<style>
+  body {
+  font-family: "Segoe UI", sans-serif;
+  background: linear-gradient(160deg, #0f0f1a, #1a1a2e);
+  color: #fff;
+  margin: 0;
+}
+
+/* Header */
+header {
+  background: linear-gradient(90deg, #222, #333);
+  padding: 16px;
+  text-align: center;
+  border-bottom: 2px solid #5c5cff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+}
+header h1 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 1px;
+}
+header button {
+  margin-top: 8px;
+  background: #5c5cff;
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+header button:hover {
+  background: #7777ff;
+}
+
+/* Layout */
+.main-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 10px 60px; /* กัน skill-panel */
+}
+@media (min-width: 768px) {
+  .main-wrap { flex-direction: row; }
+}
+
+.panel {
+  background: rgba(30,30,50,0.9);
+  padding: 14px;
+  border-radius: 12px;
+  flex: 1;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+/* การ์ด */
+.card-box {
+  flex: 0 0 140px;
+  height: auto;
+  background: #2a2a3d;
+  padding: 10px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: center;
+  border: 2px solid transparent;
+  transition: all .25s;
+}
+.card-box:hover {
+  transform: translateY(-6px) scale(1.03);
+  border-color: #5c5cff;
+  box-shadow: 0 0 12px rgba(92,92,255,0.6);
+}
+.card-box b {
+  color: #ffdf5c;
+  font-size: 14px;
+}
+
+/* Skill detail panel */
+.skill-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(20,20,30,0.95);
+  padding: 14px;
+  border-top: 3px solid #5c5cff;
+  border-radius: 12px 12px 0 0;
+  max-height: 40%;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 -4px 10px rgba(0,0,0,0.6);
+}
+.skill-panel h3 {
+  margin-top: 0;
+  color: #9be7ff;
+  font-size: 16px;
+}
+
+/* ปุ่มอัปเกรด */
+button.upgrade-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  font-size: 15px;
+  transition: all 0.2s;
+}
+button.upgrade-btn.ok {
+  background: linear-gradient(90deg, #06d6a0, #07f5b5);
+  color: #111;
+  box-shadow: 0 0 8px rgba(6,214,160,0.7);
+}
+button.upgrade-btn.ok:hover {
+  transform: scale(1.05);
+}
+button.upgrade-btn.fail {
+  background: linear-gradient(90deg, #d62828, #ff4c4c);
+  color: #fff;
+  box-shadow: 0 0 8px rgba(214,40,40,0.7);
+}
+button.upgrade-btn.fail:hover {
+  transform: scale(1.05);
+}
+button.upgrade-btn:disabled {
+  background: #555;
+  color: #aaa;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.card-select-btn {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  border-radius: 8px;
+  border: 2px solid #5c5cff;
+  background: linear-gradient(90deg, #2a2a4a, #3c3c70);
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+.card-select-btn:hover {
+  background: linear-gradient(90deg, #4444aa, #6666ff);
+  box-shadow: 0 0 8px rgba(92, 92, 255, 0.7);
+  transform: translateY(-2px);
+}
+.card-select-btn:active {
+  transform: scale(0.95);
+}
+/* Common */
+.card-box.common {
+  border: 2px solid #aaa;
+  color: #ddd;
+}
+
+/* Rare = shardBlue */
+.card-box.rare {
+  border: 2px solid #3399ff;
+  box-shadow: 0 0 10px rgba(51,153,255,0.4);
+}
+.card-box.rare b { color: #66ccff; }
+
+/* Epic = shardPurple */
+.card-box.epic {
+  border: 2px solid #aa66ff;
+  box-shadow: 0 0 12px rgba(170,102,255,0.5);
+}
+.card-box.epic b { color: #cc99ff; }
+
+/* Legendary = shardGold */
+.card-box.legendary {
+  border: 2px solid #ffcc00;
+  box-shadow: 0 0 12px rgba(255,204,0,0.6);
+}
+.card-box.legendary b { color: #ffdf5c; }
+
+/* Mythical = shardRed */
+.card-box.mythical {
+  border: 2px solid #ff4444;
+  box-shadow: 0 0 12px rgba(255,68,68,0.5);
+}
+.card-box.mythical b { color: #ff7777; }
+
+/* Cosmic = shardSky */
+.card-box.cosmic {
+  border: 2px solid #66ffff;
+  box-shadow: 0 0 14px rgba(102,255,255,0.6);
+}
+.card-box.cosmic b { color: #99ffff; }
+.progress-bar {
+  background: #333;
+  border-radius: 6px;
+  height: 14px;
+  width: 100%;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.progress-fill {
+  background: linear-gradient(90deg, #06d6a0, #07f5b5);
+  height: 100%;
+  width: 0%;
+  transition: width 1s ease;
+}
+.progress-fill.fail {
+  background: linear-gradient(90deg, #d62828, #ff4c4c);
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>💪 อัปเกรดสกิล</h1>
+<button onclick="goBack()">🔙 กลับ</button>
+</header>
+
+<div class="main-wrap">
+  <div class="panel">
+    <h3>เลือกตัวละคร/การ์ด</h3>
+    <div id="deck-wrapper"></div>
+  </div>
+
+ <div class="panel skill-panel">
+  <h3>รายละเอียดสกิล</h3>
+  <div id="skillDetail">เลือกการ์ดเพื่อดู</div>
+</div>
+
+<script src="../js/core/bag.js"></script>
+<script src="../js/core/render.js"></script>
+<script src="../js/data/upgradeSkills.js"></script>
+</body>
+</html>
