@@ -219,7 +219,6 @@ button:disabled, button[disabled]{
   background:linear-gradient(135deg,#7a1c1c,#4d0f0f);
   border:1px solid rgba(239,68,68,.4);
   color:#ffd5d5;
-  display:block;
   margin:4px 0 16px;
 }
 #cancelBattleBtn:hover{ background:linear-gradient(135deg,#9c2424,#601313); }
