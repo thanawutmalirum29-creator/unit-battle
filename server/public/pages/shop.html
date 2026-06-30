@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <title>🛒 SHOP — ซื้อการ์ด</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../css/game.css" />
+  <style>
+  /* บังคับทุก element ไม่ให้ล้นจอ */
+* {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* body ไม่ให้ scroll แนวนอน */
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* panel / header ให้กว้างไม่เกินจอ */
+.panel, header.panel {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* grid ปรับ responsive */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+    body { background:#0b0f13; color:#e6edf3; }
+    header.panel { display:flex; align-items:center; gap:8px; }
+    .money-box { margin-left:auto; font-weight:700; }
+    .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+    .card {
+      background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07);
+      padding:12px; border-radius:14px; box-shadow:0 8px 20px rgba(0,0,0,0.25);
+      display:flex; flex-direction:column; justify-content:space-between; gap:8px;
+    }
+    .title { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .rarity-Common{
+  border:2px solid var(--c-common); 
+  background:#111216;
+}
+.rarity-Rare {
+  border: 2px solid var(--c-rare);
+  background: radial-gradient(circle at top left, #0b1f3d, #07132a, #02060f);
+  box-shadow: 0 0 10px rgba(22, 58, 122, 0.4),
+              0 0 18px rgba(0, 102, 204, 0.25);
+  color: #d6e4ff;
+}
+
+/* ชื่อการ์ด Rare */
+.rarity-Rare .title {
+  background: linear-gradient(90deg, #4facfe, #00f2fe);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: bold;
+  text-shadow: 0 0 6px rgba(79, 172, 254, 0.6),
+               0 0 12px rgba(0, 242, 254, 0.5);
+}
+
+.rarity-Epic {
+  border: 2px solid var(--c-epic);
+  background: radial-gradient(circle at top left, #1a0b2e, #10061b, #050009);
+  box-shadow: 0 0 14px rgba(75,42,99,0.5),
+              0 0 28px rgba(155,89,182,0.3);
+  color: #f0e6ff;
+}
+
+/* ชื่อการ์ด Epic */
+.rarity-Epic .title {
+  background: linear-gradient(90deg, #c471ed, #f64f59);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: bold;
+  text-shadow: 0 0 8px rgba(196,113,237,0.6),
+               0 0 16px rgba(246,79,89,0.5);
+}
+
+.rarity-Legendary {
+  border: 2px solid var(--c-legend);
+  background: radial-gradient(circle at top left, #3a2800, #2b1f00, #120a00);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5),
+              0 0 40px rgba(255, 165, 0, 0.3);
+  color: #fff8dc;
+}
+
+/* ชื่อการ์ด Legendary */
+.rarity-Legendary .title {
+  background: linear-gradient(90deg, #ffd700, #ffa500, #ffcc00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 900;
+  text-shadow: 0 0 10px rgba(255,215,0,0.8),
+               0 0 20px rgba(255,165,0,0.6),
+               0 0 30px rgba(255,140,0,0.5);
+}
+.rarity-Mythical {
+  border: 2px solid var(--c-mythical);
+  background: radial-gradient(circle at top left, #330018, #1a0010, #000000);
+  box-shadow: 0 0 24px rgba(255, 102, 204, 0.6),
+              0 0 40px rgba(179, 0, 89, 0.4);
+  color: #ffe6f7;
+}
+
+/* ชื่อการ์ด Mythical */
+.rarity-Mythical .title {
+  background: linear-gradient(90deg, #ff66cc, #ff1493, #ff80bf);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 900;
+  text-shadow: 0 0 12px rgba(255, 102, 204, 0.8),
+               0 0 24px rgba(179, 0, 89, 0.6),
+               0 0 36px rgba(255, 20, 147, 0.5);
+}
+/* การ์ดพื้นหลัง Cosmic */
+.rarity-Cosmic {
+  border: 2px solid #7f00ff; 
+  background: radial-gradient(circle at top left, #0a0018, #001830, #000000);
+  box-shadow: 0 0 24px rgba(127,0,255,0.5),
+              0 0 36px rgba(0,210,255,0.4);
+  color: #e0e8ff; /* fallback ถ้าข้อความไม่มีสไตล์ */
+}
+
+/* ชื่อการ์ด Cosmic */
+.rarity-Cosmic .title {
+  background: linear-gradient(90deg, #7f00ff, #00d2ff, #ff00ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(127,0,255,0.7),
+               0 0 20px rgba(0,210,255,0.6);
+}
+    .stats { font-size:13px; opacity:.9; display:grid; grid-template-columns:1fr 1fr; gap:6px 10px; }
+    .price { font-weight:700; }
+    .actions { display:flex; gap:8px; }
+    .searchbar { display:flex; gap:8px; margin:8px 0 16px; }
+    input[type="text"],select{
+      padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.1);
+      background:rgba(255,255,255,.03); color:#e6edf3;
+    }
+    button.buy { width:100%; padding:10px 12px; border-radius:12px; border:none;
+      background:#10b981; color:#071218; font-weight:800; cursor:pointer; }
+    button.buy[disabled]{ background:#374151; color:#9ca3af; cursor:not-allowed; }
+    .muted{ opacity:.7; font-size:12px; }
+    .footer-note{ margin-top:12px; opacity:.6; font-size:12px; }
+    .card.locked {
+  opacity: 0.4;
+  pointer-events: none;
+}
+  </style>
+</head>
+<body>
+  <header class="panel">
+    <h1>🛒 SHOP</h1>
+     <button onclick="goBack()">🔙 กลับ</button>
+   
+    <div class="money-box" id="moneyWindow">💰 0</div>
+  </header>
+<div id="refresh-timer" class="footer-note"></div>
+  <div class="panel">
+    <div class="searchbar">
+      <input id="q" type="text" placeholder="ค้นหาชื่อการ์ด..." />
+      <select id="rarFilter">
+        <option value="">ทุกความแรร์</option>
+        <option>Common</option><option>Rare</option><option>Epic</option>
+        <option>Legendary</option><option>Mythical</option><option>Cosmic</option>
+      </select>
+      </div>
+      
+      <select id="sort">
+        <option value="popular">เรียง: แนะนำ</option>
+        <option value="priceAsc">เรียง: ราคา ⬆</option>
+        <option value="priceDesc">เรียง: ราคา ⬇</option>
+        <option value="atkDesc">เรียง: ATK ⬇</option>
+        <option value="hpDesc">เรียง: HP ⬇</option>
+      </select>
+    </div>
+
+    <div class="grid" id="shopGrid"></div>
+    <div class="footer-note">หลังซื้อ การ์ดจะถูกเพิ่มเข้า <b>เด็ค</b> ของคุณทันที (เก็บไว้ใน LocalStorage)</div>
+  </div>
+
+  <script src="../js/core/money.js"></script>
+<script src="../js/data/shop-data.js"></script>
+<script src="../js/core/bag.js"></script>  
+  <script>
+
+   
+
+function goBack(){
+  if (document.referrer) {
+    // ถ้ามี referrer → กลับไปหน้านั้น
+    window.location.href = document.referrer;
+  } else {
+    // ถ้าไม่มี (เช่นเปิดตรงๆ) → กลับไปหน้า game.html เป็นค่า default
+    window.location.href = "game.html";
+  }
+}
+
+    function getDeck(){ try{ return JSON.parse(localStorage.getItem('deck')||'[]'); }catch(e){ return []; } }
+    function saveDeck(deck){ localStorage.setItem('deck', JSON.stringify(deck)); }
+    function makeId(){ return 'card-' + Date.now() + '-' + Math.random().toString(36).slice(2,7); }
+
+    const grid=document.getElementById('shopGrid');
+    const q=document.getElementById('q');
+    const rarFilter=document.getElementById('rarFilter');
+    const sortSel=document.getElementById('sort');
+
+    function applyFilters(){
+      const query=(q.value||'').toLowerCase();
+      const rar=rarFilter.value;
+      let list=(SHOP_CARDS||[]).filter(i=>
+        (!rar || i.rarity===rar) &&
+        ((i.name||"").toLowerCase().includes(query))
+      );
+      const sort=sortSel.value;
+      if(sort==='priceAsc') list.sort((a,b)=>a.price-b.price);
+      else if(sort==='priceDesc') list.sort((a,b)=>b.price-a.price);
+      else if(sort==='atkDesc') list.sort((a,b)=>b.atk-a.atk);
+      else if(sort==='hpDesc') list.sort((a,b)=>b.hp-a.hp);
+      else list.sort((a,b)=>b.price-a.price);
+      renderGrid(list);
+    }
+
+    function renderGrid(list){
+  grid.innerHTML='';
+  const money = loadMoney();
+  const lockedState = JSON.parse(localStorage.getItem("shop_locked") || "{}");
+  const bag = loadBag(); // โหลดกระเป๋า
+
+  list.forEach(item=>{
+    const rarity = item.rarity;
+    const rarityLocked = lockedState[rarity] === true;
+    const canBuyMoney = !rarityLocked && money>=item.price;
+
+    // map rarity → memory key
+    const memoryMap = {
+      "Rare":"memoryRare",
+      "Epic":"memoryEpic",
+      "Legendary":"memoryLegendary",
+      "Mythical":"memoryMythical",
+      "Cosmic":"memoryCosmic"
+    };
+    const memoryKey = memoryMap[rarity];
+    const memoryHave = bag[memoryKey] || 0;
+    const canBuyShard = !rarityLocked && memoryHave>=50;
+
+    const rarityClass = `rarity-${rarity}`;
+    const card=document.createElement('div');
+    card.className=`card ${rarityClass} ${rarityLocked ? 'locked':''}`;
+
+    card.innerHTML=`
+      <div class="title">
+        <div><b>${item.name}</b></div>
+        <div class="rar ${item.rarity}">${item.rarity}</div>
+      </div>
+      <div class="stats">
+        <div>ATK: ${item.atk}</div>
+        <div>HP: ${item.hp}</div>
+        <div>DEF: ${item.def}</div>
+         <div class="muted">สกิล: ${item.skill||'-'}</div>
+      </div>
+      <div class="price">ราคา: ${item.price} 💰</div>
+      <div class="actions">
+        <button class="buy" ${canBuyMoney?'':'disabled'}>ซื้อด้วยเงิน</button>
+        <button class="buy" data-shard ${canBuyShard?'':'disabled'}>ใช้ 50 ชิ้นส่วน</button>
+      </div>
+     `;
+
+    if(canBuyMoney){
+      card.querySelector('button.buy:not([data-shard])')
+          .addEventListener('click',()=>buyItem(item));
+    }
+    if(canBuyShard){
+      card.querySelector('button.buy[data-shard]')
+          .addEventListener('click',()=>buyWithShard(item,memoryKey));
+    }
+
+    grid.appendChild(card);
+  });
+}
+
+function buyWithShard(item, memoryKey){
+  const deck = getDeck();
+  const MAX_DECK_SIZE = 100;
+  if(deck.length >= MAX_DECK_SIZE){
+    alert(`⚠️ เด็คเต็ม!`);
+    return;
+  }
+
+  let bag = loadBag();
+  if((bag[memoryKey]||0) < 50){
+    alert("ชิ้นส่วนไม่พอ!");
+    return;
+  }
+
+  if(!confirm(`ใช้ 50 ชิ้นส่วนเพื่อแลก ${item.name} ?`)) return;
+
+  // หักชิ้นส่วน
+  bag[memoryKey] -= 50;
+  localStorage.setItem("bag", JSON.stringify(bag));
+
+  // เพิ่มการ์ดเข้า deck
+  const newCard=structuredClone(item);
+  newCard.id=makeId();
+  deck.push(newCard);
+  saveDeck(deck);
+
+  // ล็อค rarity
+  const lockedState = JSON.parse(localStorage.getItem("shop_locked") || "{}");
+  lockedState[item.rarity] = true;
+  localStorage.setItem("shop_locked", JSON.stringify(lockedState));
+
+  applyFilters();
+  alert("แลกสำเร็จ! การ์ดถูกเพิ่มเข้าเด็คแล้ว");
+}
+    function buyItem(item){
+    let money = loadMoney(); // เพิ่มตรงนี้
+    const MAX_DECK_SIZE = 100;
+
+
+  const deck = getDeck();
+  if (deck.length >= MAX_DECK_SIZE) {
+    alert(`⚠️ เด็คเต็ม! ตอนนี้ ${deck.length}/${MAX_DECK_SIZE}\nไม่สามารถซื้อเพิ่มได้`);
+    return;
+  }
+
+  if(!confirm(`ซื้อ ${item.name} ในราคา ${item.price} ?`)) return;
+
+
+  if(money<item.price){ 
+    alert("เงินไม่พอ"); 
+    return; 
+  }
+
+  // หักเงิน
+  money-=item.price;
+  localStorage.setItem("deckgame_money",money);
+  updateMoneyUI();
+
+  // เพิ่มการ์ดเข้า deck
+  const newCard=structuredClone(item);
+  newCard.id=makeId();
+  deck.push(newCard);
+  saveDeck(deck);
+
+  // ล็อคเฉพาะ rarity ของการ์ดนี้
+  const lockedState = JSON.parse(localStorage.getItem("shop_locked") || "{}");
+  lockedState[item.rarity] = true;
+  localStorage.setItem("shop_locked", JSON.stringify(lockedState));
+
+  applyFilters();
+  alert("ซื้อสำเร็จ! การ์ดถูกเพิ่มเข้าเด็คแล้ว");
+}
+
+    [q,rarFilter,sortSel].forEach(el=>el.addEventListener('input',applyFilters));
+    updateMoneyUI();
+    applyFilters();
+    
+function getCycle(){
+  return Math.floor(Date.now() / REFRESH_INTERVAL);
+}
+
+function refreshShopByDeck(){
+  const currentCycle = getCycle();
+  const savedCycle = parseInt(localStorage.getItem("shop_cycle") || "-1", 10);
+
+  // ถ้าเพิ่งเข้ามา และยังอยู่ในรอบเดิม → ใช้ร้านเดิมที่เคยเซฟไว้
+  if(savedCycle === currentCycle){
+  const saved = localStorage.getItem("shop_cards");
+  if(saved){
+    window.SHOP_CARDS = JSON.parse(saved);
+
+    // โหลดสถานะล็อคด้วย
+    const savedLocked = localStorage.getItem("shop_locked");
+    if(savedLocked){
+      window.shop_locked = JSON.parse(savedLocked);
+    }
+
+    if(typeof applyFilters==="function") applyFilters();
+    return;
+  }
+}
+
+  // ถ้าเข้ารอบใหม่ → สุ่มร้านใหม่
+  // ถ้าเข้ารอบใหม่ → สุ่มร้านใหม่
+const newDeck = generateShopDeck();
+window.SHOP_CARDS = newDeck;
+localStorage.setItem("shop_cards", JSON.stringify(newDeck));
+localStorage.setItem("shop_cycle", currentCycle);
+
+// รีเซ็ตการซื้อ (เฉพาะตอนเข้ารอบใหม่เท่านั้น)
+let locked = {Cosmic:false, Mythical:false, Legendary:false, Epic:false, Rare:false};
+localStorage.setItem("shop_locked", JSON.stringify(locked));
+
+  if(typeof applyFilters==="function") applyFilters();
+}
+
+// เริ่มต้น
+refreshShopByDeck();
+// ไม่ต้อง setInterval ตรงนี้แล้ว เพราะเราจะอิงจากเวลา Date.now() โดยตรง
+// ฟังก์ชันอัปเดตตัวจับเวลารีการ์ด
+function updateTimer(){
+  const now = Date.now();
+  const interval = window.REFRESH_INTERVAL || 300000; // fallback เผื่อค่าไม่ถูกตั้ง
+  const cycle = Math.floor(now / interval);
+  const nextRefresh = (cycle + 1) * interval;
+  let remain = nextRefresh - now;
+
+  if (remain < 0) remain = 0;
+  const sec = Math.floor(remain / 1000) % 60;
+  const min = Math.floor(remain / 60000);
+
+  const text = remain > 0
+    ? `🕒 รีการ์ดใหม่อีก ${min}:${sec.toString().padStart(2,'0')} นาที`
+    : "🔄 กำลังรีการ์ดใหม่...";
+
+  const timerEl = document.getElementById("refresh-timer");
+  if (timerEl) timerEl.textContent = text;
+}
+
+// เริ่มนับถอยหลัง
+setInterval(updateTimer, 1000);
+updateTimer();
+
+setInterval(()=>{
+  refreshShopByDeck();
+}, 5000);
+  </script>
+</body>
+</html>
