@@ -256,7 +256,20 @@ input[type="text"], select{
 input[type="text"]{ flex:1 1 200px; }
 
 /* ---------------- CARD GRID (shop / gacha) ---------------- */
-.grid, .gacha-container{
+.grid{
+  display:grid !important;
+  grid-template-columns:repeat(2,1fr) !important;
+  gap:10px !important;
+  width:100%;
+}
+@media (min-width:600px){
+  .grid{ grid-template-columns:repeat(3,1fr) !important; }
+}
+@media (min-width:900px){
+  .grid{ grid-template-columns:repeat(4,1fr) !important; }
+}
+
+.gacha-container{
   display:grid !important;
   grid-template-columns:repeat(auto-fill,minmax(170px,1fr)) !important;
   gap:12px !important;
