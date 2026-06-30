@@ -62,12 +62,18 @@ if (user.class === "UltraBoss") {
 
   const handler = skillHandlers[user.skill];
   if (handler) {
+    // Sentinel so we can tell whether the handler set its own (deliberately tuned)
+    // cooldown, e.g. Revive=6, Defense Buff=6, Critical=2, Time Stop=3-7, Summon=6/8...
+    // Without this, every skill's custom cooldown gets discarded below.
+    user.cooldown = undefined;
     const result = await handler(user, allies, enemies);
 
-    // 🕒 ตั้งคูลดาวน์ → MidBoss ไวกว่า
-    user.cooldown = (user.class === "MidBoss") ? 2
-               : (user.class === "BigBoss") ? 2
-               : 4;
+    // 🕒 ตั้งคูลดาวน์เริ่มต้น → ใช้เฉพาะกรณี handler ไม่ได้กำหนดคูลดาวน์เอง (เช่น Berserk Mode)
+    if (user.cooldown === undefined) {
+      user.cooldown = (user.class === "MidBoss") ? 2
+                 : (user.class === "BigBoss") ? 2
+                 : 4;
+    }
 
     return result;
   } else {

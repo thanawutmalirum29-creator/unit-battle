@@ -15,31 +15,31 @@ window.skillHandlers_partDMG= {
 
 "AOE Attack Boss": async (user, allies, enemies) => {
   let used = false;
-  
-  enemies.forEach(async (e) => {
+
+  for (const e of enemies) {
     if (e.hp > 0) {
       used = true;
-      
-      const atkFinal = getFinalAtk(user);
-const defFinal = getFinalDef(e);
 
-const rawDmg = atkFinal - defFinal;
-const dmg = Math.max(1, Math.floor(rawDmg *1.2));
-      
+      const atkFinal = getFinalAtk(user);
+      const defFinal = getFinalDef(e);
+
+      const rawDmg = atkFinal - defFinal;
+      const dmg = Math.max(1, Math.floor(rawDmg *1.2));
+
       // 📝 log ดาเมจก่อน
       log(`🔥 ${user.name} (AOE Attack) → ${e.name} -${dmg} HP`, user.isEnemy ? "enemy" : "player");
-      
+
       // 📌 applyDamage แค่บันทึกผล
       await applyDamage(user, e, dmg);
-      
+
       const targetEl = document.querySelector(`[data-id="${e.instanceId}"]`);
       if (targetEl) {
         targetEl.classList.add("aoe-hit");
         setTimeout(() => targetEl.classList.remove("aoe-hit"), 600);
       }
     }
-  });
-  
+  }
+
   if (used) {
     const casterEl = document.querySelector(`[data-id="${user.instanceId}"]`);
     if (casterEl) {

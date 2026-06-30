@@ -24,8 +24,8 @@ window.skillHandlers_partSummon = {
     log(`🧟 ${user.name} ซัมมอนลูกน้อง 2 ตัวออกมา!`, "enemy");
 
     renderBattlefield();
-    updateAllHpBars();
-    setPostSkillCooldown(user, 8);
+    user.cooldown = 8;
+    return true;
   }
 ,
   "Summon L1": async (user, allies, enemies) => {

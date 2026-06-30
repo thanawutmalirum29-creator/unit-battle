@@ -35,6 +35,7 @@ window.skillHandlers_partHP = {
   
   // ฟื้นฟู
   user.hp = Math.min(user.maxHp, user.hp + heal);
+  updateHpBar(user);
   
   // 📝 log
   log(

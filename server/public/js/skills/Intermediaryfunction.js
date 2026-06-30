@@ -84,8 +84,6 @@ async function doHeal(user, allies, multiplier, level) {
   const atkFinal = getFinalAtk(user); // ✅ ดึงจากระบบกลาง
   const healAmount = Math.floor(atkFinal * multiplier);
 
-  ally.hp = Math.min(ally.maxHp, ally.hp + healAmount);
-
   // Log
   log(
     `💚 ${user.name} (Heal L${level}) → ฟื้น ${ally.name} +${healAmount} HP`,
@@ -109,7 +107,6 @@ async function doAOEHeal(user, allies, multiplier, level) {
 
   for (let a of targets) {
     const healAmount = Math.floor(atkFinal * multiplier);
-    a.hp = Math.min(a.maxHp, a.hp + healAmount);
 
     // log
     log(
@@ -212,8 +209,6 @@ async function doBloodTribute(user, allies, enemies, multiplier, level) {
   if (targetAlly) {
     const heal = Math.min(totalDrain, targetAlly.maxHp - targetAlly.hp);
     if (heal > 0) {
-      targetAlly.hp += heal;
-
       log(`💖 ${user.name} ฟื้นฟู ${targetAlly.name} +${heal} HP จากการดูดเลือด`,
           user.isEnemy ? "enemy" : "player");
 
@@ -240,12 +235,7 @@ async function doLifesteal(user, allies, enemies, healRate, level) {
   const dmg = Math.max(1, Math.floor(atkFinal - defFinal));
   const heal = Math.floor(dmg * healRate);
 
-  // 📌 ฟื้นฟูเลือดตัวเอง
-  if (heal > 0) {
-    user.hp = Math.min(user.maxHp, user.hp + heal);
-    applyHeal(user, user, heal);
-  }
-
+  // 📌 ฟื้นฟูเลือดตัวเอง (applyHeal below does the actual hp update + UI)
   // 📝 log
   log(
     `🩸 ${user.name} (Lifesteal L${level}) → โจมตี ${target.name} -${dmg} HP และฟื้น +${heal} HP`,
@@ -253,6 +243,11 @@ async function doLifesteal(user, allies, enemies, healRate, level) {
   );
 
   await applyDamage(user, target, dmg);
+
+  // 📌 ฟื้นฟูเลือดตัวเอง
+  if (heal > 0) {
+    applyHeal(user, user, heal);
+  }
 
   // เอฟเฟกต์ฟื้นเลือด
   const userEl = document.querySelector(`[data-id="${user.instanceId}"]`);
@@ -396,19 +391,19 @@ async function doDoubleStrike(user, enemies, multiplier1, multiplier2, level) {
 
   // 🗡️ โจมตีครั้งที่ 2 (ดีเลย์ 200ms)
   if (target.hp > 0) {
-    setTimeout(async () => {
-      const atk2 = getFinalAtk(user);
-      const def2 = getFinalDef(target);
-      const dmg2 = Math.max(1, Math.floor(atk2 * multiplier2) - def2);
+    await delay(200);
 
-      log(`🗡️ ${user.name} (Double L${level} - Hit 2) → ${target.name} -${dmg2} HP`, user.isEnemy ? "enemy" : "player");
-      await applyDamage(user, target, dmg2);
+    const atk2 = getFinalAtk(user);
+    const def2 = getFinalDef(target);
+    const dmg2 = Math.max(1, Math.floor(atk2 * multiplier2) - def2);
 
-      if (targetEl) {
-        targetEl.classList.add("double-strike-hit");
-        setTimeout(() => targetEl.classList.remove("double-strike-hit"), 300);
-      }
-    }, 200);
+    log(`🗡️ ${user.name} (Double L${level} - Hit 2) → ${target.name} -${dmg2} HP`, user.isEnemy ? "enemy" : "player");
+    await applyDamage(user, target, dmg2);
+
+    if (targetEl) {
+      targetEl.classList.add("double-strike-hit");
+      setTimeout(() => targetEl.classList.remove("double-strike-hit"), 300);
+    }
   }
 
   user.cooldown = 3;
@@ -457,35 +452,35 @@ async function doTripleHit(user, allies, enemies, atkMultiplier, level) {
   let baseDmg = Math.max(1, Math.floor(atkFinal * atkMultiplier) - defFinal);
 
   const hits = [1, 2, 3];
-  hits.forEach((i, idx) => {
-    setTimeout(async () => {
-      if (target && target.hp > 0) {
-        // 🔥 ตีเป้าหมายหลัก
-        const dmg = Math.max(1, Math.floor(baseDmg / Math.pow(2, i - 1)));
-        log(`💢 ${user.name} (Triple Hit L${level} - Hit ${i}) → ${target.name} -${dmg} HP`,
-            user.isEnemy ? "enemy" : "player");
-        await applyDamage(user, target, dmg);
-      } else {
-        // ถ้าเป้าตาย → หาเป้าหมายใหม่
-        const otherTargets = enemies.filter(e => e.hp > 0);
-        if (otherTargets.length === 0) return;
+  for (const [idx, i] of hits.entries()) {
+    if (idx > 0) await delay(200);
 
-        const newTarget = otherTargets[Math.floor(Math.random() * otherTargets.length)];
-        const dmg = Math.max(1, Math.floor((baseDmg / Math.pow(2, i - 1)) * 0.4));
-        log(`💥 ${user.name} (Triple Hit L${level} - Bounce ${i}) → ${newTarget.name} -${dmg} HP`,
-            user.isEnemy ? "enemy" : "player");
-        await applyDamage(user, newTarget, dmg);
-        target = newTarget;
-      }
+    if (target && target.hp > 0) {
+      // 🔥 ตีเป้าหมายหลัก
+      const dmg = Math.max(1, Math.floor(baseDmg / Math.pow(2, i - 1)));
+      log(`💢 ${user.name} (Triple Hit L${level} - Hit ${i}) → ${target.name} -${dmg} HP`,
+          user.isEnemy ? "enemy" : "player");
+      await applyDamage(user, target, dmg);
+    } else {
+      // ถ้าเป้าตาย → หาเป้าหมายใหม่
+      const otherTargets = enemies.filter(e => e.hp > 0);
+      if (otherTargets.length === 0) continue;
 
-      // เอฟเฟกต์ตี
-      const targetEl = document.querySelector(`[data-id="${target?.instanceId}"]`);
-      if (targetEl) {
-        targetEl.classList.add("triple-hit");
-        setTimeout(() => targetEl.classList.remove("triple-hit"), 300);
-      }
-    }, idx * 200);
-  });
+      const newTarget = otherTargets[Math.floor(Math.random() * otherTargets.length)];
+      const dmg = Math.max(1, Math.floor((baseDmg / Math.pow(2, i - 1)) * 0.4));
+      log(`💥 ${user.name} (Triple Hit L${level} - Bounce ${i}) → ${newTarget.name} -${dmg} HP`,
+          user.isEnemy ? "enemy" : "player");
+      await applyDamage(user, newTarget, dmg);
+      target = newTarget;
+    }
+
+    // เอฟเฟกต์ตี
+    const targetEl = document.querySelector(`[data-id="${target?.instanceId}"]`);
+    if (targetEl) {
+      targetEl.classList.add("triple-hit");
+      setTimeout(() => targetEl.classList.remove("triple-hit"), 300);
+    }
+  }
 
   user.cooldown = 3;
   return true;
@@ -578,7 +573,6 @@ async function doEnergyBoost(user, allies, {
       // ฮีลถ้ามีค่า healRatio
       if (healRatio > 0) {
         const heal = Math.floor(user.atk * healRatio);
-        a.hp = Math.min(a.maxHp, a.hp + heal);
         applyHeal(user, a, heal);
       }
 
@@ -674,7 +668,6 @@ async function doCleanse(user, allies, {
       // 🔹 ฟื้นถ้ามี
       if (healRatio > 0) {
         const heal = Math.floor(atkFinal * healRatio);
-        a.hp = Math.min(a.maxHp, a.hp + heal);
         applyHeal(user, a, heal);
       }
 

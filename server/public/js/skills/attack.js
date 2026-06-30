@@ -100,13 +100,20 @@ if (target.class === "PhantomBoss" && attacker && !attacker.isEnemy) {
     if (target.hp <= 0 || target.hp / target.maxHp < 0.1) {
       target.usedRebirth = true;
       const oldHp = Math.max(0, target.hp);
-      target.hp = Math.floor(target.maxHp * healPercent);
+      // healPercent can exceed 1.0 (Rebirth Lord = 200%) — this is an intentional overheal,
+      // but target.hp must never be allowed past 2x maxHp or the HP bar math / damage formulas
+      // downstream (anything assuming hp <= maxHp) can behave oddly.
+      target.hp = Math.min(target.maxHp * 2, Math.floor(target.maxHp * healPercent));
       const healed = target.hp - oldHp;
 
       log(
         `✨ ${target.name} ใช้ ${target.skill}! ฟื้นคืนชีพด้วย ${target.hp} HP และปล่อยระเบิดพลัง!`,
         target.isEnemy ? "enemy" : "player"
       );
+
+      // refresh the revived unit's own HP bar — the recursive applyDamage calls below
+      // only update the splash targets' bars, not this one's.
+      updateHpBar(target);
 
       const enemies = target.isEnemy ? playerTeam : enemyTeam;
       const aliveEnemies = enemies.filter(e => e.hp > 0);
