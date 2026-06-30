@@ -31,5 +31,25 @@ app.get('/health', (req, res) => res.json({ ok: true }));
 // open the game directly at the root URL
 app.get('/', (req, res) => res.redirect('/pages/game.html'));
 
+// 404 for unmatched API routes (keeps responses JSON instead of falling through to the static 404 page)
+app.use('/api', (req, res) => res.status(404).json({ error: 'not found' }));
+
+// Centralized error handler — every async route in this app can throw (DB errors, etc).
+// Express 4 does NOT catch rejected promises from async handlers on its own, so without
+// this, a thrown error inside a route either hangs the request forever or, on some Node
+// versions, crashes the whole process via an unhandled rejection. Routes call next(err)
+// (see asyncHandler in each router) which lands here.
+app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
+  if (err?.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'malformed JSON body' });
+  }
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'internal server error' });
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled promise rejection:', err);
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`UnitBattle server running on port ${PORT}`));
