@@ -9,6 +9,9 @@
 <body>
 <header class="topbar">
   <h1>👔 กาชาอุปกรณ์</h1>
+  <div class="right-group">
+    <div id="moneyWindow">💰 0</div>
+  </div>
 </header>
 <div class="mode-buttons">
   <a href="game.html"><button class="mode-button">🎴 NORMAL</button></a>
@@ -21,14 +24,29 @@
   <button class="mode-button active" aria-current="page" disabled>🎰 กาชาอุปกรณ์</button>
   <a href="equip.html"><button class="mode-button">🛡️ สวมอุปกรณ์</button></a>
 </div>
-  <div class="gacha-actions">
-    <button onclick="gachaEquipPull(1)">สุ่ม 1 ชิ้น</button>
-    <button onclick="gachaEquipPull(10)">สุ่ม 10 ชิ้น</button>
+
+<div class="gacha-container"></div>
+
+<div id="gachaOverlay">
+  <button id="skipButton" class="hidden">⏩ Skip</button>
+</div>
+
+<!-- popup -->
+<div id="ratePopup" class="popup hidden">
+  <div class="popup-content">
+    <h3>อัตราดรอปอุปกรณ์</h3>
+    <div id="rateDetails"></div>
+    <button onclick="closeEquipRatePopup()">ปิด</button>
   </div>
+</div>
 
-  <div id="equipOverlay"></div>
+<section>
+  <h3>🎒 กระเป๋าอุปกรณ์</h3>
+  <div id="equipBag"></div>
+</section>
 
-  <script src="../js/data/equip.js"></script>
-  <script src="../js/data/equip-gacha.js"></script>
+<script src="../js/core/money.js"></script>
+<script src="../js/data/equip.js"></script>
+<script src="../js/data/equip-gacha.js"></script>
 </body>
 </html>
