@@ -674,3 +674,84 @@ body.no-scroll{ overflow:hidden; height:100%; }
 }
 .hp-fill{ flex-shrink:0; }
 
+
+/* ============================================================
+   EQUIP PAGE (wear/unwear equipment on deck cards)
+   ============================================================ */
+#deckList{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:14px;
+  margin:12px 0 24px;
+}
+#deckList .card{
+  text-align:left;
+  height:auto;
+  min-height:0;
+  padding:14px;
+  display:block;
+}
+#deckList .card button{
+  margin-top:8px;
+}
+.equip-slot{
+  display:inline-block;
+  padding:2px 6px;
+  border-radius:6px;
+  border:1px solid var(--border);
+  background:var(--panel-soft);
+}
+.equip-rarity-Common{ border-color:var(--c-common); color:var(--c-common); }
+.equip-rarity-Rare{ border-color:var(--c-rare); color:var(--c-rare); }
+.equip-rarity-Epic{ border-color:var(--c-epic); color:var(--c-epic); }
+.equip-rarity-Legendary{ border-color:var(--c-legend); color:var(--c-legend); }
+.equip-rarity-Mythical{ border-color:var(--c-mythical); color:var(--c-mythical); }
+.equip-rarity-Cosmic{ border-color:var(--c-cosmic); color:var(--c-cosmic); }
+
+#equipBag{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+  margin-bottom:24px;
+}
+#equipBag .equip{
+  padding:8px 12px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:var(--panel);
+  box-shadow:var(--shadow);
+}
+#equipBag .equip.rarity-Common{ border-color:var(--c-common); }
+#equipBag .equip.rarity-Rare{ border-color:var(--c-rare); }
+#equipBag .equip.rarity-Epic{ border-color:var(--c-epic); }
+#equipBag .equip.rarity-Legendary{ border-color:var(--c-legend); }
+#equipBag .equip.rarity-Mythical{ border-color:var(--c-mythical); }
+#equipBag .equip.rarity-Cosmic{ border-color:var(--c-cosmic); }
+
+.equip-popup{
+  display:none;
+  position:fixed;
+  top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,.65);
+  z-index:200;
+  padding:40px 16px;
+  overflow-y:auto;
+}
+.equip-popup-close{
+  position:absolute;
+  top:16px; right:24px;
+  cursor:pointer;
+  font-size:20px;
+}
+.equip-item{
+  max-width:420px;
+  margin:10px auto;
+  padding:10px 14px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:var(--panel);
+  cursor:pointer;
+  transition:.15s;
+}
+.equip-item:hover{ background:var(--panel-soft); transform:translateY(-1px); }
