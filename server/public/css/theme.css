@@ -523,10 +523,23 @@ button.upgrade-btn:disabled{ background:#3a3f4a; color:#9aa1ab; }
 
 /* ---------------- BATTLEFIELD ---------------- */
 .right{ display:flex; flex-direction:column; gap:14px; max-width:100%; }
+
+/* 🖥️ ทำให้กรอบ "สนามต่อสู้" กว้างเต็มขอบจอ ทะลุ container ที่ถูกจำกัด max-width ของ body */
+.battlefield-panel{
+  width:100vw !important;
+  max-width:100vw !important;
+  margin-left:calc(50% - 50vw) !important;
+  margin-right:calc(50% - 50vw) !important;
+  border-radius:0 !important;
+  box-sizing:border-box;
+}
 #battlefield{
   display:grid !important;
   grid-template-columns:1fr 1fr !important; /* บังคับซ้าย-ขวาเสมอ ไม่ตกบรรทัดเป็นบน-ล่าง */
   gap:10px !important;
+  width:100%;
+  padding:0 12px;
+  box-sizing:border-box;
 }
 .team-box{
   min-width:0;                  /* allow shrinking below content size (classic flex overflow fix) */
