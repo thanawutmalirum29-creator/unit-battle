@@ -5,6 +5,93 @@
   <title>🛡️ สวมใส่อุปกรณ์</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="../css/theme.css" />
+  <style>
+    /* ===== กระเป๋าอุปกรณ์ ===== */
+    .equip-bag-panel{
+      background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+      border:1px solid rgba(255,255,255,0.12);
+      border-radius:16px;
+      padding:14px;
+      margin-top:8px;
+      box-shadow:0 4px 14px rgba(0,0,0,0.18) inset;
+    }
+    .equip-bag-toolbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-bottom:12px;
+    }
+    .equip-bag-toolbar button{
+      border:none;
+      border-radius:10px;
+      padding:7px 12px;
+      font-size:13px;
+      font-weight:600;
+      cursor:pointer;
+      color:#fff;
+      transition:transform .12s ease, filter .12s ease;
+    }
+    .equip-bag-toolbar button:hover{ transform:translateY(-1px); filter:brightness(1.1); }
+    #deleteCommonBtn{ background:#6b7280; }
+    #deleteRareBtn{ background:#3b82f6; }
+
+    .equip-bag-empty{
+      text-align:center;
+      padding:30px 10px;
+      opacity:.7;
+      font-size:14px;
+    }
+
+    .equip-bag-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(120px, 1fr));
+      gap:10px;
+    }
+
+    .equip-card{
+      position:relative;
+      border-radius:12px;
+      padding:10px 8px 8px;
+      text-align:center;
+      cursor:pointer;
+      user-select:none;
+      background:rgba(255,255,255,0.05);
+      border:1.5px solid rgba(255,255,255,0.15);
+      transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+      overflow:hidden;
+    }
+    .equip-card:hover{
+      transform:translateY(-3px) scale(1.03);
+      box-shadow:0 6px 14px rgba(0,0,0,0.35);
+    }
+    .equip-card.rarity-Common   { border-color:#9ca3af; }
+    .equip-card.rarity-Rare     { border-color:#3b82f6; box-shadow:0 0 8px rgba(59,130,246,.35); }
+    .equip-card.rarity-Epic     { border-color:#a855f7; box-shadow:0 0 8px rgba(168,85,247,.4); }
+    .equip-card.rarity-Legendary{ border-color:#f59e0b; box-shadow:0 0 10px rgba(245,158,11,.5); }
+
+    .equip-card-icon{ font-size:22px; line-height:1; margin-bottom:4px; }
+    .equip-card-name{ font-size:12px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .equip-card-rarity{ font-size:10px; opacity:.8; margin-top:2px; }
+    .equip-card-bonus{ font-size:11px; margin-top:4px; font-weight:600; color:#34d399; }
+
+    .equip-bag-pager{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      margin-top:12px;
+      font-size:13px;
+    }
+    .equip-bag-pager button{
+      border:none;
+      border-radius:8px;
+      padding:5px 10px;
+      background:rgba(255,255,255,0.12);
+      color:#fff;
+      cursor:pointer;
+    }
+    .equip-bag-pager button:hover{ background:rgba(255,255,255,0.22); }
+  </style>
 </head>
 <body>
 <header class="topbar">
