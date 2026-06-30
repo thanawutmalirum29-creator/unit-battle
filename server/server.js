@@ -28,5 +28,8 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.get('/health', (req, res) => res.json({ ok: true }));
 
+// open the game directly at the root URL
+app.get('/', (req, res) => res.redirect('/pages/game.html'));
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`UnitBattle server running on port ${PORT}`));
