@@ -107,8 +107,8 @@ function renderEquipBag() {
     return;
   }
 
-  // เรียงของในกระเป๋า
-  const sortedBag = [...bag].sort(sortEquipByPercentAndRarity);
+  // เรียงของในกระเป๋า: แรร์สุดอยู่บนสุด (ซ้าย-ขวาสลับไปตามกริด 2 คอลัมน์โดยอัตโนมัติ)
+  const sortedBag = [...bag].sort(sortEquipByRarityFirst);
   const totalPages = Math.ceil(sortedBag.length / pageSize);
 
   if (currentPage > totalPages) currentPage = totalPages;
@@ -377,6 +377,14 @@ function equipItem(cardId, equipId) {
   renderDeckList();
   renderEquipBag();
 }
+// ⭐ เรียงอุปกรณ์ในกระเป๋า: rarity แรร์สุดอยู่บนก่อน แล้วค่อยตาม bonus
+function sortEquipByRarityFirst(a, b) {
+  const rarityOrder = ["Legendary", "Epic", "Rare", "Common"];
+  const rDiff = rarityOrder.indexOf(a.rarity) - rarityOrder.indexOf(b.rarity);
+  if (rDiff !== 0) return rDiff;
+  return b.bonus - a.bonus;
+}
+
 function sortEquipByPercentAndRarity(a, b) {
   const rarityOrder = ["Legendary", "Epic", "Rare", "Common"];
 
