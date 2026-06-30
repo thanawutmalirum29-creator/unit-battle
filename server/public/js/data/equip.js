@@ -56,7 +56,10 @@ function getRenderStats(card) {
 // การจัดการ UI
 // =========================
 let currentPage = 1;
-const pageSize = 6;
+const pageSize = 12;
+
+const EQUIP_TYPE_ICON = { Weapon: "⚔️", Armor: "🛡️", Accessory: "✨" };
+
 function deleteAllCommonItems() {
   let bag = getEquipBag();
   const filtered = bag.filter(e => e.rarity !== "Common");
@@ -69,80 +72,86 @@ function deleteAllCommonItems() {
   saveEquipBag(filtered);
   renderEquipBag();
 }
+
 function renderEquipBag() {
   const div = document.getElementById("equipBag");
   if (!div) return;
-  
+
   const bag = getEquipBag();
-  div.innerHTML = `
-   
-    <button id="deleteCommonBtn">🗑️ ลบCommon</button>
-    <button id="deleteRareBtn">🗑️ ลบRare</button>
+  div.innerHTML = "";
+
+  const panel = document.createElement("div");
+  panel.className = "equip-bag-panel";
+
+  const toolbar = document.createElement("div");
+  toolbar.className = "equip-bag-toolbar";
+  toolbar.innerHTML = `
+    <button id="deleteCommonBtn">🗑️ ลบ Common</button>
+    <button id="deleteRareBtn">🗑️ ลบ Rare</button>
   `;
-  
-  // ถ้าไม่มีอุปกรณ์เลย
+  panel.appendChild(toolbar);
+
   if (bag.length === 0) {
-    div.innerHTML += "<p>❌ ยังไม่มีอุปกรณ์</p>";
+    const empty = document.createElement("p");
+    empty.className = "equip-bag-empty";
+    empty.textContent = "❌ ยังไม่มีอุปกรณ์ในกระเป๋า — ลองไปสุ่มที่กาชาอุปกรณ์ดูสิ";
+    panel.appendChild(empty);
+    div.appendChild(panel);
+
+    toolbar.querySelector("#deleteCommonBtn").onclick = () => {
+      if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์ระดับ Common ทั้งหมด?")) deleteEquipByRarity("Common");
+    };
+    toolbar.querySelector("#deleteRareBtn").onclick = () => {
+      if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์ระดับ Rare ทั้งหมด?")) deleteEquipByRarity("Rare");
+    };
     return;
   }
-  
-  // ปุ่มลบ Common
-  const deleteCommonBtn = document.getElementById("deleteCommonBtn");
-  deleteCommonBtn.onclick = () => {
-    if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์ระดับ Common ทั้งหมด?")) {
-      deleteEquipByRarity("Common");
-    }
-  };
-  
-  // ปุ่มลบ Rare
-  const deleteRareBtn = document.getElementById("deleteRareBtn");
-  deleteRareBtn.onclick = () => {
-    if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์ระดับ Rare ทั้งหมด?")) {
-      deleteEquipByRarity("Rare");
-    }
-  };
-  
+
   // เรียงของในกระเป๋า
   const sortedBag = [...bag].sort(sortEquipByPercentAndRarity);
   const totalPages = Math.ceil(sortedBag.length / pageSize);
-  
-  // ปรับ currentPage ให้อยู่ในขอบเขต (ป้องกันหน้าว่าง)
-  if (currentPage > totalPages) {
-    currentPage = totalPages;
-  }
-  if (currentPage < 1) {
-    currentPage = 1;
-  }
-  
+
+  if (currentPage > totalPages) currentPage = totalPages;
+  if (currentPage < 1) currentPage = 1;
+
   const start = (currentPage - 1) * pageSize;
   const end = start + pageSize;
   const items = sortedBag.slice(start, end);
-  
-  // แสดงรายการอุปกรณ์
+
+  const grid = document.createElement("div");
+  grid.className = "equip-bag-grid";
+
   items.forEach(eq => {
-    const el = document.createElement("div");
-    el.className = `equip rarity-${eq.rarity}`;
     const bonusTxt = eq.mode === "percent" ?
       `+${eq.bonus}% ${eq.stat.toUpperCase()}` :
       `+${eq.bonus} ${eq.stat.toUpperCase()}`;
-    el.textContent = `${eq.rarity} ${eq.name} (${bonusTxt})`;
-    
-    el.style.cursor = "pointer";
-    el.title = "คลิกเพื่อลบอุปกรณ์นี้";
+    const icon = EQUIP_TYPE_ICON[eq.type] || "❔";
+
+    const el = document.createElement("div");
+    el.className = `equip-card rarity-${eq.rarity}`;
+    el.title = "แตะเพื่อลบอุปกรณ์นี้";
+    el.innerHTML = `
+      <div class="equip-card-icon">${icon}</div>
+      <div class="equip-card-name">${eq.name}</div>
+      <div class="equip-card-rarity">⭐ ${eq.rarity}</div>
+      <div class="equip-card-bonus">${bonusTxt}</div>
+    `;
     el.onclick = () => {
       if (confirm(`ต้องการลบ "${eq.name}" ออกจากกระเป๋าหรือไม่?`)) {
         deleteEquipItem(eq.id);
       }
     };
-    
-    div.appendChild(el);
+
+    grid.appendChild(el);
   });
-  
+
+  panel.appendChild(grid);
+
   // ปุ่มเปลี่ยนหน้า (แบบลูป)
   if (totalPages > 1) {
     const nav = document.createElement("div");
-    nav.innerHTML = `หน้า ${currentPage}/${totalPages} `;
-    
+    nav.className = "equip-bag-pager";
+
     const prev = document.createElement("button");
     prev.textContent = "⬅️";
     prev.onclick = () => {
@@ -150,7 +159,11 @@ function renderEquipBag() {
       renderEquipBag();
     };
     nav.appendChild(prev);
-    
+
+    const label = document.createElement("span");
+    label.textContent = `หน้า ${currentPage}/${totalPages}`;
+    nav.appendChild(label);
+
     const next = document.createElement("button");
     next.textContent = "➡️";
     next.onclick = () => {
@@ -158,9 +171,18 @@ function renderEquipBag() {
       renderEquipBag();
     };
     nav.appendChild(next);
-    
-    div.appendChild(nav);
+
+    panel.appendChild(nav);
   }
+
+  div.appendChild(panel);
+
+  toolbar.querySelector("#deleteCommonBtn").onclick = () => {
+    if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์ระดับ Common ทั้งหมด?")) deleteEquipByRarity("Common");
+  };
+  toolbar.querySelector("#deleteRareBtn").onclick = () => {
+    if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์ระดับ Rare ทั้งหมด?")) deleteEquipByRarity("Rare");
+  };
 }
 function deleteEquipByRarity(rarity) {
   let bag = getEquipBag();

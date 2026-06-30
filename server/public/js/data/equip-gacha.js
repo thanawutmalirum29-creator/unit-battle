@@ -213,6 +213,7 @@ function showEquipRates(poolKey) {
 
   const total = pool.reduce((s, it) => s + it.rate, 0);
   const rarityOrder = ["Legendary", "Epic", "Rare", "Common"];
+  const blacklist = JSON.parse(localStorage.getItem("equip_gacha_blacklist") || "[]");
   let html = "";
 
   for (const rarity of rarityOrder) {
@@ -227,7 +228,13 @@ function showEquipRates(poolKey) {
       <div class="char-grid">
         ${g.items.map(it => {
           const txt = it.mode === "percent" ? `+${it.base}%` : `+${it.base}`;
-          return `<div>• ${it.name} (${txt} ${it.stat.toUpperCase()})</div>`;
+          const isBlacklisted = blacklist.includes(it.name);
+          return `
+            <div class="rarity-${it.rarity}"
+                 style="cursor:pointer; ${isBlacklisted ? 'text-decoration: line-through; color:red;' : ''}"
+                 onclick="toggleEquipBlacklist('${it.name.replace(/'/g, "\\'")}')">
+              • ${it.name} (${txt} ${it.stat.toUpperCase()}) ${isBlacklisted ? '❌' : ''}
+            </div>`;
         }).join("")}
       </div>
     `;
@@ -236,6 +243,21 @@ function showEquipRates(poolKey) {
   document.getElementById("rateDetails").innerHTML = html;
   document.getElementById("ratePopup").classList.remove("hidden");
   document.body.classList.add("no-scroll");
+}
+
+// ✅ ติ๊กกากบาทในป๊อปอัพดูเรท — อุปกรณ์ที่ติ๊กไว้จะไม่เข้ากระเป๋าเมื่อสุ่มได้ (ลบทิ้งอัตโนมัติ)
+function toggleEquipBlacklist(name) {
+  let blacklist = JSON.parse(localStorage.getItem("equip_gacha_blacklist") || "[]");
+  if (blacklist.includes(name)) {
+    blacklist = blacklist.filter(n => n !== name);
+  } else {
+    blacklist.push(name);
+  }
+  localStorage.setItem("equip_gacha_blacklist", JSON.stringify(blacklist));
+
+  if (_currentEquipRatePool) {
+    showEquipRates(_currentEquipRatePool);
+  }
 }
 
 function closeEquipRatePopup() {
@@ -263,7 +285,10 @@ function gachaEquipPull(poolKey, count) {
   saveMoney(money);
   updateMoneyUI(money);
 
+  const blacklist = JSON.parse(localStorage.getItem("equip_gacha_blacklist") || "[]");
+
   const results = [];
+  const keptForBag = [];
   for (let i = 0; i < count; i++) {
     const template = weightedPickEquip(pool);
     const item = {
@@ -275,11 +300,18 @@ function gachaEquipPull(poolKey, count) {
       bonus: customRound(template.base),
       mode: template.mode || "flat",
     };
+
+    if (blacklist.includes(item.name)) {
+      // ✅ ติ๊กกากบาทไว้ในป๊อปอัพดูเรท → ลบทิ้งอัตโนมัติ ไม่เข้ากระเป๋า
+      item._blacklisted = true;
+    } else {
+      keptForBag.push(item);
+    }
     results.push(item);
   }
 
   let bag = getEquipBag();
-  bag.push(...results);
+  bag.push(...keptForBag);
   saveEquipBag(bag);
 
   showEquipResults(results);
@@ -313,7 +345,7 @@ async function showEquipResults(results) {
   function cardHTML(eq) {
     const typeIcon = eq.type === "Weapon" ? "⚔️" : eq.type === "Armor" ? "🛡️" : "✨";
     return `
-      <div style="font-size:16px">${typeIcon} ${eq.name}</div>
+      <div style="font-size:16px">${typeIcon} ${eq.name} ${eq._blacklisted ? "❌" : ""}</div>
       <div>⭐ ${eq.rarity}</div>
       <div style="font-size:12px">${bonusText(eq)}</div>
     `;
@@ -382,7 +414,7 @@ async function showEquipResults(results) {
     const eq = results[i];
     const el = document.createElement("div");
     el.className = `gacha-fly-card rarity-${eq.rarity}`;
-    el.innerHTML = `<div style="font-size:18px">${eq.name}</div><div>⭐ ${eq.rarity}</div><div style="font-size:12px">${bonusText(eq)}</div>`;
+    el.innerHTML = `<div style="font-size:18px">${eq.name} ${eq._blacklisted ? "❌" : ""}</div><div>⭐ ${eq.rarity}</div><div style="font-size:12px">${bonusText(eq)}</div>`;
     overlay.appendChild(el);
 
     if (i === 0) skipBtn.classList.remove("hidden");
