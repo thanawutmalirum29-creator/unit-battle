@@ -32,14 +32,17 @@
 
 *{ box-sizing:border-box; }
 
-html,body{
-  margin:0;
-  padding:0;
+html{
   background:
     radial-gradient(1100px 600px at 8% -10%, #131c33 0%, transparent 60%),
     radial-gradient(900px 500px at 100% 0%, #1a0f2e 0%, transparent 55%),
     linear-gradient(180deg,var(--bg-0),var(--bg-1) 40%,var(--bg-0));
-  background-attachment:fixed;
+}
+
+body{
+  margin:0;
+  padding:0;
+  background:transparent;
   color:var(--text);
   font-family:var(--font);
   overflow-x:hidden;
@@ -251,12 +254,33 @@ input[type="text"], select{
 }
 input[type="text"]{ flex:1 1 200px; }
 
-/* ---------------- CARD GRID (shop / deck / gacha) ---------------- */
-.grid, .gacha-container, #deck-wrapper{
+/* ---------------- CARD GRID (shop / gacha) ---------------- */
+.grid, .gacha-container{
   display:grid !important;
   grid-template-columns:repeat(auto-fill,minmax(170px,1fr)) !important;
   gap:12px !important;
   width:100%;
+}
+
+/* ---------------- DECK STRIP (เลือกการ์ดทีม) เลื่อนแนวนอน ไม่ห่อบรรทัด ---------------- */
+#deck-wrapper{
+  display:flex !important;
+  flex-wrap:nowrap !important;
+  overflow-x:auto;
+  overflow-y:hidden;
+  gap:10px;
+  padding:8px 4px 14px;
+  width:100%;
+  scroll-behavior:smooth;
+  -webkit-overflow-scrolling:touch;
+  contain:content;
+  transform:translateZ(0);
+}
+#deck-wrapper::-webkit-scrollbar{ height:8px; }
+#deck-wrapper::-webkit-scrollbar-thumb{ background:#283246; border-radius:8px; }
+#deck-wrapper .card, #deck-wrapper .card-box{
+  flex:0 0 auto;
+  width:130px;
 }
 
 .card, .card-box, .gacha-box, .equip-card{
@@ -264,16 +288,17 @@ input[type="text"]{ flex:1 1 200px; }
   border:1px solid var(--border);
   border-radius:var(--radius);
   padding:12px;
-  box-shadow:var(--shadow);
+  box-shadow:0 4px 10px rgba(0,0,0,.3);
   display:flex;
   flex-direction:column;
   justify-content:space-between;
   gap:8px;
   transition:transform .15s, box-shadow .15s;
+  contain:content;
 }
 .card:hover, .card-box:hover, .gacha-box:hover, .equip-card:hover{
   transform:translateY(-4px);
-  box-shadow:0 12px 28px rgba(0,0,0,.55);
+  box-shadow:0 10px 20px rgba(0,0,0,.45);
 }
 
 .card .title, .card-box .title, .gacha-header{
