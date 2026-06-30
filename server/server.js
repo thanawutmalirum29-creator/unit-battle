@@ -11,6 +11,7 @@ const leaderboardRoute = require('./routes/leaderboard');
 const progressRoute = require('./routes/progress');
 
 const app = express();
+app.set('trust proxy', 1); // Railway sits behind a reverse proxy — required for express-rate-limit
 app.use(cors());
 app.use(express.json());
 
