@@ -13,10 +13,18 @@ function encryptMoney(num) {
 // ----------------- ฟังก์ชันถอดรหัส -----------------
 function decryptMoney(enc) {
     if(!enc) return 400; // ค่าเริ่มต้น 400
-    let arr = enc.split(',').map(Number);
-    let step1 = arr.map((v,i) => ((v - 13 + 256) % 256) ^ KEY2[i % KEY2.length]);
-    let step2 = step1.map((v,i) => String.fromCharCode(v ^ KEY1[i % KEY1.length]));
-    return parseInt(step2.join(''), 10);
+    try {
+        let arr = enc.split(',').map(Number);
+        if (arr.some(Number.isNaN)) throw new Error('corrupt segment');
+        let step1 = arr.map((v,i) => ((v - 13 + 256) % 256) ^ KEY2[i % KEY2.length]);
+        let step2 = step1.map((v,i) => String.fromCharCode(v ^ KEY1[i % KEY1.length]));
+        const result = parseInt(step2.join(''), 10);
+        if (!Number.isFinite(result) || result < 0) throw new Error('invalid decrypted value');
+        return result;
+    } catch (e) {
+        console.warn("Money data corrupted! Reset to default.");
+        return 400;
+    }
 }
 
 // ----------------- โหลดเงิน -----------------
@@ -33,8 +41,14 @@ function saveMoney(amount) {
 
 // ----------------- เพิ่ม/ลบเงิน -----------------
 function addMoney(amount) {
+    const delta = Number(amount);
+    if (!Number.isFinite(delta)) {
+        console.warn("addMoney: ignoring non-numeric amount", amount);
+        return;
+    }
     let money = loadMoney();
-    money += amount;
+    money += delta;
+    if (money < 0) money = 0;
     saveMoney(money);
     updateMoneyUI(money);
 }

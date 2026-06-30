@@ -28,7 +28,7 @@ function renderBattlefield() {
 
   playerTeam.forEach(p => {
     const maxHp = p.maxHp ?? getFinalHp(p); // Max HP ต้นฉบับ, fallback เผื่อไม่มี
-    const hpPercent = maxHp ? Math.max(0, (p.hp / maxHp) * 100) : 0;
+    const hpPercent = maxHp ? Math.min(100, Math.max(0, (p.hp / maxHp) * 100)) : 0;
 
     const atkNow = getFinalAtk(p);
     const defNow = getFinalDef(p);
@@ -67,7 +67,7 @@ function renderBattlefield() {
 
   enemyTeam.forEach(e => {
     const maxHp = e.maxHp ?? getFinalHp(e); // Max HP ต้นฉบับ, fallback เผื่อไม่มี
-    const hpPercent = maxHp ? Math.max(0, (e.hp / maxHp) * 100) : 0;
+    const hpPercent = maxHp ? Math.min(100, Math.max(0, (e.hp / maxHp) * 100)) : 0;
 
     const atkNow = getFinalAtk(e);
     const defNow = getFinalDef(e);
