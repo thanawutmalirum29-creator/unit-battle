@@ -225,77 +225,64 @@ const stats = getRenderStats(card);
   }
 }
 
-function sellCard(cardId) {
-  let deck = JSON.parse(localStorage.getItem("deck") || "[]");
-  const idx = deck.findIndex(c => c.id === cardId);
-  if (idx === -1) return;
+// 🔐 ขายการ์ด — เซิฟเป็นคนตรวจว่าการ์ดมีจริงในเด็คของเซิฟ + คิดราคาเอง (ดู
+// routes/economy.js POST /sell, game-data/economy-data.js calcSellPrice).
+// ห้ามคำนวณราคา/เพิ่มเงินเองฝั่ง client อีกต่อไป
+async function sellCard(cardId) {
+  const deck = JSON.parse(localStorage.getItem("deck") || "[]");
+  const card = deck.find(c => c.id === cardId);
+  if (!card) return;
 
-  if (deck[idx].locked) {
+  if (card.locked) {
     return;
   }
 
-  const sold = deck.splice(idx, 1)[0];
-  localStorage.setItem("deck", JSON.stringify(deck));
+  if (!window.GameAPI || !GameAPI.isLoggedIn()) {
+    alert("ต้องเข้าสู่ระบบ (username + PIN) ก่อนขายการ์ด");
+    return;
+  }
 
-  const rarityPrice = {
-    "Common": 50,
-    "Rare": 500,
-    "Epic": 5000,
-    "Legendary": 30000,
-    "Mythical": 100000,
-    "Cosmic": 500000
-  };
+  const result = await GameAPI.sellCard(cardId);
+  if (!result || !result.ok) {
+    alert("ขายไม่สำเร็จ: " + (result?.error || "unknown error"));
+    return;
+  }
 
-  const stars = sold.stars || 1;
-  const base = rarityPrice[sold.rarity] || 5;
-  const price = base * stars;
-
-  addMoney(price);
-
-  alert(`ขาย ${sold.name} (${sold.rarity}, ${stars}⭐) ได้ ${price} เหรียญ`);
-  renderDeck();
+  applyServerMoney(result.money);
+  applyServerDeck(result.deck);
+  alert(`ขาย ${result.sold.name} (${result.sold.rarity}, ${result.sold.stars || 1}⭐) ได้ ${result.price} เหรียญ`);
 }
 
-function sellAllUnlocked() {
-  let deck = JSON.parse(localStorage.getItem("deck") || "[]");
+async function sellAllUnlocked() {
+  const deck = JSON.parse(localStorage.getItem("deck") || "[]");
   if (deck.length === 0) {
     alert("❌ ไม่มีการ์ดในเด็ค");
     return;
   }
 
-  const rarityPrice = {
-    "Common": 50,
-    "Rare": 500,
-    "Epic": 5000,
-    "Legendary": 30000,
-    "Mythical": 100000,
-    "Cosmic": 500000
-  };
-
-  let totalEarned = 0;
-  let kept = [];
-
-  deck.forEach(card => {
-    if (card.locked) {
-      kept.push(card);
-    } else {
-      const stars = card.stars || 1;
-      const base = rarityPrice[card.rarity] || 5;
-      totalEarned += base * stars;
-    }
-  });
-
-  if (totalEarned === 0) {
+  const cardIds = deck.filter(c => !c.locked).map(c => c.id);
+  if (cardIds.length === 0) {
     alert("❌ ไม่มีการ์ดที่ขายได้");
     return;
   }
 
-  if (confirm(`คุณต้องการขายการ์ดทั้งหมดที่ไม่ได้ล็อค?\n\nคุณจะได้เงินรวม ${totalEarned} 💰`)) {
-    addMoney(totalEarned);
-    localStorage.setItem("deck", JSON.stringify(kept));
-    alert(`✅ ขายเสร็จสิ้น ได้เงินรวม ${totalEarned} 💰`);
-    renderDeck();
+  if (!window.GameAPI || !GameAPI.isLoggedIn()) {
+    alert("ต้องเข้าสู่ระบบ (username + PIN) ก่อนขายการ์ด");
+    return;
   }
+
+  if (!confirm(`คุณต้องการขายการ์ดทั้งหมดที่ไม่ได้ล็อค (${cardIds.length} ใบ)?`)) return;
+
+  // 🔐 เซิฟเป็นคนตรวจว่าการ์ดแต่ละใบมีจริง + คิดราคาเอง ไม่เชื่อยอดรวมจาก client
+  const result = await GameAPI.sellAllCards(cardIds);
+  if (!result || !result.ok) {
+    alert("ขายไม่สำเร็จ: " + (result?.error || "unknown error"));
+    return;
+  }
+
+  applyServerMoney(result.money);
+  applyServerDeck(result.deck);
+  alert(`✅ ขายเสร็จสิ้น ได้เงินรวม ${result.totalEarned} 💰`);
 }
 
 function clearSelection() {

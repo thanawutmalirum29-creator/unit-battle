@@ -27,7 +27,22 @@ function decryptMoney(enc) {
     }
 }
 
-// ----------------- โหลดเงิน -----------------
+// ----------------- ซิงค์จากเซิฟเวอร์ (source of truth) -----------------
+// เรียกหลัง login และหลังทุก action ที่ตอบ money กลับมา (claim reward / ซื้อของ / กาชา)
+// ห้ามคำนวณเงินเองฝั่ง client อีกต่อไปสำหรับ action ที่มีเซิฟรองรับแล้ว
+function applyServerMoney(serverMoney) {
+    if (typeof serverMoney !== "number") return;
+    saveMoney(serverMoney);
+    updateMoneyUI(serverMoney);
+}
+
+async function syncMoneyFromServer() {
+    if (!window.GameAPI || !GameAPI.isLoggedIn || !GameAPI.isLoggedIn()) return;
+    const state = await GameAPI.fetchEconomyState();
+    if (state && typeof state.money === "number") applyServerMoney(state.money);
+}
+
+
 function loadMoney() {
     const enc = localStorage.getItem("deckgame_money");
     let money = decryptMoney(enc);
@@ -103,3 +118,12 @@ function formatMoney(num) {
   }
   return num.toString();
 }
+
+// เรียก sync อัตโนมัติเมื่อ login แล้วและหน้าโหลดเสร็จ (auth-ui.js reload หน้าหลัง login สำเร็จอยู่แล้ว
+// แต่เผื่อกรณี session ยังอยู่จาก localStorage ตั้งแต่แรกโดยไม่ผ่าน modal)
+document.addEventListener("DOMContentLoaded", () => {
+    if (window.GameAPI && GameAPI.isLoggedIn && GameAPI.isLoggedIn()) {
+        syncMoneyFromServer();
+        if (typeof syncBagFromServer === "function") syncBagFromServer();
+    }
+});

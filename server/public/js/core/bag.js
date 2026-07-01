@@ -40,7 +40,19 @@ function hashBag(bag) {
     return (hash ^ BAG_HASH_SALT) >>> 0;
 }
 
-// ----------------- ตรวจสอบและใส่ค่า default -----------------
+// ----------------- ซิงค์จากเซิฟเวอร์ (source of truth) -----------------
+function applyServerBag(serverBag) {
+    if (!serverBag || typeof serverBag !== "object") return;
+    saveBag({ ...loadBag(), ...serverBag });
+}
+
+async function syncBagFromServer() {
+    if (!window.GameAPI || !GameAPI.isLoggedIn || !GameAPI.isLoggedIn()) return;
+    const state = await GameAPI.fetchEconomyState();
+    if (state && state.bag) applyServerBag(state.bag);
+}
+
+
 function ensureBagDefaults() {
     const enc = localStorage.getItem("bag");
     const hash = parseInt(localStorage.getItem("bag_hash") || "0",10);

@@ -5,25 +5,176 @@ const GameAPI = (() => {
   const BASE = ""; // same-origin: server serves the game itself on Railway
 
   let playerId = localStorage.getItem("playerId") || null;
+  let authToken = localStorage.getItem("authToken") || null;
   let infRunId = null;
   let infRunToken = null;
+  let bossRunId = null;
+  let bossRunToken = null;
 
-  async function post(path, body) {
+  async function post(path, body, auth) {
     try {
+      const headers = { "Content-Type": "application/json" };
+      if (auth && authToken) headers["Authorization"] = "Bearer " + authToken;
       const res = await fetch(BASE + path, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(body || {}),
       });
+      const data = await res.json().catch(() => null);
       if (!res.ok) {
-        console.warn("[GameAPI] request failed:", path, res.status);
-        return null;
+        console.warn("[GameAPI] request failed:", path, res.status, data?.error);
+        return { error: data?.error || `http ${res.status}`, status: res.status };
       }
-      return await res.json();
+      return data;
     } catch (err) {
       console.warn("[GameAPI] network error (offline / server down):", err);
+      return { error: "network" };
+    }
+  }
+
+  async function get(path, auth) {
+    try {
+      const headers = {};
+      if (auth && authToken) headers["Authorization"] = "Bearer " + authToken;
+      const res = await fetch(BASE + path, { headers });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (err) {
+      console.warn("[GameAPI] network error:", err);
       return null;
     }
+  }
+
+  // ---- Auth: username + PIN. Money/bag/deck require this; the old identify() flow
+  // (no password) is still used for leaderboard-only display names. ----
+  function isLoggedIn() { return !!(playerId && authToken); }
+
+  async function register(username, pin) {
+    const data = await post("/api/auth/register", { username, pin });
+    if (data?.token) {
+      playerId = data.playerId; authToken = data.token;
+      localStorage.setItem("playerId", playerId);
+      localStorage.setItem("authToken", authToken);
+      localStorage.setItem("username", data.username);
+    }
+    return data;
+  }
+
+  async function login(username, pin) {
+    const data = await post("/api/auth/login", { username, pin });
+    if (data?.token) {
+      playerId = data.playerId; authToken = data.token;
+      localStorage.setItem("playerId", playerId);
+      localStorage.setItem("authToken", authToken);
+      localStorage.setItem("username", data.username);
+    }
+    return data;
+  }
+
+  function logout() {
+    playerId = null; authToken = null;
+    localStorage.removeItem("playerId");
+    localStorage.removeItem("authToken");
+  }
+
+  // ---- Economy: server is the source of truth for money/bag/deck. ----
+  async function fetchEconomyState() {
+    if (!isLoggedIn()) return null;
+    return get("/api/economy/state", true);
+  }
+
+  async function claimNormalReward(stage) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/claim/normal", { stage }, true);
+  }
+
+  async function claimInfReward(runId, stage) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/claim/inf", { runId, stage }, true);
+  }
+
+  async function bossRunStart(bossId) {
+    if (!isLoggedIn()) return null;
+    const data = await post("/api/economy/boss/start", { bossId }, true);
+    if (data?.runId) { bossRunId = data.runId; bossRunToken = data.token; }
+    return data;
+  }
+
+  async function bossClaimTier(tierIndex, damageDone) {
+    if (!bossRunId) return { error: "no active boss run" };
+    return post("/api/economy/boss/claim-tier", { runId: bossRunId, token: bossRunToken, tierIndex, damageDone }, true);
+  }
+
+  async function bossRunFinish() {
+    if (!bossRunId) return null;
+    const result = await post("/api/economy/boss/finish", { runId: bossRunId, token: bossRunToken }, true);
+    bossRunId = null; bossRunToken = null;
+    return result;
+  }
+
+  async function shopGetCurrent() {
+    return get("/api/economy/shop/current", false);
+  }
+
+  async function shopBuy(slotIndex) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/shop/buy", { slotIndex }, true);
+  }
+
+  async function gachaRoll(poolId, times) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/gacha/roll", { poolId, times }, true);
+  }
+
+  async function upgradeGuaranteed(cardId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/upgrade/guaranteed", { cardId }, true);
+  }
+
+  async function upgradePaid(cardId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/upgrade/paid", { cardId }, true);
+  }
+
+  async function upgradeDuplicate(cardId, duplicateCardIds) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/upgrade/duplicate", { cardId, duplicateCardIds }, true);
+  }
+
+  async function sellCard(cardId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/sell", { cardId }, true);
+  }
+
+  async function sellAllCards(cardIds) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/sell-all", { cardIds }, true);
+  }
+
+  // ---- Equipment: gacha roll + equip/unequip/delete are all server-authoritative now. ----
+  async function equipGachaRoll(poolId, times, blacklist) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/equip-gacha/roll", { poolId, times, blacklist }, true);
+  }
+
+  async function equipItemOnCard(cardId, equipId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/equip/equip", { cardId, equipId }, true);
+  }
+
+  async function unequipItemFromCard(cardId, equipId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/equip/unequip", { cardId, equipId }, true);
+  }
+
+  async function deleteEquip(equipId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/equip/delete", { equipId }, true);
+  }
+
+  async function deleteEquipByRarityServer(rarity) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/equip/delete-by-rarity", { rarity }, true);
   }
 
   // Call once on page load. Falls back to a local guest name if username not set yet.
@@ -71,5 +222,15 @@ const GameAPI = (() => {
     return result;
   }
 
-  return { ensurePlayer, reportNormalClear, infRunStart, infStageClear, infRunFinish };
+  function getInfRunId() { return infRunId; }
+
+  return {
+    ensurePlayer, reportNormalClear, infRunStart, infStageClear, infRunFinish, getInfRunId,
+    isLoggedIn, register, login, logout,
+    fetchEconomyState, claimNormalReward, claimInfReward,
+    bossRunStart, bossClaimTier, bossRunFinish,
+    shopGetCurrent, shopBuy, gachaRoll, upgradeGuaranteed,
+    upgradePaid, upgradeDuplicate, sellCard, sellAllCards,
+    equipGachaRoll, equipItemOnCard, unequipItemFromCard, deleteEquip, deleteEquipByRarityServer,
+  };
 })();

@@ -1,20 +1,23 @@
 function findFirstAlive(list){
   return list.find(x => x.hp > 0);
 }
+// 🔐 ก่อนหน้านี้ addMoney(reward) ถูกเรียกตรงๆ ทุกครั้งที่ฆ่ามอนสเตอร์ — เป็นช่องโหว่
+// ร้ายแรง เพราะ addMoney เป็น global function ที่เรียกจาก devtools console ได้เลย
+// (addMoney(999999999)) โดยไม่ต้องเล่นเกมจริงด้วยซ้ำ เงินจริงตอนนี้จ่ายเฉพาะตอน
+// จบด่านผ่าน GameAPI.claimNormalReward/claimInfReward (เซิฟคำนวณเอง — ดู N-Mode.js/
+// inf-mode.js) ฟังก์ชันนี้เหลือแค่โชว์ log preview ให้ผู้เล่นเห็นระหว่างเล่น
+// เหมือนกับที่ boss.js ทำ (logRewardPreview) ไม่ได้เพิ่มเงินจริงอีกต่อไป
 function handleDeath(victim, killer) {
   if (victim.isEnemy && !victim._rewarded) {
     let reward = victim.reward || 0;
 
-    // 🟢 ถ้า killer เป็น Thief → ได้เงินเพิ่ม 30%
     if (killer && killer.class === "Thief") {
       reward = Math.floor(reward * 1.3);
       log(`💎 โบนัสอาชีพ Thief! ได้ทองเพิ่ม 30%`, "system");
     }
 
     if (reward > 0) {
-      addMoney(reward);
-      updateMoneyUI();
-      log(`💰 ได้รับ ${reward} จากการสังหาร ${victim.name}`, "system");
+      log(`💰 สังหาร ${victim.name} (เงินจริงจะได้ตอนผ่านด่าน)`, "system");
     }
     victim._rewarded = true;
   }
