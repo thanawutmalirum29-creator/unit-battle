@@ -167,18 +167,18 @@ async function startBattle(){
         }
         GameAPI.reportNormalClear(currentStage); // server-side leaderboard record (fire-and-forget)
 
-        // 💰 ดรอปเงิน
-        addMoney(STAGE_REWARDS[currentStage] || 0);
-
-        // 🧩 ดรอปชาร์ด
-        const drops = STAGE_DROPS[currentStage];
-        if (drops) {
-          for (const [key, amount] of Object.entries(drops)) {
-            addToBag(key, amount);
-            log(`🎁 ได้ ${amount}x ${key}`, "system");
+        // 💰🧩 เงิน+ดรอปตอนนี้เซิฟเป็นคนคำนวณและจ่ายจริง (กันแก้ STAGE_REWARDS/STAGE_DROPS ฝั่ง client)
+        GameAPI.claimNormalReward(currentStage).then((result) => {
+          if (result && result.ok) {
+            applyServerMoney(result.money);
+            applyServerBag(result.bag);
+            for (const [key, amount] of Object.entries(result.drops || {})) {
+              log(`🎁 ได้ ${amount}x ${key}`, "system");
+            }
+          } else {
+            console.warn("[N-Mode] claim reward failed:", result?.error);
           }
-          updateBagUI();
-        }
+        });
 
         endBattle(true);
         return;
