@@ -707,13 +707,14 @@ body.no-scroll{ overflow:hidden; height:100%; }
    ============================================================ */
 #playerTeamBox .card-box,
 #enemyTeamBox .card-box{
+  position:relative;      /* จุดยึดของป้ายสกิล/ตัวเลขดาเมจที่ลอยขึ้น */
+  overflow:visible;       /* อย่า clip ป้าย/เลขที่ลอยออกไปนอกกรอบการ์ด */
   flex:0 0 auto;
   width:132px;
   height:150px;
   min-height:0;
   padding:8px;
   gap:4px;
-  overflow:hidden;
 }
 #playerTeamBox .card-box > div,
 #enemyTeamBox .card-box > div{

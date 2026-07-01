@@ -470,3 +470,66 @@
   0%   { filter: brightness(2) sepia(1) hue-rotate(-20deg); }
   100% { filter: none; }
 }
+/* ============================================================
+   🏷️ FLOATING SKILL/ATTACK LABEL + DAMAGE-HEAL NUMBERS
+   ป้ายชื่อสกิล/ประเภทการโจมตี ลอยขึ้นเหนือตัวที่ร่าย
+   ตัวเลข -ดาเมจ/+ฮีล ลอยขึ้นเหนือเป้าหมาย ให้เห็นชัดเจนไม่ต้องเดา
+   ============================================================ */
+.battle-fx-label {
+  position: absolute;
+  left: 50%;
+  top: -6px;
+  transform: translate(-50%, 0);
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(10, 14, 22, 0.9);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.25);
+  box-shadow: 0 2px 8px rgba(0,0,0,.5);
+  pointer-events: none;
+  z-index: 30;
+  animation: fxLabelFloat 0.95s ease-out forwards;
+}
+@keyframes fxLabelFloat {
+  0%   { opacity: 0; transform: translate(-50%, 6px) scale(0.85); }
+  15%  { opacity: 1; transform: translate(-50%, -8px) scale(1.05); }
+  75%  { opacity: 1; transform: translate(-50%, -18px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -30px) scale(0.95); }
+}
+
+/* สีป้ายตามประเภทสกิล ให้ดูออกทันทีว่าเป็นเอฟเฟกต์แบบไหน */
+.battle-fx-label.fx-normal   { background: rgba(148,163,184,.85); border-color: rgba(255,255,255,.35); }
+.battle-fx-label.fx-strike   { background: rgba(239,68,68,.9); }
+.battle-fx-label.fx-heal     { background: rgba(16,185,129,.9); }
+.battle-fx-label.fx-fire     { background: rgba(249,115,22,.9); }
+.battle-fx-label.fx-freeze   { background: rgba(34,211,238,.9); color:#03242c; }
+.battle-fx-label.fx-poison   { background: rgba(168,85,247,.9); }
+.battle-fx-label.fx-aoe      { background: rgba(251,146,60,.9); }
+.battle-fx-label.fx-buff     { background: rgba(56,189,248,.9); color:#02222c; }
+.battle-fx-label.fx-debuff   { background: rgba(147,51,234,.9); }
+.battle-fx-label.fx-summon   { background: rgba(250,204,21,.9); color:#2b2100; }
+.battle-fx-label.fx-skill    { background: rgba(124,58,237,.9); }
+
+/* ตัวเลขดาเมจ/ฮีลลอยขึ้นเหนือเป้าหมาย */
+.battle-fx-number {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translate(-50%, 0);
+  font-size: 18px;
+  font-weight: 900;
+  pointer-events: none;
+  z-index: 31;
+  text-shadow: 0 2px 4px rgba(0,0,0,.8), 0 0 6px rgba(0,0,0,.6);
+  animation: fxNumberFloat 0.85s ease-out forwards;
+}
+@keyframes fxNumberFloat {
+  0%   { opacity: 0; transform: translate(-50%, 8px) scale(0.7); }
+  20%  { opacity: 1; transform: translate(-50%, -6px) scale(1.25); }
+  100% { opacity: 0; transform: translate(-50%, -34px) scale(1); }
+}
+.fx-num-dmg  { color: #ff5555; }
+.fx-num-heal { color: #4ade80; }
