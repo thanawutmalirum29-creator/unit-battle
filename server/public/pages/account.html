@@ -49,7 +49,13 @@
 <section class="panel">
   <h3>ข้อมูลผู้เล่น</h3>
   <div id="acctInfoBox">
-    <div class="acct-row"><span class="label">ชื่อผู้เล่น</span><span class="value" id="acctUsername">-</span></div>
+    <div class="acct-row">
+      <span class="label">ชื่อผู้เล่น</span>
+      <span class="value">
+        <span id="acctUsername">-</span>
+        <button id="acctRenameBtn" style="display:none;margin-left:8px;padding:2px 8px;font-size:12px;">✏️ แก้ไข</button>
+      </span>
+    </div>
     <div class="acct-row"><span class="label">สถานะ</span><span class="value" id="acctStatus">-</span></div>
   </div>
   <p id="acctLoggedOutMsg" style="display:none">ยังไม่ได้เข้าสู่ระบบ — กรอกชื่อผู้เล่นและ PIN ในกล่องที่เด้งขึ้นมาเพื่อดูข้อมูลบัญชีของคุณ</p>
@@ -95,6 +101,7 @@
     document.getElementById("acctLoginBtn").style.display = loggedIn ? "none" : "inline-block";
     document.getElementById("acctLogoutBtn").style.display = loggedIn ? "inline-block" : "none";
     document.getElementById("acctSwitchBtn").style.display = loggedIn ? "inline-block" : "none";
+    document.getElementById("acctRenameBtn").style.display = loggedIn ? "inline-block" : "none";
     document.getElementById("acctLoggedOutMsg").style.display = loggedIn ? "none" : "block";
     document.getElementById("acctEconomyPanel").style.display = loggedIn ? "block" : "none";
     document.getElementById("acctBagPanel").style.display = loggedIn ? "block" : "none";
@@ -148,6 +155,23 @@
     if (!confirm("สลับไปบัญชีอื่น? (จะออกจากระบบบัญชีปัจจุบันก่อน)")) return;
     GameAPI.logout();
     location.reload();
+  });
+
+  document.getElementById("acctRenameBtn").addEventListener("click", async () => {
+    const current = localStorage.getItem("username") || "";
+    const next = prompt("ตั้งชื่อผู้เล่นใหม่ (2-32 ตัวอักษร):", current);
+    if (next === null) return; // ยกเลิก
+    const trimmed = next.trim();
+    if (trimmed.length < 2 || trimmed.length > 32) { alert("ชื่อต้องยาว 2-32 ตัวอักษร"); return; }
+    if (trimmed === current) return;
+
+    const result = await GameAPI.updateUsername(trimmed);
+    if (result?.username) {
+      document.getElementById("acctUsername").textContent = result.username;
+      alert("เปลี่ยนชื่อสำเร็จ!");
+    } else {
+      alert(result?.error === "username already taken" ? "ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น" : (result?.error || "เปลี่ยนชื่อไม่สำเร็จ ลองใหม่อีกครั้ง"));
+    }
   });
 
   // auth-ui.js เด้งกล่อง login เองอัตโนมัติถ้ายังไม่ล็อกอิน (ดู DOMContentLoaded ใน auth-ui.js)
