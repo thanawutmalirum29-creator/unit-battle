@@ -1,170 +1,275 @@
-// routes/auth.js — username + PIN, replaces the old "anyone can claim any username"
-// identify flow for anything that touches money/bag/deck.
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const { v4: uuid } = require('uuid');
-const { OAuth2Client } = require('google-auth-library');
-const pool = require('../db/pool');
-const asyncHandler = require('../middleware/asyncHandler');
-const { requireAuth } = require('../middleware/auth');
+// js/core/api.js — talks to the UnitBattle server (anti-cheat run tracking)
+// Include this script BEFORE N-Mode.js / inf-mode.js in any page that reports progress.
 
-const router = express.Router();
+const GameAPI = (() => {
+  const BASE = ""; // same-origin: server serves the game itself on Railway
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
-const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
+  let playerId = localStorage.getItem("playerId") || null;
+  let authToken = localStorage.getItem("authToken") || null;
+  let infRunId = null;
+  let infRunToken = null;
+  let bossRunId = null;
+  let bossRunToken = null;
 
-function validateUsername(u) {
-  return typeof u === 'string' && u.trim().length >= 2 && u.trim().length <= 32;
-}
-function validatePin(p) {
-  return typeof p === 'string' && /^[0-9]{4,8}$/.test(p);
-}
-
-// Picks a free "PlayerNNNN" username. Google accounts don't come with a game
-// username, so we hand them a random one and let them rename it later from
-// the account page — the player row's `username` column is still the single
-// source of truth used everywhere else (leaderboard, deck, etc).
-async function generateRandomUsername() {
-  for (let i = 0; i < 10; i++) {
-    const candidate = 'Player' + Math.floor(1000 + Math.random() * 9000);
-    const existing = await pool.query(`SELECT id FROM players WHERE username = $1`, [candidate]);
-    if (existing.rows.length === 0) return candidate;
-  }
-  return 'Player' + Date.now().toString().slice(-6); // astronomically unlikely fallback
-}
-
-// POST /api/auth/register { username, pin }
-// Creates a new player with a hashed PIN. Fails if the username is already taken
-// (use /login instead) — this is what stops someone else from claiming your name.
-router.post('/register', asyncHandler(async (req, res) => {
-  const username = (req.body?.username || '').trim();
-  const pin = req.body?.pin;
-  if (!validateUsername(username)) return res.status(400).json({ error: 'invalid username (2-32 chars)' });
-  if (!validatePin(pin)) return res.status(400).json({ error: 'pin must be 4-8 digits' });
-
-  const existing = await pool.query(`SELECT id FROM players WHERE username = $1`, [username]);
-  if (existing.rows.length > 0) {
-    return res.status(409).json({ error: 'username already taken, use /login instead' });
+  async function post(path, body, auth) {
+    try {
+      const headers = { "Content-Type": "application/json" };
+      if (auth && authToken) headers["Authorization"] = "Bearer " + authToken;
+      const res = await fetch(BASE + path, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body || {}),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        console.warn("[GameAPI] request failed:", path, res.status, data?.error);
+        return { error: data?.error || `http ${res.status}`, status: res.status };
+      }
+      return data;
+    } catch (err) {
+      console.warn("[GameAPI] network error (offline / server down):", err);
+      return { error: "network" };
+    }
   }
 
-  const pinHash = await bcrypt.hash(pin, 10);
-  const token = uuid();
-
-  const { rows } = await pool.query(
-    `INSERT INTO players (username, pin_hash, session_token) VALUES ($1, $2, $3)
-     RETURNING id, username`,
-    [username, pinHash, token]
-  );
-
-  await pool.query(
-    `INSERT INTO player_economy (player_id) VALUES ($1) ON CONFLICT DO NOTHING`,
-    [rows[0].id]
-  );
-
-  res.json({ playerId: rows[0].id, username: rows[0].username, token });
-}));
-
-// POST /api/auth/login { username, pin }
-router.post('/login', asyncHandler(async (req, res) => {
-  const username = (req.body?.username || '').trim();
-  const pin = req.body?.pin;
-  if (!validateUsername(username) || !validatePin(pin)) {
-    return res.status(400).json({ error: 'invalid username or pin' });
+  async function get(path, auth) {
+    try {
+      const headers = {};
+      if (auth && authToken) headers["Authorization"] = "Bearer " + authToken;
+      const res = await fetch(BASE + path, { headers });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (err) {
+      console.warn("[GameAPI] network error:", err);
+      return null;
+    }
   }
 
-  const { rows } = await pool.query(
-    `SELECT id, pin_hash FROM players WHERE username = $1`,
-    [username]
-  );
-  if (rows.length === 0) return res.status(404).json({ error: 'no such player, register first' });
-  if (!rows[0].pin_hash) return res.status(409).json({ error: 'this account has no pin set yet — contact admin' });
+  // ---- Auth: username + PIN. Money/bag/deck require this; the old identify() flow
+  // (no password) is still used for leaderboard-only display names. ----
+  function isLoggedIn() { return !!(playerId && authToken); }
 
-  const ok = await bcrypt.compare(pin, rows[0].pin_hash);
-  if (!ok) return res.status(401).json({ error: 'wrong pin' });
-
-  const token = uuid();
-  await pool.query(`UPDATE players SET session_token = $2 WHERE id = $1`, [rows[0].id, token]);
-
-  await pool.query(
-    `INSERT INTO player_economy (player_id) VALUES ($1) ON CONFLICT DO NOTHING`,
-    [rows[0].id]
-  );
-
-  res.json({ playerId: rows[0].id, username, token });
-}));
-
-// GET /api/auth/config — tells the frontend which Google client ID to use for
-// the Sign-In button, so it isn't hardcoded into the static JS bundle.
-router.get('/config', (req, res) => {
-  res.json({ googleClientId: GOOGLE_CLIENT_ID || null });
-});
-
-// POST /api/auth/google { credential }
-// `credential` is the ID token JWT that Google Identity Services hands back
-// client-side after the user picks a Google account. We verify it server-side
-// (signature + audience) so a forged token can't be used to log in as someone else.
-router.post('/google', asyncHandler(async (req, res) => {
-  if (!googleClient) return res.status(500).json({ error: 'google login is not configured on this server' });
-
-  const credential = req.body?.credential;
-  if (!credential || typeof credential !== 'string') {
-    return res.status(400).json({ error: 'missing google credential' });
+  async function register(username, pin) {
+    const data = await post("/api/auth/register", { username, pin });
+    if (data?.token) {
+      playerId = data.playerId; authToken = data.token;
+      localStorage.setItem("playerId", playerId);
+      localStorage.setItem("authToken", authToken);
+      localStorage.setItem("username", data.username);
+    }
+    return data;
   }
 
-  let payload;
-  try {
-    const ticket = await googleClient.verifyIdToken({ idToken: credential, audience: GOOGLE_CLIENT_ID });
-    payload = ticket.getPayload();
-  } catch (err) {
-    return res.status(401).json({ error: 'invalid google credential' });
+  async function login(username, pin) {
+    const data = await post("/api/auth/login", { username, pin });
+    if (data?.token) {
+      playerId = data.playerId; authToken = data.token;
+      localStorage.setItem("playerId", playerId);
+      localStorage.setItem("authToken", authToken);
+      localStorage.setItem("username", data.username);
+    }
+    return data;
   }
 
-  const googleId = payload.sub;
-  const token = uuid();
-
-  const existing = await pool.query(`SELECT id, username FROM players WHERE google_id = $1`, [googleId]);
-
-  if (existing.rows.length > 0) {
-    // Returning Google user — just refresh their session token.
-    await pool.query(`UPDATE players SET session_token = $2 WHERE id = $1`, [existing.rows[0].id, token]);
-    return res.json({
-      playerId: existing.rows[0].id,
-      username: existing.rows[0].username,
-      token,
-      isNewAccount: false,
-    });
+  // Google Sign-In: `credential` is the ID token JWT handed back by Google
+  // Identity Services client-side. Server verifies it and either logs the
+  // returning player in or creates a new one with a random username.
+  async function loginWithGoogle(credential) {
+    const data = await post("/api/auth/google", { credential });
+    if (data?.token) {
+      playerId = data.playerId; authToken = data.token;
+      localStorage.setItem("playerId", playerId);
+      localStorage.setItem("authToken", authToken);
+      localStorage.setItem("username", data.username);
+    }
+    return data;
   }
 
-  // First time this Google account has signed in — mint a random username.
-  const username = await generateRandomUsername();
-  const { rows } = await pool.query(
-    `INSERT INTO players (username, google_id, session_token) VALUES ($1, $2, $3)
-     RETURNING id, username`,
-    [username, googleId, token]
-  );
+  async function getAuthConfig() {
+    return get("/api/auth/config", false);
+  }
 
-  await pool.query(
-    `INSERT INTO player_economy (player_id) VALUES ($1) ON CONFLICT DO NOTHING`,
-    [rows[0].id]
-  );
+  async function updateUsername(newUsername) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    const headers = { "Content-Type": "application/json", Authorization: "Bearer " + authToken };
+    try {
+      const res = await fetch(BASE + "/api/auth/username", {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({ username: newUsername }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) return { error: data?.error || `http ${res.status}` };
+      localStorage.setItem("username", data.username);
+      return data;
+    } catch (err) {
+      console.warn("[GameAPI] network error:", err);
+      return { error: "network" };
+    }
+  }
 
-  res.json({ playerId: rows[0].id, username: rows[0].username, token, isNewAccount: true });
-}));
+  function getUsername() { return localStorage.getItem("username") || null; }
 
-// PATCH /api/auth/username { username } — rename your own account (works for
-// PIN accounts and Google accounts alike). Requires a valid session.
-router.patch('/username', requireAuth, asyncHandler(async (req, res) => {
-  const username = (req.body?.username || '').trim();
-  if (!validateUsername(username)) return res.status(400).json({ error: 'invalid username (2-32 chars)' });
+  function logout() {
+    playerId = null; authToken = null;
+    localStorage.removeItem("playerId");
+    localStorage.removeItem("authToken");
+  }
 
-  const existing = await pool.query(
-    `SELECT id FROM players WHERE username = $1 AND id != $2`,
-    [username, req.playerId]
-  );
-  if (existing.rows.length > 0) return res.status(409).json({ error: 'username already taken' });
+  // ---- Economy: server is the source of truth for money/bag/deck. ----
+  async function fetchEconomyState() {
+    if (!isLoggedIn()) return null;
+    return get("/api/economy/state", true);
+  }
 
-  await pool.query(`UPDATE players SET username = $1 WHERE id = $2`, [username, req.playerId]);
-  res.json({ username });
-}));
+  async function claimNormalReward(stage) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/claim/normal", { stage }, true);
+  }
 
-module.exports = router;
+  async function claimInfReward(runId, stage) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/claim/inf", { runId, stage }, true);
+  }
+
+  async function bossRunStart(bossId) {
+    if (!isLoggedIn()) return null;
+    const data = await post("/api/economy/boss/start", { bossId }, true);
+    if (data?.runId) { bossRunId = data.runId; bossRunToken = data.token; }
+    return data;
+  }
+
+  async function bossClaimTier(tierIndex, damageDone) {
+    if (!bossRunId) return { error: "no active boss run" };
+    return post("/api/economy/boss/claim-tier", { runId: bossRunId, token: bossRunToken, tierIndex, damageDone }, true);
+  }
+
+  async function bossRunFinish() {
+    if (!bossRunId) return null;
+    const result = await post("/api/economy/boss/finish", { runId: bossRunId, token: bossRunToken }, true);
+    bossRunId = null; bossRunToken = null;
+    return result;
+  }
+
+  async function shopGetCurrent() {
+    return get("/api/economy/shop/current", false);
+  }
+
+  async function shopBuy(slotIndex) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/shop/buy", { slotIndex }, true);
+  }
+
+  async function gachaRoll(poolId, times) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/gacha/roll", { poolId, times }, true);
+  }
+
+  async function upgradeGuaranteed(cardId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/upgrade/guaranteed", { cardId }, true);
+  }
+
+  async function upgradePaid(cardId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/upgrade/paid", { cardId }, true);
+  }
+
+  async function upgradeDuplicate(cardId, duplicateCardIds) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/upgrade/duplicate", { cardId, duplicateCardIds }, true);
+  }
+
+  async function sellCard(cardId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/sell", { cardId }, true);
+  }
+
+  async function sellAllCards(cardIds) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/sell-all", { cardIds }, true);
+  }
+
+  // ---- Equipment: gacha roll + equip/unequip/delete are all server-authoritative now. ----
+  async function equipGachaRoll(poolId, times, blacklist) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/equip-gacha/roll", { poolId, times, blacklist }, true);
+  }
+
+  async function equipItemOnCard(cardId, equipId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/equip/equip", { cardId, equipId }, true);
+  }
+
+  async function unequipItemFromCard(cardId, equipId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/equip/unequip", { cardId, equipId }, true);
+  }
+
+  async function deleteEquip(equipId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/equip/delete", { equipId }, true);
+  }
+
+  async function deleteEquipByRarityServer(rarity) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/equip/delete-by-rarity", { rarity }, true);
+  }
+
+  // Call once on page load. Falls back to a local guest name if username not set yet.
+  async function ensurePlayer() {
+    if (playerId) return playerId;
+    const username = localStorage.getItem("username") || ("guest-" + Math.random().toString(36).slice(2, 8));
+    localStorage.setItem("username", username);
+    const data = await post("/api/players/identify", { username });
+    if (data?.id) {
+      playerId = data.id;
+      localStorage.setItem("playerId", playerId);
+    }
+    return playerId;
+  }
+
+  // ---- NORMAL mode: stages are picked individually, so we just report each clear ----
+  // Server checks it against the player's previously recorded max stage (order-safe).
+  async function reportNormalClear(stage) {
+    await ensurePlayer();
+    if (!playerId) return; // offline: skip silently, don't block gameplay
+    return post("/api/progress/normal-clear", { playerId, stage });
+  }
+
+  // ---- INF mode: one continuous run from stage 1 until loss/full-clear ----
+  async function infRunStart() {
+    await ensurePlayer();
+    if (!playerId) return;
+    const data = await post("/api/runs/start", { playerId, mode: "inf" });
+    if (data?.runId) {
+      infRunId = data.runId;
+      infRunToken = data.token;
+    }
+  }
+
+  async function infStageClear(stage) {
+    if (!infRunId) return; // run wasn't started (offline) — gameplay still works locally
+    return post(`/api/runs/${infRunId}/stage-clear`, { token: infRunToken, stage });
+  }
+
+  async function infRunFinish() {
+    if (!infRunId) return;
+    const result = await post(`/api/runs/${infRunId}/finish`, { token: infRunToken });
+    infRunId = null;
+    infRunToken = null;
+    return result;
+  }
+
+  function getInfRunId() { return infRunId; }
+
+  return {
+    ensurePlayer, reportNormalClear, infRunStart, infStageClear, infRunFinish, getInfRunId,
+    isLoggedIn, register, login, loginWithGoogle, logout, getAuthConfig, updateUsername, getUsername,
+    fetchEconomyState, claimNormalReward, claimInfReward,
+    bossRunStart, bossClaimTier, bossRunFinish,
+    shopGetCurrent, shopBuy, gachaRoll, upgradeGuaranteed,
+    upgradePaid, upgradeDuplicate, sellCard, sellAllCards,
+    equipGachaRoll, equipItemOnCard, unequipItemFromCard, deleteEquip, deleteEquipByRarityServer,
+  };
+})();
