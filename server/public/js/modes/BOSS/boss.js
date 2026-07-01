@@ -11,31 +11,15 @@ function toNum(v, fallback=0){
 function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
 /* =======================
-   Rewards
+   Rewards (UI-only log; actual crediting happens via GameAPI.bossClaimTier, see addBossDamage)
    ======================= */
-function giveReward(reward){
+function logRewardPreview(reward){
   if (!reward) return;
-
-  if (reward.money) {
-    const moneyGain = Array.isArray(reward.money) ? rand(...reward.money) : Number(reward.money);
-    if (moneyGain > 0) {
-      addMoney(moneyGain); 
-      log(`💰 ได้ ${moneyGain} เหรียญ`, "system");
-    }
-  }
-
   if (reward.items) {
-    for (const [key, range] of Object.entries(reward.items)) {
-      const amt = Array.isArray(range) ? rand(range[0], range[1]) : Number(range);
-      if (amt > 0) {
-        addToBag(key, amt); 
-        log(`🎁 ได้ ${amt}x ${key}`, "system");
-      }
+    for (const key of Object.keys(reward.items)) {
+      log(`🎁 ได้ ${key} (รอเซิฟยืนยันจำนวน)`, "system");
     }
   }
-
-  updateMoneyUI();
-  updateBagUI();
 }
 
 /* =======================
@@ -57,9 +41,24 @@ function addBossDamage(dmg){
 
   boss.stages.forEach((stage, idx)=>{
     if (damageDone >= stage.dmg && !stageRewardGiven[idx]){
-      giveReward(stage.reward);
-      stageRewardGiven[idx] = true;
+      stageRewardGiven[idx] = true; // กันยิงซ้ำฝั่ง client; เซิฟก็กันซ้ำอีกชั้นด้วย UNIQUE constraint
+      logRewardPreview(stage.reward);
       log(`🏆 ผ่าน Stage ${idx+1} ของ ${boss.name} (ดาเมจสะสม ${stage.dmg}+ )`, "system");
+
+      if (window.GameAPI) {
+        GameAPI.bossClaimTier(idx, damageDone).then((result) => {
+          if (result && result.ok) {
+            applyServerMoney(result.money);
+            applyServerBag(result.bag);
+            log(`💰 ได้ ${result.moneyGain} เหรียญ`, "system");
+            for (const [key, amount] of Object.entries(result.drops || {})) {
+              log(`🎁 ยืนยัน ${amount}x ${key}`, "system");
+            }
+          } else {
+            console.warn("[Boss] claim tier failed:", result?.error);
+          }
+        });
+      }
     }
   });
 }
@@ -99,10 +98,11 @@ function renderBossButtons(){
   });
 }
 
-function setBoss(key){
+async function setBoss(key){
   if (battleRunning){ alert("กำลังสู้บอสอยู่"); return; }
   currentBossKey = key;
   currentBoss = BOSSES[key];
+  if (window.GameAPI) await GameAPI.bossRunStart(key); // ต้องรอ runId ก่อน ไม่งั้น claim reward tier แรกจะพลาด
   prepareBossBattle();
   startBattle();
 }
@@ -279,6 +279,7 @@ function endBattle(win){
   const cancelBtn = document.getElementById("cancelBattleBtn");
   if (cancelBtn) cancelBtn.style.display="none";
   renderBossButtons();
+  if (window.GameAPI) GameAPI.bossRunFinish();
 }
 
 /* =======================
