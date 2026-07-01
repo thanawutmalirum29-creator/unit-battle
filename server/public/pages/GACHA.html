@@ -42,7 +42,10 @@
 <script src="../js/data/gacha-data.js"></script>
 <script src="../js/data/gacha-fix.js"></script>
 <script src="../js/core/money.js"></script>
+<script src="../js/core/api.js"></script>
+<script src="../js/core/auth-ui.js"></script>
 <script src="../js/core/bag.js"></script>
+<script src="../js/core/deck.js"></script>
 <script>
 
 let money = loadMoney();
@@ -139,117 +142,38 @@ function weightedPick(items){
   return items[items.length-1];
 }
 
-function gachaPull(poolKey, count) {
-  const poolObj = GACHA_POOLS[poolKey];
-  const pool = poolObj.pool;
-  let cost = poolObj.cost || 100;
-  cost = enforceMinCost(poolKey, cost);
-
-  const MAX_DECK_SIZE = 100;
-
-  let deck = JSON.parse(localStorage.getItem("deck") || "[]");
-  let owned = JSON.parse(localStorage.getItem("ownedCards") || "[]");
-
-  // ✅ โหลดเงินแบบเข้ารหัส
-  let money = loadMoney();
-
-  // ❌ ไม่รีเซ็ต ถ้า NaN จะให้มันแสดง NaN ไปเลย
-  // console.log ใช้ตรวจสอบปัญหา
-  if (isNaN(money)) {
-    console.warn("⚠️ เงินที่โหลดมาเป็น NaN: ", localStorage.getItem("deckgame_money"));
-  }
-
-  let totalCost = cost * count;
-  if (count === 3) totalCost = Math.floor(totalCost * 0.9);
-  if (count === 10) totalCost = Math.floor(totalCost * 0.8);
-
-  if (money < totalCost) {
-    const shortage = totalCost - money;
-    alert("💰 เงินไม่พอ! ขาดอีก " + shortage + "💰");
+async function gachaPull(poolKey, count) {
+  if (!window.GameAPI || !GameAPI.isLoggedIn()) {
+    alert("ต้องเข้าสู่ระบบ (username + PIN) ก่อนสุ่มกาชา");
     return;
   }
-
-  // ✅ หักเงินแล้วบันทึกด้วยระบบเข้ารหัส
-  money -= totalCost;
-  saveMoney(money);
-  updateMoneyUI(money);
-
-  const results = [];
-  const blacklist = JSON.parse(localStorage.getItem("gacha_blacklist") || "[]");
-
-  for (let i = 0; i < count; i++) {
-    const card = structuredClone(weightedPick(pool));
-    card.id = "card-" + Date.now() + "-" + Math.random();
-
-    if (!owned.includes(card.name)) {
-      owned.push(card.name);
-    }
-
-    if (blacklist.includes(card.name)) {
-      card._blacklisted = true;
-      results.push(card);
-
-      if (owned.includes(card.name)) {
-        switch (card.rarity) {
-          case "Rare":      addToBag("memoryRare", 1); break;
-          case "Epic":      addToBag("memoryEpic", 1); break;
-          case "Legendary": addToBag("memoryLegendary", 1); break;
-          case "Mythical":  addToBag("memoryMythical", 1); break;
-          case "Cosmic":    addToBag("memoryCosmic", 1); break;
-        }
-      }
-    } else {
-      deck.push(card);
-      results.push(card);
-
-      if (owned.includes(card.name)) {
-        const countSame = deck.filter(c => c.name === card.name).length;
-        if (countSame > 1) {
-          switch (card.rarity) {
-            case "Rare":      addToBag("memoryRare", 1); break;
-            case "Epic":      addToBag("memoryEpic", 1); break;
-            case "Legendary": addToBag("memoryLegendary", 1); break;
-            case "Mythical":  addToBag("memoryMythical", 1); break;
-            case "Cosmic":    addToBag("memoryCosmic", 1); break;
-          }
-        }
-      }
-    }
+  // เซิฟเป็นคนคำนวณ cost/สุ่มการ์ด/หักเงิน/บันทึกลง deck ทั้งหมด (ดู routes/economy.js gacha/roll)
+  // หมายเหตุ: กลไก blacklist->memory currency (เดิมทำฝั่ง client ล้วน) ยังไม่ถูกย้ายมาเซิฟ
+  // ต้องทำเป็นเฟสถัดไป — ตอนนี้การ์ดทุกใบที่สุ่มได้จะถูกเติมเข้า deck บนเซิฟเสมอ ไม่มีการแปลงเป็น memory
+  const result = await GameAPI.gachaRoll(poolKey, count);
+  if (!result || !result.ok) {
+    alert("สุ่มไม่สำเร็จ: " + (result?.error || "unknown error"));
+    return;
   }
-
-  localStorage.setItem("deck", JSON.stringify(deck));
-  localStorage.setItem("ownedCards", JSON.stringify(owned));
-  showPulledCards(results);
+  applyServerMoney(result.money);
+  showPulledCards(result.results);
 }
 
-function sellCard(cardId, cardObj=null){
-  let deck = JSON.parse(localStorage.getItem("deck") || "[]");
-  let sold;
-
-  if (cardObj){
-    sold = cardObj;
-  } else {
-    const idx = deck.findIndex(c => c.id === cardId);
-    if (idx === -1) return;
-    sold = deck.splice(idx, 1)[0];
-    localStorage.setItem("deck", JSON.stringify(deck));
+// 🔐 ขายการ์ด — เซิฟเป็นคนตรวจการมีอยู่จริง + คิดราคาเอง (เดิมหน้านี้มีตาราง
+// ราคาของตัวเองที่ไม่ตรงกับ render.js เลย — ตอนนี้เหลือแหล่งราคาเดียวคือเซิฟ)
+async function sellCard(cardId){
+  if (!window.GameAPI || !GameAPI.isLoggedIn()) {
+    alert("ต้องเข้าสู่ระบบ (username + PIN) ก่อนขายการ์ด");
+    return;
   }
-
-  const rarityPrice = {
-  "Common": 100,
-  "Rare": 300,
-  "Epic": 2000,
-  "Legendary": 30000,
-  "Mythical": 100000,
-  "Cosmic": 500000
-};
-
-  const stars = sold.stars || 1;
-  const base = rarityPrice[sold.rarity] || 5;
-  const price = base * stars;
-
-  addMoney(price);
-  
+  const result = await GameAPI.sellCard(cardId);
+  if (!result || !result.ok) {
+    alert("ขายไม่สำเร็จ: " + (result?.error || "unknown error"));
+    return;
+  }
+  applyServerMoney(result.money);
+  if (typeof applyServerDeck === "function") applyServerDeck(result.deck);
+  else localStorage.setItem("deck", JSON.stringify(result.deck));
 
   if (typeof renderDeck === "function") renderDeck();
 }
