@@ -189,6 +189,7 @@ async function startBattle(){
 
     // 🟢 จบรอบใหญ่ → ลด cooldown ของทุกตัว
    endRoundAll();
+   renderBattlefield(); // ⏳ ให้ตัวเลขคูลดาวน์บนการ์ดอัปเดตทันทีตอนจบเทิร์นใหญ่
 
     turn++;
     await delay(400);
