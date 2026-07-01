@@ -205,7 +205,10 @@ function buyWithShard(item, memoryKey){
 
   // หักเงิน
   money-=item.price;
-  localStorage.setItem("deckgame_money",money);
+  saveMoney(money); // 🟢 เดิมเขียน localStorage.setItem("deckgame_money", money) ตรงๆ เป็นเลขดิบ
+                     // แต่ money.js เก็บเงินแบบเข้ารหัส (encryptMoney) เสมอ พอค่าที่อ่านมาไม่ใช่
+                     // รูปแบบเข้ารหัส decryptMoney() จะถือว่าข้อมูลเสีย แล้วรีเซ็ตกลับเป็น 400
+                     // ทุกครั้งที่ซื้อของ — สาเหตุที่เงินเด้งกลับ 400 อยู่ตรงนี้
   updateMoneyUI();
 
   // เพิ่มการ์ดเข้า deck
