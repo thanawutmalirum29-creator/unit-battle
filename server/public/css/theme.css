@@ -619,16 +619,20 @@ body.no-scroll{ overflow:hidden; height:100%; }
 #gachaOverlay{
   position:fixed; top:0; left:0; width:100%; height:100%;
   display:none;
-  align-items:center; justify-content:center;
+  align-items:flex-start; justify-content:center;
   background:rgba(4,6,12,.82);
   pointer-events:auto;
   z-index:10000;
-  overflow:hidden;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding:70px 12px 40px;
+  box-sizing:border-box;
 }
 #gachaOverlay button{ pointer-events:auto; }
 
 #skipButton{
-  position:absolute; top:20px; right:20px;
+  position:fixed; top:20px; right:20px;
   padding:8px 16px;
   border:none; border-radius:999px;
   background:linear-gradient(135deg,#d62828,#ff4c4c);
@@ -643,6 +647,9 @@ body.no-scroll{ overflow:hidden; height:100%; }
   border-radius:var(--radius);
   padding:14px;
   min-width:150px;
+  max-width:min(90vw, 260px);
+  word-break:break-word;
+  box-sizing:border-box;
   text-align:center;
   font-weight:700;
   box-shadow:var(--shadow);
