@@ -60,3 +60,62 @@ CREATE TABLE IF NOT EXISTS leaderboard_entries (
 
 CREATE INDEX IF NOT EXISTS idx_leaderboard_mode_stage ON leaderboard_entries (mode, max_stage DESC, time_ms ASC);
 CREATE INDEX IF NOT EXISTS idx_runs_player ON runs (player_id);
+
+-- ============================================================================
+-- Economy (server-authoritative money/bag/deck) + PIN auth
+-- Added when moving money/rewards/drops/shop/gacha off the client.
+-- ============================================================================
+
+ALTER TABLE players ADD COLUMN IF NOT EXISTS pin_hash TEXT;
+ALTER TABLE players ADD COLUMN IF NOT EXISTS session_token UUID;
+
+-- allow 'boss' as a run mode too (boss fights now get server-tracked like normal/inf)
+ALTER TABLE runs DROP CONSTRAINT IF EXISTS runs_mode_check;
+ALTER TABLE runs ADD CONSTRAINT runs_mode_check CHECK (mode IN ('normal', 'inf', 'boss', 'realtime'));
+ALTER TABLE runs ADD COLUMN IF NOT EXISTS boss_id TEXT;
+
+CREATE TABLE IF NOT EXISTS player_economy (
+  player_id       UUID PRIMARY KEY REFERENCES players(id),
+  money           BIGINT NOT NULL DEFAULT 400 CHECK (money >= 0),
+  bag             JSONB NOT NULL DEFAULT '{}',
+  deck            JSONB NOT NULL DEFAULT '[]',
+  last_normal_claim_at TIMESTAMPTZ,
+  updated_at      TIMESTAMPTZ DEFAULT now()
+);
+
+-- Equipment gacha + equip status system (was 100% client-side / localStorage["equipBag"]):
+-- server now owns the equipment bag the same way it owns `deck`. Items equipped onto a
+-- card live inside that card's `equips` array inside `deck` (unchanged shape from before),
+-- so equip/unequip only ever needs to move an item between `equip_bag` and `deck[i].equips`.
+ALTER TABLE player_economy ADD COLUMN IF NOT EXISTS equip_bag JSONB NOT NULL DEFAULT '[]';
+
+-- One row per reward payout. Prevents an INF/boss stage from being paid out twice
+-- (e.g. client retries the claim call after a slow/dropped response).
+CREATE TABLE IF NOT EXISTS reward_claims (
+  id            BIGSERIAL PRIMARY KEY,
+  player_id     UUID NOT NULL REFERENCES players(id),
+  run_id        UUID REFERENCES runs(id),
+  mode          TEXT NOT NULL,
+  stage         INT NOT NULL,
+  money_awarded BIGINT NOT NULL DEFAULT 0,
+  items_awarded JSONB,
+  claimed_at    TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (run_id, stage)
+);
+
+-- One shop lineup shared by everyone for a given time window (cycle), server-generated.
+CREATE TABLE IF NOT EXISTS shop_cycles (
+  cycle       BIGINT PRIMARY KEY,
+  cards       JSONB NOT NULL,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS shop_purchases (
+  id              BIGSERIAL PRIMARY KEY,
+  player_id       UUID NOT NULL REFERENCES players(id),
+  cycle           BIGINT NOT NULL,
+  slot_index      INT NOT NULL,
+  price_paid      BIGINT NOT NULL,
+  purchased_at    TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (player_id, cycle, slot_index)
+);
