@@ -151,6 +151,52 @@ for (let s = 1; s <= MAX_INF_STAGE; s++) {
 }
 
 /* ============================
+   INF SHARD DROPS
+   - ทุกด่านดรอปชาร์ด สุ่มชนิด (จาก 6 ชนิด) และสุ่มจำนวนชิ้นตามช่วงด่าน
+   - ด่านสุดท้าย (MAX_INF_STAGE) ดรอปการันตีครบทุกชนิด ชนิดละ 1 ชิ้น
+   ============================ */
+const INF_SHARD_TYPES = ["shardGray", "shardBlue", "shardPurple", "shardGold", "shardRed","shardSky"];
+
+// ช่วงด่าน -> จำนวนชิ้นที่ดรอป (ต่อครั้งที่ชนะ) ปรับ/เพิ่มช่วงต่อได้ตามต้องการในอนาคต
+const INF_SHARD_PIECE_RANGES = [
+  { min: 1,   max: 99,   pieces: [1, 3] },
+  { min: 100, max: 222,  pieces: [2, 4] },
+  { min: 223, max: 500,  pieces: [3, 5] },
+  { min: 501, max: Infinity, pieces: [4, 5] }, // ตั้งแต่ 501 เป็นต้นไป (รวมถึงหากขยาย MAX_INF_STAGE เพิ่มในอนาคต)
+];
+
+function getInfShardPieceRange(stage) {
+  for (const r of INF_SHARD_PIECE_RANGES) {
+    if (stage >= r.min && stage <= r.max) return r.pieces;
+  }
+  return INF_SHARD_PIECE_RANGES[INF_SHARD_PIECE_RANGES.length - 1].pieces;
+}
+
+function randomIntInclusive(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// สุ่มดรอปชาร์ดสำหรับด่าน INF หนึ่งด่าน
+function generateInfShardDrop(stage) {
+  // ด่านสุดท้ายสุด: การันตีครบทุกชนิด ชนิดละ 1 ชิ้น
+  if (stage === MAX_INF_STAGE) {
+    const finalDrop = {};
+    INF_SHARD_TYPES.forEach(type => { finalDrop[type] = 1; });
+    return finalDrop;
+  }
+
+  const [minPieces, maxPieces] = getInfShardPieceRange(stage);
+  const totalPieces = randomIntInclusive(minPieces, maxPieces);
+
+  const drop = {};
+  for (let i = 0; i < totalPieces; i++) {
+    const type = INF_SHARD_TYPES[Math.floor(Math.random() * INF_SHARD_TYPES.length)];
+    drop[type] = (drop[type] || 0) + 1;
+  }
+  return drop;
+}
+
+/* ============================
    PREPARE BATTLE
    ============================ */
 function prepareInfBattle() {
@@ -319,6 +365,16 @@ async function startInfBattle() {
         let totalReward = enemyTeam.reduce((sum, e) => sum + (e.reward || 0), 0);
         addMoney(totalReward);
         updateMoneyUI();
+
+        // 🧩 ดรอปชาร์ด (สุ่มชนิด+จำนวนตามช่วงด่าน, ด่านสุดท้ายการันตีครบทุกชนิด)
+        const infDrops = generateInfShardDrop(currentInfStage);
+        if (infDrops) {
+          for (const [key, amount] of Object.entries(infDrops)) {
+            addToBag(key, amount);
+            log(`🎁 ได้ ${amount}x ${key}`, "system");
+          }
+          updateBagUI();
+        }
 
         GameAPI.infStageClear(currentInfStage); // server validates order + timing before counting it
         endInfBattle(true);
