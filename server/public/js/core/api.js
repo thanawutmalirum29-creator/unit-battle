@@ -71,6 +71,45 @@ const GameAPI = (() => {
     return data;
   }
 
+  // Google Sign-In: `credential` is the ID token JWT handed back by Google
+  // Identity Services client-side. Server verifies it and either logs the
+  // returning player in or creates a new one with a random username.
+  async function loginWithGoogle(credential) {
+    const data = await post("/api/auth/google", { credential });
+    if (data?.token) {
+      playerId = data.playerId; authToken = data.token;
+      localStorage.setItem("playerId", playerId);
+      localStorage.setItem("authToken", authToken);
+      localStorage.setItem("username", data.username);
+    }
+    return data;
+  }
+
+  async function getAuthConfig() {
+    return get("/api/auth/config", false);
+  }
+
+  async function updateUsername(newUsername) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    const headers = { "Content-Type": "application/json", Authorization: "Bearer " + authToken };
+    try {
+      const res = await fetch(BASE + "/api/auth/username", {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({ username: newUsername }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) return { error: data?.error || `http ${res.status}` };
+      localStorage.setItem("username", data.username);
+      return data;
+    } catch (err) {
+      console.warn("[GameAPI] network error:", err);
+      return { error: "network" };
+    }
+  }
+
+  function getUsername() { return localStorage.getItem("username") || null; }
+
   function logout() {
     playerId = null; authToken = null;
     localStorage.removeItem("playerId");
@@ -226,7 +265,7 @@ const GameAPI = (() => {
 
   return {
     ensurePlayer, reportNormalClear, infRunStart, infStageClear, infRunFinish, getInfRunId,
-    isLoggedIn, register, login, logout,
+    isLoggedIn, register, login, loginWithGoogle, logout, getAuthConfig, updateUsername, getUsername,
     fetchEconomyState, claimNormalReward, claimInfReward,
     bossRunStart, bossClaimTier, bossRunFinish,
     shopGetCurrent, shopBuy, gachaRoll, upgradeGuaranteed,

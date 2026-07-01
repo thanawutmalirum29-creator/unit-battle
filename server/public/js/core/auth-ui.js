@@ -23,6 +23,63 @@
     document.head.appendChild(style);
   }
 
+  function loadGoogleScript() {
+    return new Promise((resolve, reject) => {
+      if (window.google?.accounts?.id) return resolve();
+      if (document.getElementById("google-identity-script")) {
+        document.getElementById("google-identity-script").addEventListener("load", () => resolve());
+        return;
+      }
+      const script = document.createElement("script");
+      script.id = "google-identity-script";
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("โหลดสคริปต์ Google ไม่สำเร็จ"));
+      document.head.appendChild(script);
+    });
+  }
+
+  // เพิ่มปุ่ม "เข้าสู่ระบบด้วย Google" เข้าไปใน modal — ถ้า server ยังไม่ได้ตั้งค่า
+  // GOOGLE_CLIENT_ID ไว้ (ยังไม่ได้ตั้งค่าใน Railway) จะไม่แสดงปุ่มนี้ให้เงียบๆ
+  async function mountGoogleButton(container, onDone) {
+    const config = await GameAPI.getAuthConfig();
+    if (!config?.googleClientId) return; // ยังไม่ได้ตั้งค่า Google ฝั่ง server
+
+    try {
+      await loadGoogleScript();
+    } catch (err) {
+      console.warn("[auth-ui]", err);
+      return;
+    }
+
+    window.google.accounts.id.initialize({
+      client_id: config.googleClientId,
+      callback: async (response) => {
+        const result = await GameAPI.loginWithGoogle(response.credential);
+        onDone(result);
+      },
+    });
+
+    const divider = document.createElement("div");
+    divider.style.cssText = "text-align:center;color:#778;font-size:12px;margin:10px 0;";
+    divider.textContent = "หรือ";
+    container.appendChild(divider);
+
+    const btnWrap = document.createElement("div");
+    btnWrap.style.cssText = "display:flex;justify-content:center;";
+    container.appendChild(btnWrap);
+
+    window.google.accounts.id.renderButton(btnWrap, {
+      theme: "filled_black",
+      size: "large",
+      width: 232,
+      text: "signin_with",
+      locale: "th",
+    });
+  }
+
   function showModal() {
     injectStyle();
     if (document.getElementById("authui-overlay")) return;
@@ -87,6 +144,17 @@
     pinInput.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
 
     setMode("login");
+
+    // ปุ่ม Google — ใช้ callback แยกจาก submit() ปกติ เพราะไม่มี username/pin ให้กรอก
+    mountGoogleButton(overlay.querySelector("#authui-box"), (result) => {
+      if (result && result.token) {
+        overlay.remove();
+        if (typeof window.onAuthReady === "function") window.onAuthReady();
+        location.reload();
+      } else {
+        errorBox.textContent = result?.error || "เข้าสู่ระบบด้วย Google ไม่สำเร็จ ลองใหม่อีกครั้ง";
+      }
+    });
   }
 
   // เรียกอัตโนมัติเมื่อโหลดสคริปต์นี้ ถ้ายังไม่มี session
