@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <title>บัญชีของฉัน</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="../css/game.css" />
+  <link rel="stylesheet" href="../css/skills.css" />
+  <link rel="stylesheet" href="../css/theme.css" />
+  <style>
+    .acct-row{
+      display:flex; justify-content:space-between; align-items:center;
+      padding:9px 4px; border-bottom:1px solid var(--border);
+      font-size:14px;
+    }
+    .acct-row:last-child{ border-bottom:none; }
+    .acct-row .label{ color:var(--muted); }
+    .acct-row .value{ font-weight:700; }
+    .acct-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+    #acctLogoutBtn{
+      background:linear-gradient(135deg,#7a1c1c,#4d0f0f);
+      border:1px solid rgba(239,68,68,.4); color:#ffd5d5;
+    }
+    #acctLogoutBtn:hover{ background:linear-gradient(135deg,#9c2424,#601313); }
+    #acctLoggedOutMsg{ color:var(--muted); font-size:14px; }
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <h1>👤 บัญชีของฉัน</h1>
+  <div class="right-group">
+    <div id="moneyWindow">💰 0</div>
+  </div>
+</header>
+
+<div class="mode-buttons">
+  <a href="game.html"><button class="mode-button">🎴 NORMAL</button></a>
+  <a href="inf.html"><button class="mode-button">🌀 INF_MODE</button></a>
+  <a href="boss.html"><button class="mode-button">👹 BOSS</button></a>
+  <a href="shop.html"><button class="mode-button">🏪 SHOP</button></a>
+  <a href="upgrade.html"><button class="mode-button">🌟 UPGRADE</button></a>
+  <a href="upgradeskills.html"><button class="mode-button">💪 SKILLS</button></a>
+  <a href="GACHA.html"><button class="mode-button">🔮 GACHA</button></a>
+  <a href="GACHAE.html"><button class="mode-button">🎰 กาชาอุปกรณ์</button></a>
+  <a href="equip.html"><button class="mode-button">🛡️ สวมอุปกรณ์</button></a>
+  <button class="mode-button active" aria-current="page" disabled>👤 บัญชี</button>
+</div>
+
+<section class="panel">
+  <h3>ข้อมูลผู้เล่น</h3>
+  <div id="acctInfoBox">
+    <div class="acct-row"><span class="label">ชื่อผู้เล่น</span><span class="value" id="acctUsername">-</span></div>
+    <div class="acct-row"><span class="label">สถานะ</span><span class="value" id="acctStatus">-</span></div>
+  </div>
+  <p id="acctLoggedOutMsg" style="display:none">ยังไม่ได้เข้าสู่ระบบ — กรอกชื่อผู้เล่นและ PIN ในกล่องที่เด้งขึ้นมาเพื่อดูข้อมูลบัญชีของคุณ</p>
+  <div class="acct-actions">
+    <button id="acctLoginBtn" style="display:none">เข้าสู่ระบบ / สมัคร</button>
+    <button id="acctLogoutBtn" style="display:none">ออกจากระบบ</button>
+    <button id="acctSwitchBtn" style="display:none">สลับบัญชี</button>
+  </div>
+</section>
+
+<section class="panel" id="acctEconomyPanel" style="display:none">
+  <h3>ทรัพยากรของฉัน</h3>
+  <div class="acct-row"><span class="label">💰 เงิน</span><span class="value" id="acctMoney">0</span></div>
+  <div class="acct-row"><span class="label">🎴 การ์ดในเด็ค</span><span class="value" id="acctDeckCount">0</span></div>
+  <div class="acct-row"><span class="label">🛡️ อุปกรณ์ในกระเป๋า</span><span class="value" id="acctEquipCount">0</span></div>
+</section>
+
+<section class="panel" id="acctBagPanel" style="display:none">
+  <h3>🎒 กระเป๋า</h3>
+  <div id="acctBag">
+    <div class="acct-row"><span class="label">💙 ความทรงจำ Rare</span><span class="value" id="acctMemoryRare">0</span></div>
+    <div class="acct-row"><span class="label">💜 ความทรงจำ Epic</span><span class="value" id="acctMemoryEpic">0</span></div>
+    <div class="acct-row"><span class="label">💛 ความทรงจำ Legendary</span><span class="value" id="acctMemoryLegendary">0</span></div>
+    <div class="acct-row"><span class="label">🩷 ความทรงจำ Mythical</span><span class="value" id="acctMemoryMythical">0</span></div>
+    <div class="acct-row"><span class="label">🌌 ความทรงจำ Cosmic</span><span class="value" id="acctMemoryCosmic">0</span></div>
+    <div class="acct-row"><span class="label">⚪ ชาร์ดเทา</span><span class="value" id="acctShardGray">0</span></div>
+    <div class="acct-row"><span class="label">🔵 ชาร์ดน้ำเงิน</span><span class="value" id="acctShardBlue">0</span></div>
+    <div class="acct-row"><span class="label">🟣 ชาร์ดม่วง</span><span class="value" id="acctShardPurple">0</span></div>
+    <div class="acct-row"><span class="label">🟡 ชาร์ดทอง</span><span class="value" id="acctShardGold">0</span></div>
+    <div class="acct-row"><span class="label">🔴 ชาร์ดแดง</span><span class="value" id="acctShardRed">0</span></div>
+    <div class="acct-row"><span class="label">🌌 ชาร์ดฟ้า</span><span class="value" id="acctShardSky">0</span></div>
+  </div>
+</section>
+
+<script src="../js/core/api.js"></script>
+<script src="../js/core/auth-ui.js"></script>
+<script>
+  // หน้านี้ดึงข้อมูลสดจากเซิร์ฟเวอร์เสมอ (money/bag/deck/equip_bag) — ไม่พึ่ง localStorage
+  // เพราะเซิร์ฟเวอร์คือ source of truth ตัวจริง ไม่ใช่ค่าที่ client จำไว้เอง
+  async function renderAccountPage() {
+    const loggedIn = window.GameAPI && GameAPI.isLoggedIn && GameAPI.isLoggedIn();
+
+    document.getElementById("acctLoginBtn").style.display = loggedIn ? "none" : "inline-block";
+    document.getElementById("acctLogoutBtn").style.display = loggedIn ? "inline-block" : "none";
+    document.getElementById("acctSwitchBtn").style.display = loggedIn ? "inline-block" : "none";
+    document.getElementById("acctLoggedOutMsg").style.display = loggedIn ? "none" : "block";
+    document.getElementById("acctEconomyPanel").style.display = loggedIn ? "block" : "none";
+    document.getElementById("acctBagPanel").style.display = loggedIn ? "block" : "none";
+
+    if (!loggedIn) {
+      document.getElementById("acctUsername").textContent = "-";
+      document.getElementById("acctStatus").textContent = "ยังไม่ได้เข้าสู่ระบบ";
+      return;
+    }
+
+    const username = localStorage.getItem("username") || "-";
+    document.getElementById("acctUsername").textContent = username;
+    document.getElementById("acctStatus").textContent = "เข้าสู่ระบบแล้ว ✅";
+
+    const state = await GameAPI.fetchEconomyState();
+    if (!state) {
+      document.getElementById("acctStatus").textContent = "เข้าสู่ระบบแล้ว (โหลดข้อมูลไม่สำเร็จ ลองรีเฟรชหน้า)";
+      return;
+    }
+
+    const money = typeof state.money === "number" ? state.money : 0;
+    document.getElementById("moneyWindow").textContent = "💰 " + money;
+    document.getElementById("acctMoney").textContent = money;
+    document.getElementById("acctDeckCount").textContent = Array.isArray(state.deck) ? state.deck.length : 0;
+    document.getElementById("acctEquipCount").textContent = Array.isArray(state.equip_bag) ? state.equip_bag.length : 0;
+
+    const bag = state.bag || {};
+    const bagFields = {
+      acctMemoryRare: "memoryRare", acctMemoryEpic: "memoryEpic",
+      acctMemoryLegendary: "memoryLegendary", acctMemoryMythical: "memoryMythical",
+      acctMemoryCosmic: "memoryCosmic", acctShardGray: "shardGray",
+      acctShardBlue: "shardBlue", acctShardPurple: "shardPurple",
+      acctShardGold: "shardGold", acctShardRed: "shardRed", acctShardSky: "shardSky",
+    };
+    for (const [elId, key] of Object.entries(bagFields)) {
+      document.getElementById(elId).textContent = bag[key] || 0;
+    }
+  }
+
+  document.getElementById("acctLoginBtn").addEventListener("click", () => {
+    if (window.AuthUI) AuthUI.showModal();
+  });
+
+  document.getElementById("acctLogoutBtn").addEventListener("click", () => {
+    if (!confirm("ออกจากระบบ?")) return;
+    GameAPI.logout();
+    location.reload();
+  });
+
+  document.getElementById("acctSwitchBtn").addEventListener("click", () => {
+    if (!confirm("สลับไปบัญชีอื่น? (จะออกจากระบบบัญชีปัจจุบันก่อน)")) return;
+    GameAPI.logout();
+    location.reload();
+  });
+
+  // auth-ui.js เด้งกล่อง login เองอัตโนมัติถ้ายังไม่ล็อกอิน (ดู DOMContentLoaded ใน auth-ui.js)
+  // เมื่อ login สำเร็จมันจะ location.reload() ให้เอง ซึ่งจะมาเรียก renderAccountPage() ใหม่อีกครั้ง
+  document.addEventListener("DOMContentLoaded", renderAccountPage);
+</script>
+</body>
+</html>
