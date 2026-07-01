@@ -368,6 +368,17 @@ input[type="text"]{ flex:1 1 200px; }
 /* 🟢 .meta ไม่เคยถูกกำหนดสไตล์เลยในไฟล์นี้ เลยใช้ font-size เริ่มต้นของ browser (16px)
    ซึ่งใหญ่เกินไปสำหรับการ์ดแคบๆ ในสนามรบ เป็นอีกสาเหตุที่การ์ดสูงไม่เท่ากัน */
 .meta{ opacity:.7; font-size:12px; }
+/* ⏳ ตัวเลขคูลดาวน์สกิล โชว์ต่อท้าย Skill: ... เฉพาะตอนยังติดคูลดาวน์อยู่ */
+.skill-cd{
+  display:inline-block;
+  margin-left:2px;
+  padding:0 5px;
+  border-radius:999px;
+  background:rgba(255,193,7,.18);
+  color:#ffc107;
+  font-weight:800;
+  opacity:1;
+}
 .price{ font-weight:800; color:var(--gold); }
 
 .actions{ display:flex; gap:8px; }
