@@ -131,25 +131,9 @@ function formatMoney(num) {
   return num.toString();
 }
 
-function weightedPickEquip(pool) {
-  const total = pool.reduce((s, it) => s + it.rate, 0);
-  let r = Math.random() * total;
-  for (const it of pool) {
-    if (r < it.rate) return it;
-    r -= it.rate;
-  }
-  return pool[pool.length - 1];
-}
-
-// =========================
-// EquipBag helpers
-// =========================
-function getEquipBag() {
-  return JSON.parse(localStorage.getItem("equipBag") || "[]");
-}
-function saveEquipBag(bag) {
-  localStorage.setItem("equipBag", JSON.stringify(bag));
-}
+// (EquipBag read/write lives in core/equipbag.js + data/equip.js now — the bag is
+// server-authoritative, this file only reads localStorage["equip_gacha_blacklist"],
+// a purely cosmetic client-side UI preference.)
 
 // =========================
 // Render ตู้กาชา (เหมือน GACHA.html)
@@ -266,55 +250,34 @@ function closeEquipRatePopup() {
 }
 
 // =========================
-// สุ่มอุปกรณ์
+// สุ่มอุปกรณ์ — server-authoritative: cost, RNG, and what enters the bag are all
+// decided by POST /api/economy/equip-gacha/roll now. This function used to deduct
+// money and push items into localStorage itself (callable straight from devtools
+// for free items); it now just asks the server and renders whatever it says
+// happened, the same way GACHA.html's card gacha already worked.
 // =========================
-function gachaEquipPull(poolKey, count) {
-  const poolObj = EQUIP_GACHA_POOLS[poolKey];
-  const pool = poolObj.pool;
-  const cost1  = poolObj.cost;
-  const cost3  = Math.floor(cost1 * 3 * 0.9);
-  const cost10 = Math.floor(cost1 * 10 * 0.8);
-  const totalCost = count === 10 ? cost10 : count === 3 ? cost3 : cost1;
-
-  let money = loadMoney();
-  if (money < totalCost) {
-    alert("💰 เงินไม่พอ! ขาดอีก " + (totalCost - money) + "💰");
+async function gachaEquipPull(poolKey, count) {
+  if (!window.GameAPI || !GameAPI.isLoggedIn || !GameAPI.isLoggedIn()) {
+    alert("⚠️ กรุณาเข้าสู่ระบบก่อนสุ่มอุปกรณ์");
     return;
   }
-  money -= totalCost;
-  saveMoney(money);
-  updateMoneyUI(money);
 
   const blacklist = JSON.parse(localStorage.getItem("equip_gacha_blacklist") || "[]");
+  const data = await GameAPI.equipGachaRoll(poolKey, count, blacklist);
 
-  const results = [];
-  const keptForBag = [];
-  for (let i = 0; i < count; i++) {
-    const template = weightedPickEquip(pool);
-    const item = {
-      id: "equip-" + Date.now() + "-" + Math.random(),
-      name: template.name,
-      type: template.type,
-      stat: template.stat,
-      rarity: template.rarity,
-      bonus: customRound(template.base),
-      mode: template.mode || "flat",
-    };
-
-    if (blacklist.includes(item.name)) {
-      // ✅ ติ๊กกากบาทไว้ในป๊อปอัพดูเรท → ลบทิ้งอัตโนมัติ ไม่เข้ากระเป๋า
-      item._blacklisted = true;
+  if (!data || data.error) {
+    if (data?.error === "not enough money") {
+      alert("💰 เงินไม่พอ!");
     } else {
-      keptForBag.push(item);
+      alert("⚠️ สุ่มอุปกรณ์ไม่สำเร็จ: " + (data?.error || "network error"));
     }
-    results.push(item);
+    return;
   }
 
-  let bag = getEquipBag();
-  bag.push(...keptForBag);
-  saveEquipBag(bag);
+  if (typeof applyServerMoney === "function") applyServerMoney(data.money);
+  if (typeof applyServerEquipBag === "function") applyServerEquipBag(data.equipBag);
 
-  showEquipResults(results);
+  showEquipResults(data.results);
 }
 
 // =========================

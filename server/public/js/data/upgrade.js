@@ -112,6 +112,10 @@ function sortDeck() {
 
 
 function renderDeck() {
+  // 🔐 อ่านจาก localStorage สดทุกครั้ง แทนที่จะพึ่ง `deck` ตัวแปรค้าง — สำคัญตอนนี้
+  // เพราะ applyServerDeck() (deck.js) เขียน localStorage แล้วเรียก renderDeck() ต่อ
+  deck = JSON.parse(localStorage.getItem("deck") || "[]");
+
   const div = document.getElementById("deck-wrapper");
   div.innerHTML = "";
 
@@ -226,152 +230,89 @@ const successRate = Math.max(1, (SUCCESS_RATE_TABLE[card.level] ?? 50) - (card.s
   });
 }
 
-function upgradeCard(i) {
+// 🔐 อัปเกรดการ์ด (เสียเงิน + สุ่มสำเร็จ) — เดิมทั้งหมดนี้คำนวณและตัดสินผลฝั่ง
+// client เอง (หักเงินเอง สุ่มเอง บวกสเตตัสเอง) ตอนนี้เซิฟเป็นคนหัก/สุ่ม/บวก
+// สเตตัสทั้งหมด (ดู routes/economy.js POST /upgrade/paid และ /upgrade/duplicate)
+// ตัวเลข cost/successRate ที่คำนวณในเครื่องยังใช้แค่ "โชว์ preview" ใน UI เท่านั้น
+function setUpgradeButtonsDisabled(i, disabled) {
+  const btn = document.getElementById("upgrade-btn-" + i);
+  const gbtn = document.querySelector(`#deck-wrapper .card-box:nth-child(${i+1}) button[onclick="guaranteeUpgrade(${i})"]`);
+  [btn, gbtn].forEach(b => {
+    if (!b) return;
+    b.disabled = disabled;
+    b.style.opacity = disabled ? "0.5" : "1";
+    b.style.cursor = disabled ? "not-allowed" : "pointer";
+  });
+}
+
+async function upgradeCard(i) {
   let c = deck[i];
   if (!c.stars) c.stars = 1;
   if (c.maxed) return;
 
-  const btn = document.getElementById("upgrade-btn-" + i);
-const gbtn = document.querySelector(`#deck-wrapper .card-box:nth-child(${i+1}) button[onclick="guaranteeUpgrade(${i})"]`);
-if (btn) {
-  btn.disabled = true;
-  btn.style.opacity = "0.5";
-  btn.style.cursor = "not-allowed";
-}
-if (gbtn) {
-  gbtn.disabled = true;
-  gbtn.style.opacity = "0.5";
-  gbtn.style.cursor = "not-allowed";
-}
-
-  // 🟢 เช็กใหม่: ถ้าเป็น 8⭐ Lv.10 → MAX เลย
-  if (c.stars >= 8 && c.level >= MAX_LEVEL) {
-    c.level = "MAX";
-    c.maxed = true;
-    alert(`🌟 ${c.name} ถึงขีดสุดแล้ว! (MAX)`);
-    localStorage.setItem("deck", JSON.stringify(deck));
-    renderDeck();
+  if (!window.GameAPI || !GameAPI.isLoggedIn()) {
+    alert("ต้องเข้าสู่ระบบ (username + PIN) ก่อนอัปเกรด");
     return;
   }
+
+  setUpgradeButtonsDisabled(i, true);
 
   const lv = c.level;
-  const cost = calcUpgradeCost(c);
 
-  // ⭐5–7 ที่เลเวล 10 → ใช้การ์ดซ้ำขึ้นดาว
+  // ⭐5–7 ที่เลเวล 10 → ใช้การ์ดซ้ำขึ้นดาว (ฟรี ไม่เสียเงิน แต่ต้องมีการ์ดซ้ำพอ)
   if (lv >= MAX_LEVEL && c.stars >= 5 && c.stars < 8) {
-  const rarity = c.rarity || "Common";
-  const rarityFactor = DUPLICATE_COST_BY_RARITY[rarity] || 1;
-  const need = (c.stars - 4) * rarityFactor;
+    const rarity = c.rarity || "Common";
+    const rarityFactor = DUPLICATE_COST_BY_RARITY[rarity] || 1;
+    const need = (c.stars - 4) * rarityFactor;
     const sameCards = deck.filter((cc, j) => cc.name === c.name && j !== i && !cc.locked);
+    const duplicateCardIds = sameCards.slice(0, need).map(cc => cc.id);
 
-    if (sameCards.length >= need) {
-      let removed = 0;
-      deck = deck.filter((cc, j) => {
-        if (j !== i && cc.name === c.name && !cc.locked && removed < need) {
-          removed++;
-          return false;
-        }
-        return true;
-      });
-
-      setTimeout(() => {
-        c.stars++;
-        c.level = 1;
-
-        // บวก stat เวลาขึ้นดาว
-        if (!c.maxed) {
-  applyClassUpgrade(c);
-}
-
-        alert(`🌟 ${c.name} ขึ้นเป็น ${c.stars}⭐ Lv.1 แล้ว!`);
-        localStorage.setItem("deck", JSON.stringify(deck));
-        renderDeck();
-      }, 500);
-    } else {
+    if (sameCards.length < need) {
       alert(`❌ ต้องใช้การ์ด ${c.name} อีก ${need} ใบ`);
-      if (btn) {
-        btn.disabled = false;
-        btn.style.opacity = "1";
-        btn.style.cursor = "pointer";
-      }
+      setUpgradeButtonsDisabled(i, false);
+      return;
     }
+
+    const result = await GameAPI.upgradeDuplicate(c.id, duplicateCardIds);
+    if (!result || !result.ok) {
+      alert("ขึ้นดาวไม่สำเร็จ: " + (result?.error || "unknown error"));
+      setUpgradeButtonsDisabled(i, false);
+      return;
+    }
+    applyServerDeck(result.deck);
+    alert(`🌟 ${result.card.name} ขึ้นเป็น ${result.card.stars}⭐ Lv.1 แล้ว!`);
     return;
   }
 
-  // === กรณีปกติ (⭐1–4 หรือ ⭐5–7 ที่ยังไม่ MAX) ===
-  const successRate = Math.max(1, (SUCCESS_RATE_TABLE[lv] ?? 50) - (c.stars - 1) * Math.floor(10**1.1))-0.5;
-
-  if (money < cost) {
-    alert(`💰 เงินไม่พอ! ต้องใช้ ${cost} แต่มี ${money}`);
-    if (btn) {
-      btn.disabled = false;
-      btn.style.opacity = "1";
-      btn.style.cursor = "pointer";
-    }
-    return;
-  }
-
-  money -= cost;
-  updateMoneyUI();
-
+  // === กรณีปกติ (⭐1–4 หรือ ⭐5–7 ที่ยังไม่ MAX) — เสียเงิน + สุ่มสำเร็จบนเซิฟ ===
   const bar = document.getElementById("progress-" + i);
   if (bar) bar.style.width = "0%";
 
+  const result = await GameAPI.upgradePaid(c.id);
+  if (!result || !result.ok) {
+    alert("อัปเกรดไม่สำเร็จ: " + (result?.error || "unknown error"));
+    setUpgradeButtonsDisabled(i, false);
+    return;
+  }
+
+  applyServerMoney(result.money);
+
+  // แถบ progress แค่โชว์ผลลัพธ์จริงจากเซิฟ (สำเร็จ = เต็ม, ไม่สำเร็จ = ตามระยะห่างจาก roll)
+  let percent;
+  if (result.success) {
+    percent = 100;
+  } else {
+    const distance = Math.abs(result.roll - result.successRate);
+    const maxDistance = Math.max(result.successRate, 100 - result.successRate);
+    const closeness = 1 - (distance / maxDistance);
+    percent = Math.max(5, Math.round(closeness * 100));
+  }
+  if (bar) bar.style.width = percent + "%";
+
   setTimeout(() => {
-    const roll = Math.random() * 100;
-    let percent = 0;
-
-    if (roll <= successRate) {
-      percent = 100;
-
-      if (c.level !== "MAX") c.level++;
-
-      if (typeof c.level === "number" && c.level > MAX_LEVEL) {
-        if (c.stars < 5) {
-          c.stars++;
-          c.level = 1;
-        } else if (c.stars >= 8) {
-          c.level = "MAX";
-          c.maxed = true;
-        }
-      }
-
-      if (!c.maxed) {
-  applyClassUpgrade(c);
-}
-    }  else {
-
-  const distance = Math.abs(roll - successRate); // ยิ่งใกล้เรทยิ่งดี
-  const maxDistance = Math.max(successRate, 100 - successRate);
-
-  // closeness = 1 เมื่อ roll = successRate, = 0 เมื่อไกลสุด
-  const closeness = 1 - (distance / maxDistance);
-
-  // บาร์จะแสดงผล 0–99% ตามความใกล้เคียง
-  percent = Math.max(5, Math.round(closeness * 100));
-}
-
-    if (bar) bar.style.width = percent + "%";
-
-    localStorage.setItem("deck", JSON.stringify(deck));
-
-    setTimeout(() => {
-      renderDeck(); // ❌ ไม่ sort → อยู่ตำแหน่งเดิม
-      const btnBack = document.getElementById("upgrade-btn-" + i);
-const gbtnBack = document.querySelector(`#deck-wrapper .card-box:nth-child(${i+1}) button[onclick="guaranteeUpgrade(${i})"]`);
-if (btnBack) {
-  btnBack.disabled = false;
-  btnBack.style.opacity = "1";
-  btnBack.style.cursor = "pointer";
-}
-if (gbtnBack) {
-  gbtnBack.disabled = false;
-  gbtnBack.style.opacity = "1";
-  gbtnBack.style.cursor = "pointer";
-}
-    }, 1200);
-
-  }, 100);
+    applyServerDeck(result.deck); // renderDeck() ไม่ sort → อยู่ตำแหน่งเดิม
+    setUpgradeButtonsDisabled(i, false);
+  }, 1200);
 }
 function simulateNextUpgrade(card) {
   const clone = JSON.parse(JSON.stringify(card));
@@ -416,86 +357,50 @@ function simulateNextUpgrade(card) {
 
   return { note: "อัปเกรดปกติ", next: { hp: clone.hp, atk: clone.atk, def: clone.def }, willMax };
 }
-function guaranteeUpgrade(i) {
+// 🔐 อัปเกรดการันตีด้วยชาร์ด — เดิมหักชาร์ดและบวกสเตตัสฝั่ง client เอง (แถมยัง
+// ไม่ตรงกับ endpoint /upgrade/guaranteed ที่มีอยู่แล้วบนเซิฟเลย) ตอนนี้เรียก
+// เซิฟจริง เซิฟเป็นคนเช็คชาร์ด หัก และบวกสเตตัสให้
+async function guaranteeUpgrade(i) {
   let c = deck[i];
   if (!c.stars) c.stars = 1;
   if (c.maxed) return;
-  
 
-  const shardMap = {
-    Common: "shardGray",
-    Rare: "shardBlue",
-    Epic: "shardPurple",
-    Legendary: "shardGold",
-    Mythical: "shardRed",
-    Cosmic: "shardSky"
-  };
-  const rarity = c.rarity || "Common";
-  const shardKey = shardMap[rarity];
-  let bag = loadBag();
-
-  const needShards = 10;
-  if (bag[shardKey] < needShards) {
-    alert(`❌ ต้องใช้ ${needShards} ${shardKey} แต่มี ${bag[shardKey]}`);
+  if (!window.GameAPI || !GameAPI.isLoggedIn()) {
+    alert("ต้องเข้าสู่ระบบ (username + PIN) ก่อนอัปเกรด");
     return;
   }
 
-  // หักชาร์ด
-  addToBag(shardKey, -needShards);
-  const btn = document.querySelector(`#deck-wrapper .card-box:nth-child(${i+1}) button[onclick="guaranteeUpgrade(${i})"]`);
-const nbtn = document.getElementById("upgrade-btn-" + i);
-if (btn) {
-  btn.disabled = true;
-  btn.style.opacity = "0.5";
-  btn.style.cursor = "not-allowed";
-}
-if (nbtn) {
-  nbtn.disabled = true;
-  nbtn.style.opacity = "0.5";
-  nbtn.style.cursor = "not-allowed";
-}
-  // หา progress bar
+  const shardMap = {
+    Common: "shardGray", Rare: "shardBlue", Epic: "shardPurple",
+    Legendary: "shardGold", Mythical: "shardRed", Cosmic: "shardSky"
+  };
+  const shardKey = shardMap[c.rarity || "Common"];
+  const bag = loadBag();
+  const needShards = 10;
+  if ((bag[shardKey] || 0) < needShards) {
+    alert(`❌ ต้องใช้ ${needShards} ${shardKey} แต่มี ${bag[shardKey] || 0}`);
+    return;
+  }
+
+  setUpgradeButtonsDisabled(i, true);
   const bar = document.getElementById("progress-" + i);
   if (bar) bar.style.width = "0%";
 
+  const result = await GameAPI.upgradeGuaranteed(c.id);
+  if (!result || !result.ok) {
+    alert("อัปเกรดไม่สำเร็จ: " + (result?.error || "unknown error"));
+    setUpgradeButtonsDisabled(i, false);
+    return;
+  }
+
+  applyServerBag(result.bag);
+  if (bar) bar.style.width = "100%";
+
   setTimeout(() => {
-    // อัปเกรดสำเร็จแน่นอน
-    if (c.level < MAX_LEVEL) {
-      c.level++;
-    } else {
-      if (c.stars < 5) {
-        c.stars++;
-        c.level = 1;
-      } else if (c.stars >= 8) {
-        c.maxed = true;
-        c.level = "MAX";
-      }
-    }
-
-    // บวกสเตตัสเหมือนอัปปกติ
-    applyClassUpgrade(c);
-    
-
-    if (bar) bar.style.width = "100%";  // 🟢 ทำอนิเมชันบาร์เต็ม
-
-    setTimeout(() => {
-      
-      localStorage.setItem("deck", JSON.stringify(deck));
-      renderDeck();
-      const btnBack = document.querySelector(`#deck-wrapper .card-box:nth-child(${i+1}) button[onclick="guaranteeUpgrade(${i})"]`);
-const nbtnBack = document.getElementById("upgrade-btn-" + i);
-if (btnBack) {
-  btnBack.disabled = false;
-  btnBack.style.opacity = "1";
-  btnBack.style.cursor = "pointer";
-}
-if (nbtnBack) {
-  nbtnBack.disabled = false;
-  nbtnBack.style.opacity = "1";
-  nbtnBack.style.cursor = "pointer";
-}
-    }, 1200);  // รอให้บาร์วิ่งเสร็จก่อน
-  }, 100);
+    // deck ไม่ได้ส่งกลับมาจาก endpoint นี้ (มีแค่ card เดียว) → sync ทั้งก้อนจากเซิฟ
+    syncDeckFromServer();
+    setUpgradeButtonsDisabled(i, false);
+  }, 1200);
 }
 // === โหลดครั้งแรก: sort ก่อนแสดง ===
 updateMoneyUI();

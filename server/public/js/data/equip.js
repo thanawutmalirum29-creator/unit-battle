@@ -8,17 +8,15 @@ function goBack(){
     window.location.href = "game.html";
   }
 }
+// localStorage["deck"] / ["equipBag"] are now read-only local caches of the server's
+// player_economy.deck / .equip_bag (see core/deck.js + core/equipbag.js). Every
+// mutation below (equip/unequip/delete) is applied on the server first; what gets
+// written back locally is always the server's response, never a client guess.
 function getDeck() {
   return JSON.parse(localStorage.getItem("deck") || "[]");
 }
-function saveDeck(deck) {
-  localStorage.setItem("deck", JSON.stringify(deck));
-}
 function getEquipBag() {
   return JSON.parse(localStorage.getItem("equipBag") || "[]");
-}
-function saveEquipBag(bag) {
-  localStorage.setItem("equipBag", JSON.stringify(bag));
 }
 function getRenderStats(card) {
   const baseHp  = card.baseHp ?? card.hp ?? 0;
@@ -60,17 +58,8 @@ const pageSize = 12;
 
 const EQUIP_TYPE_ICON = { Weapon: "⚔️", Armor: "🛡️", Accessory: "✨" };
 
-function deleteAllCommonItems() {
-  let bag = getEquipBag();
-  const filtered = bag.filter(e => e.rarity !== "Common");
-
-  if (filtered.length === bag.length) {
-    alert("ไม่พบอุปกรณ์ระดับ Common ในกระเป๋า");
-    return;
-  }
-
-  saveEquipBag(filtered);
-  renderEquipBag();
+async function deleteAllCommonItems() {
+  await deleteEquipByRarity("Common");
 }
 
 function renderEquipBag() {
@@ -184,26 +173,25 @@ function renderEquipBag() {
     if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์ระดับ Rare ทั้งหมด?")) deleteEquipByRarity("Rare");
   };
 }
-function deleteEquipByRarity(rarity) {
-  let bag = getEquipBag();
-  const filtered = bag.filter(e => e.rarity !== rarity);
-
-  if (filtered.length === bag.length) {
-    alert(`ไม่พบอุปกรณ์ระดับ ${rarity} ในกระเป๋า`);
+async function deleteEquipByRarity(rarity) {
+  const before = getEquipBag().length;
+  const data = await GameAPI.deleteEquipByRarityServer(rarity);
+  if (!data || data.error) {
+    alert("⚠️ ลบอุปกรณ์ไม่สำเร็จ: " + (data?.error || "network error"));
     return;
   }
-
-  saveEquipBag(filtered);
-  renderEquipBag();
+  if (data.equipBag.length === before) {
+    alert(`ไม่พบอุปกรณ์ระดับ ${rarity} ในกระเป๋า`);
+  }
+  applyServerEquipBag(data.equipBag);
 }
-function deleteEquipItem(equipId) {
-  let bag = getEquipBag();
-  const index = bag.findIndex(e => e.id === equipId);
-  if (index === -1) return;
-
-  bag.splice(index, 1); // ลบออกจากกระเป๋า
-  saveEquipBag(bag);
-  renderEquipBag(); // รีเฟรช UI
+async function deleteEquipItem(equipId) {
+  const data = await GameAPI.deleteEquip(equipId);
+  if (!data || data.error) {
+    alert("⚠️ ลบอุปกรณ์ไม่สำเร็จ: " + (data?.error || "network error"));
+    return;
+  }
+  applyServerEquipBag(data.equipBag); // รีเฟรช UI ผ่าน renderEquipBag ใน applyServerEquipBag
 }
 
 function renderDeckList() {
@@ -282,24 +270,14 @@ el.innerHTML = `
 // =========================
 // ถอดอุปกรณ์
 // =========================
-function unequipItem(cardId, equipId) {
-  let deck = getDeck();
-  let bag = getEquipBag();
-
-  const card = deck.find(c => c.id === cardId);
-  if (!card || !card.equips) return;
-
-  const idx = card.equips.findIndex(e => e.id === equipId);
-  if (idx === -1) return;
-
-  const eq = card.equips[idx];
-  bag.push(eq);
-  card.equips.splice(idx, 1);
-
-  saveDeck(deck);
-  saveEquipBag(bag);
-  renderDeckList();
-  renderEquipBag();
+async function unequipItem(cardId, equipId) {
+  const data = await GameAPI.unequipItemFromCard(cardId, equipId);
+  if (!data || data.error) {
+    alert("⚠️ ถอดอุปกรณ์ไม่สำเร็จ: " + (data?.error || "network error"));
+    return;
+  }
+  applyServerDeck(data.deck);
+  applyServerEquipBag(data.equipBag);
 }
 
 // =========================
@@ -346,36 +324,18 @@ function closeEquipPopup() {
   popup.style.display = "none";
 }
 
-function equipItem(cardId, equipId) {
-  let deck = getDeck();
-  let bag = getEquipBag();
-
-  const card = deck.find(c => c.id === cardId);
-  const eq = bag.find(e => e.id === equipId);
-  if (!card || !eq) return;
-
-  card.equips = card.equips || [];
-
-  // ถ้ามีอุปกรณ์ชนิดเดียวกันอยู่แล้ว → ถอดออกก่อน
-  const existingIndex = card.equips.findIndex(e => e.type === eq.type);
-  if (existingIndex !== -1) {
-    const oldEq = card.equips[existingIndex];
-    bag.push(oldEq);
-    card.equips.splice(existingIndex, 1);
-  }
-
-  if (card.equips.length >= 3) {
-    alert(`❌ ${card.name} ใส่อุปกรณ์ได้สูงสุด 3 ชิ้นเท่านั้น`);
+async function equipItem(cardId, equipId) {
+  const data = await GameAPI.equipItemOnCard(cardId, equipId);
+  if (!data || data.error) {
+    if (data?.error === "card already has 3 equips") {
+      alert("❌ ใส่อุปกรณ์ได้สูงสุด 3 ชิ้นเท่านั้น");
+    } else {
+      alert("⚠️ ใส่อุปกรณ์ไม่สำเร็จ: " + (data?.error || "network error"));
+    }
     return;
   }
-
-  card.equips.push(eq);
-  bag = bag.filter(e => e.id !== equipId);
-
-  saveDeck(deck);
-  saveEquipBag(bag);
-  renderDeckList();
-  renderEquipBag();
+  applyServerDeck(data.deck);
+  applyServerEquipBag(data.equipBag);
 }
 // ⭐ เรียงอุปกรณ์ในกระเป๋า: rarity แรร์สุดอยู่บนก่อน แล้วค่อยตาม bonus
 function sortEquipByRarityFirst(a, b) {
