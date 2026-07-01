@@ -9,6 +9,8 @@ const playersRoute = require('./routes/players');
 const runsRoute = require('./routes/runs');
 const leaderboardRoute = require('./routes/leaderboard');
 const progressRoute = require('./routes/progress');
+const authRoute = require('./routes/auth');
+const economyRoute = require('./routes/economy');
 
 const app = express();
 app.set('trust proxy', 1); // Railway sits behind a reverse proxy — required for express-rate-limit
@@ -22,6 +24,8 @@ app.use('/api/players', apiLimiter, playersRoute);
 app.use('/api/runs', apiLimiter, runsRoute);
 app.use('/api/leaderboard', apiLimiter, leaderboardRoute);
 app.use('/api/progress', apiLimiter, progressRoute);
+app.use('/api/auth', apiLimiter, authRoute);
+app.use('/api/economy', apiLimiter, economyRoute);
 
 // serve the cleaned-up game client
 app.use(express.static(path.join(__dirname, 'public')));
