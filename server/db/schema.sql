@@ -69,6 +69,10 @@ CREATE INDEX IF NOT EXISTS idx_runs_player ON runs (player_id);
 ALTER TABLE players ADD COLUMN IF NOT EXISTS pin_hash TEXT;
 ALTER TABLE players ADD COLUMN IF NOT EXISTS session_token UUID;
 
+-- Google Sign-In: players who log in with Google never set a PIN (pin_hash stays NULL).
+-- google_id is Google's stable "sub" claim, unique per Google account.
+ALTER TABLE players ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE;
+
 -- allow 'boss' as a run mode too (boss fights now get server-tracked like normal/inf)
 ALTER TABLE runs DROP CONSTRAINT IF EXISTS runs_mode_check;
 ALTER TABLE runs ADD CONSTRAINT runs_mode_check CHECK (mode IN ('normal', 'inf', 'boss', 'realtime'));
