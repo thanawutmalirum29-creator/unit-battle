@@ -361,22 +361,22 @@ async function startInfBattle() {
         log("🎉 ทีมศัตรูพ่ายแพ้ทั้งหมด!", "system");
         updateResult("🎉 คุณชนะ!");
 
-        // แจกค่าหัวศัตรูแต่ละตัว
-        let totalReward = enemyTeam.reduce((sum, e) => sum + (e.reward || 0), 0);
-        addMoney(totalReward);
-        updateMoneyUI();
-
-        // 🧩 ดรอปชาร์ด (สุ่มชนิด+จำนวนตามช่วงด่าน, ด่านสุดท้ายการันตีครบทุกชนิด)
-        const infDrops = generateInfShardDrop(currentInfStage);
-        if (infDrops) {
-          for (const [key, amount] of Object.entries(infDrops)) {
-            addToBag(key, amount);
-            log(`🎁 ได้ ${amount}x ${key}`, "system");
-          }
-          updateBagUI();
-        }
-
-        GameAPI.infStageClear(currentInfStage); // server validates order + timing before counting it
+        // 💰🧩 เงิน+ดรอปเซิฟเป็นคนคำนวณ ผูกกับ run/stage ที่ผ่าน anti-cheat แล้วเท่านั้น
+        GameAPI.infStageClear(currentInfStage).then(() => {
+          const runId = GameAPI.getInfRunId();
+          if (!runId) return;
+          GameAPI.claimInfReward(runId, currentInfStage).then((result) => {
+            if (result && result.ok) {
+              applyServerMoney(result.money);
+              applyServerBag(result.bag);
+              for (const [key, amount] of Object.entries(result.drops || {})) {
+                log(`🎁 ได้ ${amount}x ${key}`, "system");
+              }
+            } else {
+              console.warn("[INF] claim reward failed:", result?.error);
+            }
+          });
+        });
         endInfBattle(true);
         return;
       }
