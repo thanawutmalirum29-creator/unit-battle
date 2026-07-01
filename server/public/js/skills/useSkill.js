@@ -62,6 +62,9 @@ if (user.class === "UltraBoss") {
 
   const handler = skillHandlers[user.skill];
   if (handler) {
+    // 🏷️ บอกชัดๆ ว่ากำลังใช้สกิลอะไร ก่อนเอฟเฟกต์เดิมจะเล่น
+    announceSkill(user, user.skill);
+
     // Sentinel so we can tell whether the handler set its own (deliberately tuned)
     // cooldown, e.g. Revive=6, Defense Buff=6, Critical=2, Time Stop=3-7, Summon=6/8...
     // Without this, every skill's custom cooldown gets discarded below.

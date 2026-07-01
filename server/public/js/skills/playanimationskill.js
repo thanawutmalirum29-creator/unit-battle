@@ -1,3 +1,79 @@
+/* ============================================================
+   🏷️ FLOATING SKILL / ATTACK LABEL + DAMAGE NUMBERS
+   เดิมผู้เล่นมองไม่ออกว่าใครใช้ "สกิลอะไร" หรือ "โจมตีธรรมดา" อยู่
+   (มีแค่แสงกระพริบ/สั่นตามคลาส CSS ไม่มีข้อความบอกตรงๆ) และตัวเลข
+   ดาเมจก็ไม่ลอยขึ้นมาให้เห็นเลย ต้องไปอ่านใน log ข้างล่างเอา
+   ฟังก์ชันด้านล่างนี้เพิ่มป้ายชื่อสกิล/ประเภทการโจมตี ลอยขึ้นเหนือ
+   ตัวที่ร่าย และตัวเลข -ดาเมจ/+ฮีล ลอยขึ้นเหนือเป้าหมาย
+   ============================================================ */
+
+// 🎯 เดารูปแบบ/สีของสกิลจากชื่อ เพื่อให้ป้ายสื่อความหมายได้ไวโดยไม่ต้องแก้ข้อมูลการ์ดทุกใบ
+function getSkillFxMeta(skillName) {
+  const n = (skillName || "").toLowerCase();
+  if (n.includes("heal") || n.includes("rebirth") || n.includes("revive") || n.includes("cleanse")) {
+    return { icon: "💚", cls: "fx-heal", label: skillName };
+  }
+  if (n.includes("burn") || n.includes("fire") || n.includes("dragon")) {
+    return { icon: "🔥", cls: "fx-fire", label: skillName };
+  }
+  if (n.includes("freeze") || n.includes("ice")) {
+    return { icon: "❄️", cls: "fx-freeze", label: skillName };
+  }
+  if (n.includes("poison")) {
+    return { icon: "☠️", cls: "fx-poison", label: skillName };
+  }
+  if (n.includes("bomb") || n.includes("aoe")) {
+    return { icon: "💣", cls: "fx-aoe", label: skillName };
+  }
+  if (n.includes("defense") || n.includes("shield") || n.includes("buff") || n.includes("energy") || n.includes("skill boost")) {
+    return { icon: "🛡️", cls: "fx-buff", label: skillName };
+  }
+  if (n.includes("silence") || n.includes("stun") || n.includes("timestop") || n.includes("time stop") || n.includes("charm")) {
+    return { icon: "🌀", cls: "fx-debuff", label: skillName };
+  }
+  if (n.includes("summon")) {
+    return { icon: "🔮", cls: "fx-summon", label: skillName };
+  }
+  if (n.includes("critical") || n.includes("pierc") || n.includes("double") || n.includes("power strike") || n.includes("hit target")) {
+    return { icon: "⚔️", cls: "fx-strike", label: skillName };
+  }
+  return { icon: "✨", cls: "fx-skill", label: skillName };
+}
+
+// 🏷️ ป้ายลอย บอกว่ากำลังใช้ "สกิลอะไร" หรือ "โจมตีธรรมดา" เหนือหัวตัวละคร
+function showActionLabel(userEl, text, cls) {
+  if (!userEl) return;
+  const label = document.createElement("div");
+  label.className = `battle-fx-label ${cls || ""}`;
+  label.textContent = text;
+  userEl.appendChild(label);
+  setTimeout(() => label.remove(), 950);
+}
+
+function announceSkill(user, skillName) {
+  const el = document.querySelector(`[data-id="${user.instanceId}"]`);
+  if (!el) return;
+  const meta = getSkillFxMeta(skillName);
+  showActionLabel(el, `${meta.icon} ${meta.label}`, meta.cls);
+}
+
+function announceNormalAttack(user) {
+  const el = document.querySelector(`[data-id="${user.instanceId}"]`);
+  if (!el) return;
+  showActionLabel(el, "⚔️ โจมตีธรรมดา", "fx-normal");
+}
+
+// 🔢 ตัวเลขดาเมจ/ฮีล ลอยขึ้นเหนือเป้าหมาย ให้เห็นชัดว่าโดนไปเท่าไหร่ ประเภทไหน
+function showFloatingNumber(targetEl, amount, kind) {
+  if (!targetEl || !amount) return;
+  const num = document.createElement("div");
+  const isHeal = kind === "heal";
+  num.className = `battle-fx-number ${isHeal ? "fx-num-heal" : "fx-num-dmg"}`;
+  num.textContent = (isHeal ? "+" : "-") + Math.abs(Math.round(amount));
+  targetEl.appendChild(num);
+  setTimeout(() => num.remove(), 850);
+}
+
 async function playAttackAnimation(attackerEl, targetEl, attacker) {
   if (!attackerEl || !targetEl) return;
 
@@ -136,6 +212,7 @@ async function applyHeal(caster, target, amount) {
   if (targetEl) {
     targetEl.style.animationDuration = glowDuration + "ms";
     targetEl.classList.add("healed");
+    showFloatingNumber(targetEl, amount, "heal");
     setTimeout(() => {
       targetEl.classList.remove("healed");
       targetEl.style.removeProperty("animation-duration");

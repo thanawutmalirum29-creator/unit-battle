@@ -14,6 +14,9 @@ async function normalAttack(user, enemies) {
     }
 
     if (user.isBerserked) {
+      const userEl = document.querySelector(`[data-id="${user.instanceId}"]`);
+      showActionLabel(userEl, "💢 Berserk!", "fx-strike");
+
       // เลือกเป้าหมาย 2 ตัว
       const alive = enemies.filter(e => e.hp > 0);
       const chosen = [target];
@@ -33,6 +36,8 @@ async function normalAttack(user, enemies) {
   }
 
   // ⚔️ โจมตีปกติ (อาชีพอื่น + Rogue ครั้งแรก)
+  const userEl = document.querySelector(`[data-id="${user.instanceId}"]`);
+  announceNormalAttack(user);
   log(`👊 ${user.name} โจมตี → ${target.name} -${rawDmg} HP`, user.isEnemy ? "enemy" : "player");
   await applyDamage(user, target, rawDmg);
 
@@ -147,6 +152,8 @@ if (target.class === "PhantomBoss" && attacker && !attacker.isEnemy) {
     }
     const base = getBattleSpeed();
     const hitDuration = Math.max(120, base * 0.05);
+
+    showFloatingNumber(targetEl, dmg, "damage");
 
     targetEl.style.animationDuration = hitDuration + "ms";
     targetEl.classList.add("hit", "damaged");
