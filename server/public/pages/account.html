@@ -57,8 +57,7 @@
       </span>
     </div>
     <div class="acct-row"><span class="label">สถานะ</span><span class="value" id="acctStatus">-</span></div>
-<div class="acct-row" style="font-size:11px;color:#667;"><span class="label">Debug (localStorage)</span><span class="value" id="acctDebug">-</span></div>
-  </div>
+
   <p id="acctLoggedOutMsg" style="display:none">ยังไม่ได้เข้าสู่ระบบ — กรอกชื่อผู้เล่นและ PIN ในกล่องที่เด้งขึ้นมาเพื่อดูข้อมูลบัญชีของคุณ</p>
   <div class="acct-actions">
     <button id="acctLoginBtn" style="display:none">เข้าสู่ระบบ / สมัคร</button>
@@ -98,11 +97,7 @@
   // เพราะเซิร์ฟเวอร์คือ source of truth ตัวจริง ไม่ใช่ค่าที่ client จำไว้เอง
   async function renderAccountPage() {
     const loggedIn = window.GameAPI && GameAPI.isLoggedIn && GameAPI.isLoggedIn();
-document.getElementById("acctDebug").textContent =
-      "playerId=" + (localStorage.getItem("playerId") ? "มี" : "ไม่มี") +
-      " / authToken=" + (localStorage.getItem("authToken") ? "มี" : "ไม่มี") +
-      " / username=" + (localStorage.getItem("username") || "ไม่มี");
-    document.getElementById("acctLoginBtn").style.display = loggedIn ? "none" : "inline-block";
+ document.getElementById("acctLoginBtn").style.display = loggedIn ? "none" : "inline-block";
     document.getElementById("acctLogoutBtn").style.display = loggedIn ? "inline-block" : "none";
     document.getElementById("acctSwitchBtn").style.display = loggedIn ? "inline-block" : "none";
     document.getElementById("acctRenameBtn").style.display = loggedIn ? "inline-block" : "none";
