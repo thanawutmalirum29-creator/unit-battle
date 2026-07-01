@@ -365,6 +365,9 @@ input[type="text"]{ flex:1 1 200px; }
 
 .stats{ font-size:12px; opacity:.85; display:grid; grid-template-columns:1fr 1fr; gap:4px 10px; }
 .muted{ opacity:.65; font-size:11px; }
+/* 🟢 .meta ไม่เคยถูกกำหนดสไตล์เลยในไฟล์นี้ เลยใช้ font-size เริ่มต้นของ browser (16px)
+   ซึ่งใหญ่เกินไปสำหรับการ์ดแคบๆ ในสนามรบ เป็นอีกสาเหตุที่การ์ดสูงไม่เท่ากัน */
+.meta{ opacity:.7; font-size:12px; }
 .price{ font-weight:800; color:var(--gold); }
 
 .actions{ display:flex; gap:8px; }
@@ -549,6 +552,14 @@ button.upgrade-btn:disabled{ background:#3a3f4a; color:#9aa1ab; }
   border:1px dashed var(--border);
   border-radius:var(--radius-sm);
   padding:8px;
+  /* 🟢 เดิมไม่มีการจัดวางลูกๆ เลย การ์ดแต่ละใบเลยเรียงต่อกันแบบ block
+     (คอลัมน์แคบๆ ตรงกลางจอ) พอมีตัวเยอะเลยเบียดกันสูงท่วม ตอนนี้ให้เป็น
+     กริดจริงๆ ที่ห่อบรรทัดได้ และช่องว่างเท่ากันเสมอ */
+  display:flex;
+  flex-wrap:wrap;
+  align-content:flex-start;
+  justify-content:center;
+  gap:8px;
 }
 #battleLog{
   max-height:220px; overflow-y:auto;
@@ -687,18 +698,39 @@ body.no-scroll{ overflow:hidden; height:100%; }
 }
 
 /* ============================================================
-   BATTLEFIELD UNIT CARDS — fix HP bar disappearing
-   game.css gives .card-box a FIXED height (120px). When a unit's
-   name/skill text wraps to 2 lines, the flex column squeezes the
-   .hp-bar down (sometimes to 0px) to fit — so longer-named units
-   show no bar while short-named ones look fine. Let the card grow
-   to fit its content instead, and never let the bar itself shrink.
+   BATTLEFIELD UNIT CARDS — equal size + HP bar always visible
+   เดิมให้การ์ดสูง "auto" เพื่อกันไม่ให้ hp-bar โดนบีบ แต่ผลคือ
+   การ์ดแต่ละใบสูงไม่เท่ากันตามความยาวชื่อ/สกิล (ที่มาของ "ใหญ่ไม่เท่ากัน")
+   และ .team-box ไม่มี layout ห่อบรรทัด เลยเบียดกันเป็นแท่งแคบๆ ตรงกลาง
+   ทางแก้จริงคือ: บังคับกว้าง+สูงเท่ากันทุกใบ ตัดข้อความยาวด้วย ellipsis
+   แทนการปล่อยให้ห่อบรรทัด แล้วให้ team-box ห่อบรรทัดเป็นกริดแทน
    ============================================================ */
 #playerTeamBox .card-box,
 #enemyTeamBox .card-box{
-  height:auto;
-  min-height:120px;
-  width:150px;
+  flex:0 0 auto;
+  width:132px;
+  height:150px;
+  min-height:0;
+  padding:8px;
+  gap:4px;
+  overflow:hidden;
+}
+#playerTeamBox .card-box > div,
+#enemyTeamBox .card-box > div{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  width:100%;
+}
+#playerTeamBox .card-box > div:first-child,
+#enemyTeamBox .card-box > div:first-child{
+  font-size:13px;
+  line-height:1.2;
+}
+#playerTeamBox .card-box .meta,
+#enemyTeamBox .card-box .meta{
+  font-size:11px;
+  opacity:.8;
 }
 .card-box.player-card{
   border-color:rgba(16,185,129,.45);
@@ -708,11 +740,29 @@ body.no-scroll{ overflow:hidden; height:100%; }
   border-color:rgba(239,68,68,.45);
   background:linear-gradient(160deg,rgba(239,68,68,.16),rgba(20,9,9,.9));
 }
+/* .hp-bar เดิมไม่มี position/height จริง ทำให้แถบ green/red ซ้อนกันไม่ถูกต้อง
+   (บางทีก็ยุบเป็น 0px) ตอนนี้กำหนด track ที่มีความสูงตายตัว และให้ hp-fill
+   เป็น absolute วางซ้อนกันในแนวเดียว จะได้เป็นหลอด HP จริงๆ เสมอ ไม่ว่าการ์ด
+   จะมีข้อความมากแค่ไหน */
 .hp-bar{
+  position:relative;
   flex-shrink:0;
+  width:100%;
+  height:10px;
   min-height:10px;
+  max-height:10px;
+  background:rgba(255,255,255,.1);
+  border-radius:5px;
+  overflow:hidden;
+  white-space:normal !important;
 }
-.hp-fill{ flex-shrink:0; }
+.hp-fill{
+  position:absolute;
+  top:0; left:0;
+  height:100%;
+  flex-shrink:0;
+  border-radius:5px;
+}
 
 
 /* ============================================================
