@@ -1,11 +1,12 @@
 // routes/leaderboard.js
 const express = require('express');
 const pool = require('../db/pool');
+const asyncHandler = require('../middleware/asyncHandler');
 
 const router = express.Router();
 
 // GET /api/leaderboard/:mode  (normal | inf) — top individual runs
-router.get('/:mode', async (req, res) => {
+router.get('/:mode', asyncHandler(async (req, res) => {
   const { mode } = req.params;
   if (!['normal', 'inf'].includes(mode)) return res.status(400).json({ error: 'invalid mode' });
 
@@ -19,10 +20,10 @@ router.get('/:mode', async (req, res) => {
     [mode]
   );
   res.json(rows);
-});
+}));
 
 // GET /api/leaderboard/teams/summary — total team score across all modes
-router.get('/teams/summary', async (req, res) => {
+router.get('/teams/summary', asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
     `SELECT t.name AS team_name, SUM(le.score) AS total_score, COUNT(*) AS runs
      FROM leaderboard_entries le
@@ -31,6 +32,6 @@ router.get('/teams/summary', async (req, res) => {
      ORDER BY total_score DESC`
   );
   res.json(rows);
-});
+}));
 
 module.exports = router;
