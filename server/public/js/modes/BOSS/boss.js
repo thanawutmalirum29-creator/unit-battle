@@ -239,6 +239,7 @@ async function startBattle(){
     }
 
 endRoundAll();
+renderBattlefield(); // ⏳ ให้ตัวเลขคูลดาวน์บนการ์ดอัปเดตทันทีตอนจบเทิร์นใหญ่
 
     turn++;
     await sleep(300);
@@ -314,7 +315,7 @@ function createUnitCard(unit, isEnemy){
     </div>
     <div class="meta">HP: ${toNum(unit.hp,0)} / ${toNum(unit.maxHp,0)}</div>
     <div style="font-size:13px">ATK:${toNum(unit.atk,0)} • DEF:${toNum(unit.def,0)}</div>
-    <div class="meta">Skill: ${unit.skill || "-"}</div>
+    <div class="meta">Skill: ${unit.skill || "-"}${unit.cooldown > 0 ? ` <span class="skill-cd">⏳${unit.cooldown}</span>` : ""}</div>
   `;
   return wrap;
 }
