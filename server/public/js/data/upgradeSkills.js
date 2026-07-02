@@ -1,46 +1,47 @@
+// public/js/data/upgradeSkills.js — card SKILL upgrade UI (bumps "Name LN" in
+// card.skill; separate mechanic from the card LEVEL upgrades in upgrade.js).
+//
+// Previously this whole file rolled its own RNG and wrote bag+deck straight to
+// localStorage — bypassing loadBag()/saveBag() and loadDeck()/applyServerDeck()
+// entirely (raw JSON.parse/localStorage.setItem calls). That corrupted the
+// encrypted bag payload (bag.js's hash check would then reset it) and got
+// silently overwritten by syncBagFromServer()/syncDeckFromServer() on the next
+// page load — i.e. the shard cost AND the skill level-up both looked like they
+// "reverted". See routes/economy.js POST /skills/upgrade for the real fix: the
+// server now owns the cost, the RNG roll, and the deck/bag update.
+
 function goBack(){
   if (document.referrer) {
-    // ถ้ามี referrer → กลับไปหน้านั้น
     window.location.href = document.referrer;
   } else {
-    // ถ้าไม่มี (เช่นเปิดตรงๆ) → กลับไปหน้า game.html เป็นค่า default
     window.location.href = "game.html";
   }
 }
 
-// ✅ กำหนดเลเวลสูงสุด
+// ✅ กำหนดเลเวลสูงสุด (ต้องตรงกับ SKILL_UPGRADE_MAX_LEVEL บนเซิฟ)
 const MAX_LEVEL = 3;
+
+const SHARD_KEY_BY_RARITY = {
+  Common: "shardGray", Rare: "shardBlue", Epic: "shardPurple",
+  Legendary: "shardGold", Mythical: "shardRed", Cosmic: "shardSky",
+};
+const SHARD_NAME_BY_KEY = {
+  shardGray: "⚪ ชาร์ดเทา", shardBlue: "🔵 ชาร์ดน้ำเงิน", shardPurple: "🟣 ชาร์ดม่วง",
+  shardGold: "🟡 ชาร์ดทอง", shardRed: "🔴 ชาร์ดแดง", shardSky: "🌌 ชาร์ดฟ้า",
+};
 
 function renderUpgradeDeck() {
   const div = document.getElementById("deck-wrapper");
   div.innerHTML = "";
 
-  let deck = JSON.parse(localStorage.getItem("deck") || "[]");
+  let deck = typeof loadDeck === "function" ? loadDeck() : [];
 
   deck.sort((a, b) => {
-  // เรียงจำนวนดาวก่อน (มาก → น้อย)
-  if ((b.stars || 0) !== (a.stars || 0)) {
-    return (b.stars || 0) - (a.stars || 0);
-  }
-
-  // ต่อด้วยเลเวล (มาก → น้อย)
-  if ((b.level || 0) !== (a.level || 0)) {
-    return (b.level || 0) - (a.level || 0);
-  }
-
-  // สุดท้ายเรียงตามความแรร์ (Cosmic > Mythical > ...)
-  const rarityOrder = {
-    "Cosmic": 6,
-    "Mythical": 5,
-    "Legendary": 4,
-    "Epic": 3,
-    "Rare": 2,
-    "Common": 1
-  };
-  let ra = rarityOrder[a.rarity] || 0;
-  let rb = rarityOrder[b.rarity] || 0;
-  return rb - ra;
-});
+    if ((b.stars || 0) !== (a.stars || 0)) return (b.stars || 0) - (a.stars || 0);
+    if ((b.level || 0) !== (a.level || 0)) return (b.level || 0) - (a.level || 0);
+    const rarityOrder = { Cosmic: 6, Mythical: 5, Legendary: 4, Epic: 3, Rare: 2, Common: 1 };
+    return (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0);
+  });
 
   deck.forEach(card => {
     const el = document.createElement("div");
@@ -57,70 +58,68 @@ function renderUpgradeDeck() {
 }
 
 function showSkillDetail(id) {
-  const deck = JSON.parse(localStorage.getItem("deck") || "[]");
+  const deck = typeof loadDeck === "function" ? loadDeck() : [];
   const card = deck.find(c => c.id === id);
   if (!card) return;
 
   const container = document.getElementById("skillDetail");
 
-  let match = card.skill.match(/(.+) L(\d+)/);
-  let nextSkill = null, cost = null, shardType = null, shardName = "", chance = null;
+  let match = typeof card.skill === "string" ? card.skill.match(/(.+) L(\d+)/) : null;
+  let nextSkill = null, cost = null, shardKey = null, chance = null;
 
   if (match) {
     let base = match[1];
-    let level = parseInt(match[2]);
+    let level = parseInt(match[2], 10);
 
     if (level < MAX_LEVEL) {
-      nextSkill = `${base} L${level+1}`;
+      nextSkill = `${base} L${level + 1}`;
       cost = 10 * level;
-
-      if (card.rarity === "Epic") { shardType = "shardPurple"; shardName="🟣 ชาร์ดม่วง"; }
-      else if (card.rarity === "Legendary") { shardType = "shardGold"; shardName="🟡 ชาร์ดทอง"; }
-      else if (card.rarity === "Rare") { shardType = "shardBlue"; shardName="🔵 ชาร์ดน้ำเงิน"; }
-      else if (card.rarity === "Mythical") { shardType = "shardRed"; shardName="🔴 ชาร์ดแดง"; }
-      else if (card.rarity === "Cosmic") { shardType = "shardSky"; shardName="🌌 ชาร์ดฟ้า"; }
-      else { shardType = "shardGray"; shardName="⚪ ชาร์ดเทา"; }
-
+      shardKey = SHARD_KEY_BY_RARITY[card.rarity || "Common"];
       const successRates = { 1: 0.20, 2: 0.05, 3: 0.01 };
       chance = successRates[level] ? (successRates[level] * 100).toFixed(0) + "%" : "0%";
     }
   }
 
-  let bag = loadBag();
-  let have = (bag[shardType] || 0);
+  const bag = typeof loadBag === "function" ? loadBag() : {};
+  const have = shardKey ? (bag[shardKey] || 0) : 0;
+  const shardName = shardKey ? (SHARD_NAME_BY_KEY[shardKey] || shardKey) : "";
 
   let barHtml = `<div class="progress-bar"><div id="progress-bar" class="progress-fill"></div></div>`;
+  let btnHtml;
 
- if (nextSkill) {
-  let disabled = have < cost ? "disabled" : "";
-  btnHtml = `<button class="upgrade-btn" onclick="upgradeSkill('${id}')" ${disabled}>
-                ⬆ อัปเกรดเป็น ${nextSkill} 
-                <br>(ใช้ ${have}/${cost} ${shardName})
-                <br>💡 โอกาสสำเร็จ: ${chance}
-             </button>`;
-} else {
-  // กรณีตันแล้ว → ใช้ progress bar เต็มสีเขียวแทน
-  barHtml = `<div class="progress-bar">
-               <div class="progress-fill" style="width:100%; background:linear-gradient(90deg,#06d6a0,#07f5b5)"></div>
-             </div>`;
-  btnHtml = `<p><b>Skill MAX</b></p>`;
+  if (nextSkill) {
+    const loggedIn = window.GameAPI && GameAPI.isLoggedIn && GameAPI.isLoggedIn();
+    const disabled = (!loggedIn || have < cost) ? "disabled" : "";
+    btnHtml = `<button class="upgrade-btn" onclick="upgradeSkill('${id}')" ${disabled}>
+                  ⬆ อัปเกรดเป็น ${nextSkill}
+                  <br>(ใช้ ${have}/${cost} ${shardName})
+                  <br>💡 โอกาสสำเร็จ: ${chance}
+               </button>
+               ${!loggedIn ? '<div class="muted" style="margin-top:6px">ต้องเข้าสู่ระบบ (username + PIN) ก่อนอัปเกรด</div>' : ''}`;
+  } else {
+    barHtml = `<div class="progress-bar">
+                 <div class="progress-fill" style="width:100%; background:linear-gradient(90deg,#06d6a0,#07f5b5)"></div>
+               </div>`;
+    btnHtml = `<p><b>Skill MAX</b></p>`;
+  }
+
+  container.innerHTML = `
+    <p><b>${card.name}</b></p>
+    <p>Skill ปัจจุบัน: ${card.skill}</p>
+    ${barHtml}
+    ${btnHtml}
+  `;
 }
 
-container.innerHTML = `
-  <p><b>${card.name}</b></p>
-  <p>Skill ปัจจุบัน: ${card.skill}</p>
-  ${barHtml}
-  ${btnHtml}
-`;
-  
-}
+// Server owns the cost, the RNG roll, and the deck/bag write — this just calls
+// it and re-renders from whatever comes back. Matches guaranteeUpgrade() in
+// public/js/data/upgrade.js.
+async function upgradeSkill(id) {
+  if (!window.GameAPI || !GameAPI.isLoggedIn || !GameAPI.isLoggedIn()) {
+    alert("ต้องเข้าสู่ระบบ (username + PIN) ก่อนอัปเกรด");
+    return;
+  }
 
-function upgradeSkill(id) {
-  let deck = JSON.parse(localStorage.getItem("deck") || "[]");
-  const card = deck.find(c => c.id === id);
-  if (!card) return;
-
-  // 🟢 ปิดปุ่มชั่วคราว
   const btn = document.querySelector(".upgrade-btn");
   if (btn) {
     btn.disabled = true;
@@ -128,67 +127,35 @@ function upgradeSkill(id) {
     btn.style.cursor = "not-allowed";
   }
 
-  let match = card.skill.match(/(.+) L(\d+)/);
-  if (!match) return;
-
-  let base = match[1];
-  let level = parseInt(match[2]);
-  if (level >= MAX_LEVEL) return;
-
-  let shardType, shardName;
-  if (card.rarity === "Epic") { shardType = "shardPurple"; shardName="🟣 ชาร์ดม่วง"; }
-  else if (card.rarity === "Legendary") { shardType = "shardGold"; shardName="🟡 ชาร์ดทอง"; }
-  else if (card.rarity === "Rare") { shardType = "shardBlue"; shardName="🔵 ชาร์ดน้ำเงิน"; }
-  else if (card.rarity === "Mythical") { shardType = "shardRed"; shardName="🔴 ชาร์ดแดง"; }
-  else if (card.rarity === "Cosmic") { shardType = "shardSky"; shardName="🌌 ชาร์ดฟ้า"; }
-  else { shardType = "shardGray"; shardName="⚪ ชาร์ดเทา"; }
-
-  let cost = 10 * level;
-  let bag = JSON.parse(localStorage.getItem("bag") || "{}");
-  if ((bag[shardType] || 0) < cost) return;
-
-  bag[shardType] -= cost;
-  localStorage.setItem("bag", JSON.stringify(bag));
-  updateBagUI();
-
-  const successRates = { 1: 0.20, 2: 0.05, 3: 0.01 };
-  let chance = successRates[level] || 0;
-  let roll = Math.random();
-
-  let barWidth;
-  let success = false;
-  if (roll < chance) {
-    barWidth = 100;
-    success = true;
-  } else {
-    barWidth = Math.floor(roll * 100);
-    if (barWidth >= 100) barWidth = 99;
-  }
-
   const bar = document.getElementById("progress-bar");
-  if (bar) {
-    bar.style.width = "0%";
-    setTimeout(() => {
-      bar.style.width = barWidth + "%";
-    }, 100);
+  if (bar) bar.style.width = "0%";
+
+  const result = await GameAPI.skillUpgrade(id);
+  if (!result || !result.ok) {
+    alert("อัปเกรดไม่สำเร็จ: " + (result?.error || "unknown error"));
+    if (btn) { btn.disabled = false; btn.style.opacity = "1"; btn.style.cursor = "pointer"; }
+    return;
   }
 
-  // 🟢 หลังอนิเมชันเสร็จ → เปิดปุ่มคืน
-  setTimeout(() => {
-    if (success) {
-      card.skill = `${base} L${level+1}`;
-      localStorage.setItem("deck", JSON.stringify(deck));
-    }
+  applyServerBag(result.bag);
+  if (bar) bar.style.width = result.success ? "100%" : "40%";
+
+  setTimeout(async () => {
+    // this endpoint only returns the one card, not the whole deck — sync the
+    // full deck from the server the same way guaranteeUpgrade() does.
+    if (typeof syncDeckFromServer === "function") await syncDeckFromServer();
     renderUpgradeDeck();
     showSkillDetail(id);
 
     const btnBack = document.querySelector(".upgrade-btn");
-    if (btnBack) {
-      btnBack.disabled = false;
-      btnBack.style.opacity = "1";
-      btnBack.style.cursor = "pointer";
-    }
-  }, 1500);
+    if (btnBack) { btnBack.disabled = false; btnBack.style.opacity = "1"; btnBack.style.cursor = "pointer"; }
+  }, 1200);
 }
 
-renderUpgradeDeck();
+async function bootUpgradeSkills() {
+  if (window.GameAPI && GameAPI.isLoggedIn && GameAPI.isLoggedIn() && typeof syncDeckFromServer === "function") {
+    await syncDeckFromServer();
+  }
+  renderUpgradeDeck();
+}
+document.addEventListener("DOMContentLoaded", bootUpgradeSkills);

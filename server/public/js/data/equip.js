@@ -87,11 +87,11 @@ function renderEquipBag() {
     panel.appendChild(empty);
     div.appendChild(panel);
 
-    toolbar.querySelector("#deleteCommonBtn").onclick = () => {
-      if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์ระดับ Common ทั้งหมด?")) deleteEquipByRarity("Common");
+    toolbar.querySelector("#deleteCommonBtn").onclick = async () => {
+      if (await uiConfirm("คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์ระดับ Common ทั้งหมด?")) deleteEquipByRarity("Common");
     };
-    toolbar.querySelector("#deleteRareBtn").onclick = () => {
-      if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์ระดับ Rare ทั้งหมด?")) deleteEquipByRarity("Rare");
+    toolbar.querySelector("#deleteRareBtn").onclick = async () => {
+      if (await uiConfirm("คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์ระดับ Rare ทั้งหมด?")) deleteEquipByRarity("Rare");
     };
     return;
   }
@@ -125,8 +125,8 @@ function renderEquipBag() {
       <div class="equip-card-rarity">⭐ ${eq.rarity}</div>
       <div class="equip-card-bonus">${bonusTxt}</div>
     `;
-    el.onclick = () => {
-      if (confirm(`ต้องการลบ "${eq.name}" ออกจากกระเป๋าหรือไม่?`)) {
+    el.onclick = async () => {
+      if (await uiConfirm(`ต้องการลบ "${eq.name}" ออกจากกระเป๋าหรือไม่?`)) {
         deleteEquipItem(eq.id);
       }
     };
@@ -166,11 +166,11 @@ function renderEquipBag() {
 
   div.appendChild(panel);
 
-  toolbar.querySelector("#deleteCommonBtn").onclick = () => {
-    if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์ระดับ Common ทั้งหมด?")) deleteEquipByRarity("Common");
+  toolbar.querySelector("#deleteCommonBtn").onclick = async () => {
+    if (await uiConfirm("คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์ระดับ Common ทั้งหมด?")) deleteEquipByRarity("Common");
   };
-  toolbar.querySelector("#deleteRareBtn").onclick = () => {
-    if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์ระดับ Rare ทั้งหมด?")) deleteEquipByRarity("Rare");
+  toolbar.querySelector("#deleteRareBtn").onclick = async () => {
+    if (await uiConfirm("คุณแน่ใจหรือไม่ว่าต้องการลบอุปกรณ์ระดับ Rare ทั้งหมด?")) deleteEquipByRarity("Rare");
   };
 }
 async function deleteEquipByRarity(rarity) {
@@ -257,10 +257,10 @@ el.innerHTML = `
 
   document.querySelectorAll(".equip-slot").forEach(span => {
     span.style.cursor = "pointer";
-    span.onclick = () => {
+    span.onclick = async () => {
       const cardId = span.dataset.card;
       const eqId = span.dataset.eqid;
-      if (confirm("ถอดอุปกรณ์นี้ออกหรือไม่?")) {
+      if (await uiConfirm("ถอดอุปกรณ์นี้ออกหรือไม่?")) {
         unequipItem(cardId, eqId);
       }
     };
