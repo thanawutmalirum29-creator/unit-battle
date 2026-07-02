@@ -11,16 +11,8 @@ function toNum(v, fallback=0){
 function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
 /* =======================
-   Rewards (UI-only log; actual crediting happens via GameAPI.bossClaimTier, see addBossDamage)
+   Rewards (จำนวนจริงมาจากเซิฟผ่าน GameAPI.bossClaimTier เท่านั้น — ดู addBossDamage)
    ======================= */
-function logRewardPreview(reward){
-  if (!reward) return;
-  if (reward.items) {
-    for (const key of Object.keys(reward.items)) {
-      log(`🎁 ได้ ${key} (รอเซิฟยืนยันจำนวน)`, "system");
-    }
-  }
-}
 
 /* =======================
    Stage Reward by Damage
@@ -42,7 +34,6 @@ function addBossDamage(dmg){
   boss.stages.forEach((stage, idx)=>{
     if (damageDone >= stage.dmg && !stageRewardGiven[idx]){
       stageRewardGiven[idx] = true; // กันยิงซ้ำฝั่ง client; เซิฟก็กันซ้ำอีกชั้นด้วย UNIQUE constraint
-      logRewardPreview(stage.reward);
       log(`🏆 ผ่าน Stage ${idx+1} ของ ${boss.name} (ดาเมจสะสม ${stage.dmg}+ )`, "system");
 
       if (window.GameAPI) {
@@ -52,7 +43,7 @@ function addBossDamage(dmg){
             applyServerBag(result.bag);
             log(`💰 ได้ ${result.moneyGain} เหรียญ`, "system");
             for (const [key, amount] of Object.entries(result.drops || {})) {
-              log(`🎁 ยืนยัน ${amount}x ${key}`, "system");
+              log(`🎁 ได้ ${amount}x ${key}`, "system");
             }
           } else {
             console.warn("[Boss] claim tier failed:", result?.error);
