@@ -16,6 +16,8 @@ const {
   BOSS_MAX_DPS, rewardForTier, rollRange,
   UPGRADE_SHARD_KEY_BY_RARITY, UPGRADE_SHARDS_NEEDED, UPGRADE_MAX_LEVEL,
   UPGRADE_DUPLICATE_COST_BY_RARITY, calcUpgradeCost, calcSuccessRate, applyLevelGrowth,
+  SHOP_MEMORY_KEY_BY_RARITY, SHOP_SHARD_EXCHANGE_COST,
+  SKILL_UPGRADE_MAX_LEVEL, SKILL_UPGRADE_SHARD_COST_PER_LEVEL, SKILL_UPGRADE_SUCCESS_RATE,
   calcSellPrice,
 } = require('../game-data/economy-data');
 
@@ -306,13 +308,48 @@ async function ensureShopCycle() {
   return { cycle, cards: row.rows[0].cards };
 }
 
+// Ported from the old client's shop_locked[] (localStorage): once a player buys ANY
+// card of a given rarity in a cycle — by money or by shard — every other card of
+// that same rarity is locked out for the rest of the cycle. Looks at shop_purchases
+// (source of truth) instead of trusting anything the client sends.
+async function getLockedRaritiesThisCycle(dbClient, playerId, cycle, cards) {
+  const { rows } = await dbClient.query(
+    `SELECT slot_index FROM shop_purchases WHERE player_id = $1 AND cycle = $2`,
+    [playerId, cycle]
+  );
+  const rarityBySlot = new Map(cards.map(c => [c.slotIndex, c.rarity]));
+  const locked = new Set();
+  for (const row of rows) {
+    const rarity = rarityBySlot.get(row.slot_index);
+    if (rarity) locked.add(rarity);
+  }
+  return locked;
+}
+
 // GET /api/economy/shop/current — public (no auth), just shows the shared lineup + real prices
 router.get('/shop/current', asyncHandler(async (req, res) => {
   const { cycle, cards } = await ensureShopCycle();
   res.json({ cycle, cards, refreshMs: SHOP_REFRESH_INTERVAL_MS, nextRefreshAt: (cycle + 1) * SHOP_REFRESH_INTERVAL_MS });
 }));
 
-// POST /api/economy/shop/buy { slotIndex }
+// GET /api/economy/shop/my-status — this player's purchased slots + locked rarities
+// for the CURRENT cycle. Separate from /shop/current so the lineup itself can stay
+// public/no-auth while this stays per-player.
+router.get('/shop/my-status', requireAuth, asyncHandler(async (req, res) => {
+  const { cycle, cards } = await ensureShopCycle();
+  const { rows } = await pool.query(
+    `SELECT slot_index FROM shop_purchases WHERE player_id = $1 AND cycle = $2`,
+    [req.playerId, cycle]
+  );
+  const lockedRarities = await getLockedRaritiesThisCycle(pool, req.playerId, cycle, cards);
+  res.json({
+    cycle,
+    purchasedSlots: rows.map(r => r.slot_index),
+    lockedRarities: [...lockedRarities],
+  });
+}));
+
+// POST /api/economy/shop/buy { slotIndex } — pay with money
 router.post('/shop/buy', requireAuth, asyncHandler(async (req, res) => {
   const slotIndex = Number(req.body?.slotIndex);
   if (!Number.isInteger(slotIndex)) return res.status(400).json({ error: 'invalid slotIndex' });
@@ -325,10 +362,17 @@ router.post('/shop/buy', requireAuth, asyncHandler(async (req, res) => {
   try {
     await client.query('BEGIN');
 
+    const locked = await getLockedRaritiesThisCycle(client, req.playerId, cycle, cards);
+    if (locked.has(card.rarity)) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: `already bought a ${card.rarity} card this cycle` });
+    }
+
     let purchase;
     try {
       purchase = await client.query(
-        `INSERT INTO shop_purchases (player_id, cycle, slot_index, price_paid) VALUES ($1, $2, $3, $4) RETURNING id`,
+        `INSERT INTO shop_purchases (player_id, cycle, slot_index, price_paid, paid_with)
+         VALUES ($1, $2, $3, $4, 'money') RETURNING id`,
         [req.playerId, cycle, slotIndex, card.price]
       );
     } catch (e) {
@@ -357,6 +401,74 @@ router.post('/shop/buy', requireAuth, asyncHandler(async (req, res) => {
 
     await client.query('COMMIT');
     res.json({ ok: true, card: newCard, money: newMoney, deck: newDeck });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}));
+
+// POST /api/economy/shop/buy-with-shard { slotIndex } — pay with memory fragments
+// instead of money. Fixed cost (SHOP_SHARD_EXCHANGE_COST), one currency per rarity
+// (SHOP_MEMORY_KEY_BY_RARITY). Ported from shop.html's buyWithShard(), which used to
+// spend the fragments purely in localStorage — see the README section on this patch
+// for why that silently refunded itself on the next page load.
+router.post('/shop/buy-with-shard', requireAuth, asyncHandler(async (req, res) => {
+  const slotIndex = Number(req.body?.slotIndex);
+  if (!Number.isInteger(slotIndex)) return res.status(400).json({ error: 'invalid slotIndex' });
+
+  const { cycle, cards } = await ensureShopCycle();
+  const card = cards.find(c => c.slotIndex === slotIndex);
+  if (!card) return res.status(404).json({ error: 'no card in that slot this cycle' });
+
+  const memoryKey = SHOP_MEMORY_KEY_BY_RARITY[card.rarity];
+  if (!memoryKey) return res.status(400).json({ error: `${card.rarity} cards can't be bought with memory fragments` });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const locked = await getLockedRaritiesThisCycle(client, req.playerId, cycle, cards);
+    if (locked.has(card.rarity)) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: `already bought a ${card.rarity} card this cycle` });
+    }
+
+    let purchase;
+    try {
+      purchase = await client.query(
+        `INSERT INTO shop_purchases (player_id, cycle, slot_index, price_paid, paid_with, shard_key, shard_qty)
+         VALUES ($1, $2, $3, 0, 'shard', $4, $5) RETURNING id`,
+        [req.playerId, cycle, slotIndex, memoryKey, SHOP_SHARD_EXCHANGE_COST]
+      );
+    } catch (e) {
+      if (e.code === '23505') {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'already bought this slot this cycle' });
+      }
+      throw e;
+    }
+
+    const econ = await getOrCreateEconomy(client, req.playerId);
+    const have = Number(econ.bag[memoryKey] || 0);
+    if (have < SHOP_SHARD_EXCHANGE_COST) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: `need ${SHOP_SHARD_EXCHANGE_COST} ${memoryKey}, have ${have}` });
+    }
+
+    const newBag = { ...econ.bag, [memoryKey]: have - SHOP_SHARD_EXCHANGE_COST };
+    const newCard = { ...card, id: uuid(), level: 1, stars: 1 };
+    delete newCard.slotIndex;
+    const newDeck = [...econ.deck, newCard];
+
+    await client.query(
+      `UPDATE player_economy SET bag = $2, deck = $3, updated_at = now() WHERE player_id = $1`,
+      [req.playerId, JSON.stringify(newBag), JSON.stringify(newDeck)]
+    );
+
+    await client.query('COMMIT');
+    res.json({ ok: true, card: newCard, bag: newBag, deck: newDeck });
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
@@ -472,6 +584,73 @@ router.post('/upgrade/guaranteed', requireAuth, asyncHandler(async (req, res) =>
 
     await client.query('COMMIT');
     res.json({ ok: true, card: newDeck[idx], bag: newBag });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}));
+
+// ---------------------------------------------------------------------------
+// Card SKILL upgrade — separate mechanic from the level upgrade above. Ported
+// from public/js/data/upgradeSkills.js's upgradeSkill(): bumps the "Name LN"
+// suffix in card.skill, cost = SKILL_UPGRADE_SHARD_COST_PER_LEVEL * current level,
+// shards are spent on every attempt (success or fail) — matches the old client
+// exactly, just server-authoritative now instead of writing localStorage raw.
+// ---------------------------------------------------------------------------
+router.post('/skills/upgrade', requireAuth, asyncHandler(async (req, res) => {
+  const cardId = req.body?.cardId;
+  if (!cardId) return res.status(400).json({ error: 'missing cardId' });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const econ = await getOrCreateEconomy(client, req.playerId);
+    const deck = econ.deck;
+    const idx = deck.findIndex(c => c.id === cardId);
+    if (idx === -1) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'card not found in deck' });
+    }
+    const card = { ...deck[idx] };
+
+    const match = typeof card.skill === 'string' ? card.skill.match(/(.+) L(\d+)/) : null;
+    if (!match) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'this card has no levelled skill' });
+    }
+    const base = match[1];
+    const level = parseInt(match[2], 10);
+    if (level >= SKILL_UPGRADE_MAX_LEVEL) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'skill already maxed' });
+    }
+
+    const shardKey = UPGRADE_SHARD_KEY_BY_RARITY[card.rarity] || 'shardGray';
+    const cost = SKILL_UPGRADE_SHARD_COST_PER_LEVEL * level;
+    const have = Number(econ.bag[shardKey] || 0);
+    if (have < cost) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: `need ${cost} ${shardKey}, have ${have}` });
+    }
+
+    // Shards are spent regardless of outcome — matches the old client's behaviour.
+    const newBag = { ...econ.bag, [shardKey]: have - cost };
+    const chance = SKILL_UPGRADE_SUCCESS_RATE[level] || 0;
+    const success = Math.random() < chance;
+    if (success) card.skill = `${base} L${level + 1}`;
+
+    const newDeck = [...deck];
+    newDeck[idx] = card;
+
+    await client.query(
+      `UPDATE player_economy SET bag = $2, deck = $3, updated_at = now() WHERE player_id = $1`,
+      [req.playerId, JSON.stringify(newBag), JSON.stringify(newDeck)]
+    );
+
+    await client.query('COMMIT');
+    res.json({ ok: true, success, card: newDeck[idx], bag: newBag });
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
