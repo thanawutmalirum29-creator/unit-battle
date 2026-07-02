@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="../css/game.css" />
   <link rel="stylesheet" href="../css/skills.css" />
   <link rel="stylesheet" href="../css/theme.css" />
+  <script src="../js/core/ui-popup.js"></script>
   <style>
     .acct-row{
       display:flex; justify-content:space-between; align-items:center;
@@ -223,21 +224,21 @@
     if (window.AuthUI) AuthUI.showModal();
   });
 
-  document.getElementById("acctLogoutBtn").addEventListener("click", () => {
-    if (!confirm("ออกจากระบบ?")) return;
+  document.getElementById("acctLogoutBtn").addEventListener("click", async () => {
+    if (!(await uiConfirm("ออกจากระบบ?"))) return;
     GameAPI.logout();
     location.reload();
   });
 
-  document.getElementById("acctSwitchBtn").addEventListener("click", () => {
-    if (!confirm("สลับไปบัญชีอื่น? (จะออกจากระบบบัญชีปัจจุบันก่อน)")) return;
+  document.getElementById("acctSwitchBtn").addEventListener("click", async () => {
+    if (!(await uiConfirm("สลับไปบัญชีอื่น? (จะออกจากระบบบัญชีปัจจุบันก่อน)"))) return;
     GameAPI.logout();
     location.reload();
   });
 
   document.getElementById("acctRenameBtn").addEventListener("click", async () => {
     const current = localStorage.getItem("username") || "";
-    const next = prompt("ตั้งชื่อผู้เล่นใหม่ (2-32 ตัวอักษร):", current);
+    const next = await uiPrompt("ตั้งชื่อผู้เล่นใหม่ (2-32 ตัวอักษร):", current);
     if (next === null) return; // ยกเลิก
     const trimmed = next.trim();
     if (trimmed.length < 2 || trimmed.length > 32) { alert("ชื่อต้องยาว 2-32 ตัวอักษร"); return; }

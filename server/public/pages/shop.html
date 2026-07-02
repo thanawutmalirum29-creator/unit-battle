@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="../css/game.css" />
   <link rel="stylesheet" href="../css/theme.css" />
+  <script src="../js/core/ui-popup.js"></script>
   </head>
 <body>
   <header class="topbar">
@@ -35,8 +36,7 @@
         <option>Common</option><option>Rare</option><option>Epic</option>
         <option>Legendary</option><option>Mythical</option><option>Cosmic</option>
       </select>
-      </div>
-      
+
       <select id="sort">
         <option value="popular">เรียง: แนะนำ</option>
         <option value="priceAsc">เรียง: ราคา ⬆</option>
@@ -47,76 +47,96 @@
     </div>
 
     <div class="grid" id="shopGrid"></div>
-    <div class="footer-note">หลังซื้อ การ์ดจะถูกเพิ่มเข้า <b>เด็ค</b> ของคุณทันที (เก็บไว้ใน LocalStorage)</div>
+    <div class="footer-note">หลังซื้อ การ์ดจะถูกเพิ่มเข้า <b>เด็ค</b> ของคุณทันที และบันทึกไว้บนเซิร์ฟเวอร์ (ต้องเข้าสู่ระบบ)</div>
   </div>
 
   <script src="../js/core/money.js"></script>
 <script src="../js/core/api.js"></script>
 <script src="../js/core/auth-ui.js"></script>
+<script src="../js/core/deck.js"></script>
+<script src="../js/core/bag.js"></script>
 <script src="../js/data/character-data.js"></script>
 <script src="../js/data/shop-data.js"></script>
-<script src="../js/core/bag.js"></script>  
   <script>
-
-   
+// ---------------------------------------------------------------------------
+// Shop UI. All the actual money/shard-checking, slot ownership and rarity-lock
+// logic lives on the server now (routes/economy.js) — this file only renders
+// what the server says and calls GameAPI.shopBuy()/shopBuyWithShard(), the same
+// pattern game.html/boss.html/inf.html use for every other spend. See the
+// README section on this patch for why the old localStorage-only version here
+// would silently refund itself on the next page load.
+//
+// window.SHOP_CARDS / window.SHOP_NEXT_REFRESH_AT are populated by shop-data.js
+// (refreshShopByDeck() there fetches GameAPI.shopGetCurrent() and re-renders via
+// applyFilters() below whenever the shared cycle changes).
+// ---------------------------------------------------------------------------
 
 function goBack(){
   if (document.referrer) {
-    // ถ้ามี referrer → กลับไปหน้านั้น
     window.location.href = document.referrer;
   } else {
-    // ถ้าไม่มี (เช่นเปิดตรงๆ) → กลับไปหน้า game.html เป็นค่า default
     window.location.href = "game.html";
   }
 }
 
-    function getDeck(){ try{ return JSON.parse(localStorage.getItem('deck')||'[]'); }catch(e){ return []; } }
-    function saveDeck(deck){ localStorage.setItem('deck', JSON.stringify(deck)); }
-    function makeId(){ return 'card-' + Date.now() + '-' + Math.random().toString(36).slice(2,7); }
+const MAX_DECK_SIZE = 100;
+const MEMORY_KEY_BY_RARITY = {
+  Rare: "memoryRare", Epic: "memoryEpic", Legendary: "memoryLegendary",
+  Mythical: "memoryMythical", Cosmic: "memoryCosmic",
+};
+const SHARD_EXCHANGE_COST = 50;
 
-    const grid=document.getElementById('shopGrid');
-    const q=document.getElementById('q');
-    const rarFilter=document.getElementById('rarFilter');
-    const sortSel=document.getElementById('sort');
+let lockedRarities = new Set();
+let purchasedSlots = new Set();
 
-    function applyFilters(){
-      const query=(q.value||'').toLowerCase();
-      const rar=rarFilter.value;
-      let list=(SHOP_CARDS||[]).filter(i=>
-        (!rar || i.rarity===rar) &&
-        ((i.name||"").toLowerCase().includes(query))
-      );
-      const sort=sortSel.value;
-      if(sort==='priceAsc') list.sort((a,b)=>a.price-b.price);
-      else if(sort==='priceDesc') list.sort((a,b)=>b.price-a.price);
-      else if(sort==='atkDesc') list.sort((a,b)=>b.atk-a.atk);
-      else if(sort==='hpDesc') list.sort((a,b)=>b.hp-a.hp);
-      else list.sort((a,b)=>b.price-a.price);
-      renderGrid(list);
-    }
+// Pulls this player's purchased slots + rarity locks for the current shop cycle
+// from the server (source of truth — replaces the old shop_locked[] in localStorage).
+async function refreshLockStatus(){
+  if (!GameAPI.isLoggedIn()) { lockedRarities = new Set(); purchasedSlots = new Set(); return; }
+  const status = await GameAPI.shopMyStatus();
+  if (status) {
+    lockedRarities = new Set(status.lockedRarities || []);
+    purchasedSlots = new Set(status.purchasedSlots || []);
+  }
+}
 
-    function renderGrid(list){
+const grid=document.getElementById('shopGrid');
+const q=document.getElementById('q');
+const rarFilter=document.getElementById('rarFilter');
+const sortSel=document.getElementById('sort');
+
+function applyFilters(){
+  const query=(q.value||'').toLowerCase();
+  const rar=rarFilter.value;
+  let list=(window.SHOP_CARDS||[]).filter(i=>
+    (!rar || i.rarity===rar) &&
+    ((i.name||"").toLowerCase().includes(query))
+  );
+  const sort=sortSel.value;
+  if(sort==='priceAsc') list.sort((a,b)=>a.price-b.price);
+  else if(sort==='priceDesc') list.sort((a,b)=>b.price-a.price);
+  else if(sort==='atkDesc') list.sort((a,b)=>b.atk-a.atk);
+  else if(sort==='hpDesc') list.sort((a,b)=>b.hp-a.hp);
+  else list.sort((a,b)=>b.price-a.price);
+  renderGrid(list);
+}
+
+function renderGrid(list){
   grid.innerHTML='';
-  const money = loadMoney();
-  const lockedState = JSON.parse(localStorage.getItem("shop_locked") || "{}");
-  const bag = loadBag(); // โหลดกระเป๋า
+  const loggedIn = GameAPI.isLoggedIn();
+  const money = typeof loadMoney === "function" ? loadMoney() : 0;
+  const bag = typeof loadBag === "function" ? loadBag() : {};
+  const deck = typeof loadDeck === "function" ? loadDeck() : [];
+  const deckFull = deck.length >= MAX_DECK_SIZE;
 
   list.forEach(item=>{
     const rarity = item.rarity;
-    const rarityLocked = lockedState[rarity] === true;
-    const canBuyMoney = !rarityLocked && money>=item.price;
+    const rarityLocked = lockedRarities.has(rarity) || purchasedSlots.has(item.slotIndex);
+    const canBuyMoney = loggedIn && !rarityLocked && !deckFull && money>=item.price;
 
-    // map rarity → memory key
-    const memoryMap = {
-      "Rare":"memoryRare",
-      "Epic":"memoryEpic",
-      "Legendary":"memoryLegendary",
-      "Mythical":"memoryMythical",
-      "Cosmic":"memoryCosmic"
-    };
-    const memoryKey = memoryMap[rarity];
-    const memoryHave = bag[memoryKey] || 0;
-    const canBuyShard = !rarityLocked && memoryHave>=50;
+    const memoryKey = MEMORY_KEY_BY_RARITY[rarity];
+    const memoryHave = memoryKey ? (bag[memoryKey]||0) : 0;
+    const canBuyShard = loggedIn && !rarityLocked && !deckFull && memoryKey && memoryHave>=SHARD_EXCHANGE_COST;
 
     const rarityClass = `rarity-${rarity}`;
     const card=document.createElement('div');
@@ -136,172 +156,81 @@ function goBack(){
       <div class="price">ราคา: ${item.price} 💰</div>
       <div class="actions">
         <button class="buy" ${canBuyMoney?'':'disabled'}>ซื้อด้วยเงิน</button>
-        <button class="buy" data-shard ${canBuyShard?'':'disabled'}>ใช้ 50 ชิ้นส่วน</button>
+        ${memoryKey ? `<button class="buy" data-shard ${canBuyShard?'':'disabled'}>ใช้ ${SHARD_EXCHANGE_COST} ชิ้นส่วน</button>` : ''}
       </div>
      `;
 
     if(canBuyMoney){
       card.querySelector('button.buy:not([data-shard])')
-          .addEventListener('click',()=>buyItem(item));
+          .addEventListener('click',()=>handleBuyMoney(item));
     }
-    if(canBuyShard){
-      card.querySelector('button.buy[data-shard]')
-          .addEventListener('click',()=>buyWithShard(item,memoryKey));
+    const shardBtn = card.querySelector('button.buy[data-shard]');
+    if(canBuyShard && shardBtn){
+      shardBtn.addEventListener('click',()=>handleBuyShard(item));
     }
 
     grid.appendChild(card);
   });
 }
 
-function buyWithShard(item, memoryKey){
-  const deck = getDeck();
-  const MAX_DECK_SIZE = 100;
-  if(deck.length >= MAX_DECK_SIZE){
-    alert(`⚠️ เด็คเต็ม!`);
+async function handleBuyMoney(item){
+  if(!GameAPI.isLoggedIn()){ alert("ต้องเข้าสู่ระบบ (username + PIN) ก่อนซื้อของ"); return; }
+  if(!(await uiConfirm(`ซื้อ ${item.name} ในราคา ${item.price} ?`))) return;
+
+  const result = await GameAPI.shopBuy(item.slotIndex);
+  if(!result || !result.ok){
+    alert("ซื้อไม่สำเร็จ: " + (result?.error || "unknown error"));
     return;
   }
-
-  let bag = loadBag();
-  if((bag[memoryKey]||0) < 50){
-    alert("ชิ้นส่วนไม่พอ!");
-    return;
-  }
-
-  if(!confirm(`ใช้ 50 ชิ้นส่วนเพื่อแลก ${item.name} ?`)) return;
-
-  // หักชิ้นส่วน
-  bag[memoryKey] -= 50;
-  localStorage.setItem("bag", JSON.stringify(bag));
-
-  // เพิ่มการ์ดเข้า deck
-  const newCard=structuredClone(item);
-  newCard.id=makeId();
-  deck.push(newCard);
-  saveDeck(deck);
-
-  // ล็อค rarity
-  const lockedState = JSON.parse(localStorage.getItem("shop_locked") || "{}");
-  lockedState[item.rarity] = true;
-  localStorage.setItem("shop_locked", JSON.stringify(lockedState));
-
-  applyFilters();
-  alert("แลกสำเร็จ! การ์ดถูกเพิ่มเข้าเด็คแล้ว");
-}
-    function buyItem(item){
-    let money = loadMoney(); // เพิ่มตรงนี้
-    const MAX_DECK_SIZE = 100;
-
-
-  const deck = getDeck();
-  if (deck.length >= MAX_DECK_SIZE) {
-    alert(`⚠️ เด็คเต็ม! ตอนนี้ ${deck.length}/${MAX_DECK_SIZE}\nไม่สามารถซื้อเพิ่มได้`);
-    return;
-  }
-
-  if(!confirm(`ซื้อ ${item.name} ในราคา ${item.price} ?`)) return;
-
-
-  if(money<item.price){ 
-    alert("เงินไม่พอ"); 
-    return; 
-  }
-
-  // หักเงิน
-  money-=item.price;
-  saveMoney(money); // 🟢 เดิมเขียน localStorage.setItem("deckgame_money", money) ตรงๆ เป็นเลขดิบ
-                     // แต่ money.js เก็บเงินแบบเข้ารหัส (encryptMoney) เสมอ พอค่าที่อ่านมาไม่ใช่
-                     // รูปแบบเข้ารหัส decryptMoney() จะถือว่าข้อมูลเสีย แล้วรีเซ็ตกลับเป็น 400
-                     // ทุกครั้งที่ซื้อของ — สาเหตุที่เงินเด้งกลับ 400 อยู่ตรงนี้
-  updateMoneyUI();
-
-  // เพิ่มการ์ดเข้า deck
-  const newCard=structuredClone(item);
-  newCard.id=makeId();
-  deck.push(newCard);
-  saveDeck(deck);
-
-  // ล็อคเฉพาะ rarity ของการ์ดนี้
-  const lockedState = JSON.parse(localStorage.getItem("shop_locked") || "{}");
-  lockedState[item.rarity] = true;
-  localStorage.setItem("shop_locked", JSON.stringify(lockedState));
-
+  applyServerMoney(result.money);
+  applyServerDeck(result.deck);
+  await refreshLockStatus();
   applyFilters();
   alert("ซื้อสำเร็จ! การ์ดถูกเพิ่มเข้าเด็คแล้ว");
 }
 
-    [q,rarFilter,sortSel].forEach(el=>el.addEventListener('input',applyFilters));
-    updateMoneyUI();
-    applyFilters();
-    
-function getCycle(){
-  return Math.floor(Date.now() / REFRESH_INTERVAL);
-}
+async function handleBuyShard(item){
+  if(!GameAPI.isLoggedIn()){ alert("ต้องเข้าสู่ระบบ (username + PIN) ก่อนซื้อของ"); return; }
+  if(!(await uiConfirm(`ใช้ ${SHARD_EXCHANGE_COST} ชิ้นส่วนเพื่อแลก ${item.name} ?`))) return;
 
-function refreshShopByDeck(){
-  const currentCycle = getCycle();
-  const savedCycle = parseInt(localStorage.getItem("shop_cycle") || "-1", 10);
-
-  // ถ้าเพิ่งเข้ามา และยังอยู่ในรอบเดิม → ใช้ร้านเดิมที่เคยเซฟไว้
-  if(savedCycle === currentCycle){
-  const saved = localStorage.getItem("shop_cards");
-  if(saved){
-    window.SHOP_CARDS = JSON.parse(saved);
-
-    // โหลดสถานะล็อคด้วย
-    const savedLocked = localStorage.getItem("shop_locked");
-    if(savedLocked){
-      window.shop_locked = JSON.parse(savedLocked);
-    }
-
-    if(typeof applyFilters==="function") applyFilters();
+  const result = await GameAPI.shopBuyWithShard(item.slotIndex);
+  if(!result || !result.ok){
+    alert("แลกไม่สำเร็จ: " + (result?.error || "unknown error"));
     return;
   }
+  applyServerBag(result.bag);
+  applyServerDeck(result.deck);
+  await refreshLockStatus();
+  applyFilters();
+  alert("แลกสำเร็จ! การ์ดถูกเพิ่มเข้าเด็คแล้ว");
 }
 
-  // ถ้าเข้ารอบใหม่ → สุ่มร้านใหม่
-  // ถ้าเข้ารอบใหม่ → สุ่มร้านใหม่
-const newDeck = generateShopDeck();
-window.SHOP_CARDS = newDeck;
-localStorage.setItem("shop_cards", JSON.stringify(newDeck));
-localStorage.setItem("shop_cycle", currentCycle);
+[q,rarFilter,sortSel].forEach(el=>el.addEventListener('input',applyFilters));
 
-// รีเซ็ตการซื้อ (เฉพาะตอนเข้ารอบใหม่เท่านั้น)
-let locked = {Cosmic:false, Mythical:false, Legendary:false, Epic:false, Rare:false};
-localStorage.setItem("shop_locked", JSON.stringify(locked));
-
-  if(typeof applyFilters==="function") applyFilters();
-}
-
-// เริ่มต้น
-refreshShopByDeck();
-// ไม่ต้อง setInterval ตรงนี้แล้ว เพราะเราจะอิงจากเวลา Date.now() โดยตรง
-// ฟังก์ชันอัปเดตตัวจับเวลารีการ์ด
+// Countdown display only — the actual refresh (re-fetching the lineup) is driven
+// by shop-data.js watching window.SHOP_NEXT_REFRESH_AT.
 function updateTimer(){
   const now = Date.now();
-  const interval = window.REFRESH_INTERVAL || 300000; // fallback เผื่อค่าไม่ถูกตั้ง
-  const cycle = Math.floor(now / interval);
-  const nextRefresh = (cycle + 1) * interval;
+  const nextRefresh = window.SHOP_NEXT_REFRESH_AT || (now + 300000);
   let remain = nextRefresh - now;
-
   if (remain < 0) remain = 0;
   const sec = Math.floor(remain / 1000) % 60;
   const min = Math.floor(remain / 60000);
-
   const text = remain > 0
     ? `🕒 รีการ์ดใหม่อีก ${min}:${sec.toString().padStart(2,'0')} นาที`
     : "🔄 กำลังรีการ์ดใหม่...";
-
   const timerEl = document.getElementById("refresh-timer");
   if (timerEl) timerEl.textContent = text;
 }
-
-// เริ่มนับถอยหลัง
 setInterval(updateTimer, 1000);
 updateTimer();
 
-setInterval(()=>{
-  refreshShopByDeck();
-}, 5000);
+async function boot(){
+  updateMoneyUI();
+  await refreshLockStatus();
+  applyFilters();
+}
+document.addEventListener("DOMContentLoaded", boot);
   </script>
 </body>
 </html>
