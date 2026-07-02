@@ -56,6 +56,7 @@ const GameAPI = (() => {
       localStorage.setItem("playerId", playerId);
       localStorage.setItem("authToken", authToken);
       localStorage.setItem("username", data.username);
+      if (data.publicId) localStorage.setItem("publicId", data.publicId);
     }
     return data;
   }
@@ -67,6 +68,7 @@ const GameAPI = (() => {
       localStorage.setItem("playerId", playerId);
       localStorage.setItem("authToken", authToken);
       localStorage.setItem("username", data.username);
+      if (data.publicId) localStorage.setItem("publicId", data.publicId);
     }
     return data;
   }
@@ -81,6 +83,7 @@ const GameAPI = (() => {
       localStorage.setItem("playerId", playerId);
       localStorage.setItem("authToken", authToken);
       localStorage.setItem("username", data.username);
+      if (data.publicId) localStorage.setItem("publicId", data.publicId);
     }
     return data;
   }
@@ -109,11 +112,40 @@ const GameAPI = (() => {
   }
 
   function getUsername() { return localStorage.getItem("username") || null; }
+  function getPublicId() { return localStorage.getItem("publicId") || null; }
+
+  // Refreshes username/publicId/status from the server (self-heals publicId for
+  // accounts created before the admin-console patch). Call on account.html load.
+  async function refreshMe() {
+    if (!isLoggedIn()) return null;
+    const data = await get("/api/auth/me", true);
+    if (data?.publicId) localStorage.setItem("publicId", data.publicId);
+    if (data?.username) localStorage.setItem("username", data.username);
+    return data;
+  }
 
   function logout() {
     playerId = null; authToken = null;
     localStorage.removeItem("playerId");
     localStorage.removeItem("authToken");
+    localStorage.removeItem("publicId");
+  }
+
+  // ---- Mailbox ----
+  async function fetchMailbox() {
+    if (!isLoggedIn()) return [];
+    const data = await get("/api/mailbox", true);
+    return Array.isArray(data) ? data : [];
+  }
+
+  async function fetchMailDetail(mailId) {
+    if (!isLoggedIn()) return null;
+    return get(`/api/mailbox/${mailId}`, true);
+  }
+
+  async function claimMail(mailId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post(`/api/mailbox/${mailId}/claim`, {}, true);
   }
 
   // ---- Economy: server is the source of truth for money/bag/deck. ----
@@ -265,6 +297,7 @@ const GameAPI = (() => {
 return {
     ensurePlayer, reportNormalClear, infRunStart, infStageClear, infRunFinish, getInfRunId,
     isLoggedIn, register, login, loginWithGoogle, logout, getAuthConfig, updateUsername, getUsername,
+    getPublicId, refreshMe, fetchMailbox, fetchMailDetail, claimMail,
     fetchEconomyState, claimNormalReward, claimInfReward,
     bossRunStart, bossClaimTier, bossRunFinish,
     shopGetCurrent, shopBuy, gachaRoll, upgradeGuaranteed,
