@@ -124,6 +124,16 @@ CREATE TABLE IF NOT EXISTS shop_purchases (
   UNIQUE (player_id, cycle, slot_index)
 );
 
+-- How the purchase was paid — 'money' (price_paid, existing behaviour) or 'shard'
+-- (memory-fragment exchange, see routes/economy.js POST /shop/buy-with-shard).
+-- Needed so the "one card per rarity per cycle" lock (ported from the old client's
+-- shop_locked[] in localStorage) can be enforced across BOTH payment paths.
+ALTER TABLE shop_purchases ADD COLUMN IF NOT EXISTS paid_with TEXT NOT NULL DEFAULT 'money';
+ALTER TABLE shop_purchases DROP CONSTRAINT IF EXISTS shop_purchases_paid_with_check;
+ALTER TABLE shop_purchases ADD CONSTRAINT shop_purchases_paid_with_check CHECK (paid_with IN ('money', 'shard'));
+ALTER TABLE shop_purchases ADD COLUMN IF NOT EXISTS shard_key TEXT;
+ALTER TABLE shop_purchases ADD COLUMN IF NOT EXISTS shard_qty BIGINT NOT NULL DEFAULT 0;
+
 -- ============================================================================
 -- Admin console: public-facing player ID, account status, mailbox
 -- ============================================================================
