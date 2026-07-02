@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<title>Admin Console — UnitBattle</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<link rel="stylesheet" href="../css/game.css" />
+<link rel="stylesheet" href="../css/theme.css" />
+<style>
+  /* admin-only additions — everything else borrows theme.css so this still
+     looks like part of the same product instead of a bolted-on tool. */
+  body{ max-width:900px; }
+  #gateScreen{ max-width:340px; margin:80px auto 0; text-align:center; }
+  #gateScreen input{ text-align:center; letter-spacing:4px; font-size:18px; }
+  .adm-table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  .adm-table th{ text-align:left; color:var(--muted); font-weight:600; font-size:12px; padding:8px 6px; border-bottom:1px solid var(--border); }
+  .adm-table td{ padding:9px 6px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  .adm-table tr:last-child td{ border-bottom:none; }
+  .adm-id{ font-family:monospace; font-size:11.5px; color:var(--muted); word-break:break-all; }
+  .adm-badge{ font-size:11px; padding:2px 8px; border-radius:999px; }
+  .adm-badge.active{ background:rgba(16,185,129,.15); color:var(--good); }
+  .adm-badge.suspended{ background:rgba(255,213,79,.15); color:var(--gold); }
+  .adm-badge.banned{ background:rgba(239,68,68,.15); color:var(--bad); }
+  .adm-actions{ display:flex; gap:6px; flex-wrap:wrap; }
+  .adm-actions button{ padding:4px 9px; font-size:12px; }
+  .adm-actions button.danger{ border-color:rgba(239,68,68,.4); color:#ffd5d5; }
+  .adm-toolbar{ display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center; }
+  .adm-toolbar input[type="text"]{ flex:1 1 220px; }
+  #adminOverlay{
+    display:none; position:fixed; inset:0; background:rgba(4,6,10,.72);
+    align-items:center; justify-content:center; padding:16px; z-index:90;
+  }
+  #adminOverlay.open{ display:flex; }
+  .adm-modal{ width:100%; max-width:420px; max-height:85vh; overflow-y:auto; }
+  .adm-modal-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .adm-modal-header button{ background:none; border:none; color:var(--muted); font-size:18px; padding:0; }
+  .adm-field{ margin-bottom:12px; }
+  .adm-field label{ display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
+  .adm-field input, .adm-field select, .adm-field textarea{ width:100%; }
+  .adm-row2{ display:flex; gap:8px; }
+  .adm-row2 > div{ flex:1; }
+  #adminStatusMsg{ font-size:12px; color:var(--muted); margin-bottom:10px; }
+</style>
+</head>
+<body>
+
+<div id="gateScreen">
+  <h2>🛡️ Admin Console</h2>
+  <p class="muted">กรอกรหัสผ่านเพื่อเข้าใช้งาน</p>
+  <form id="gateForm">
+    <input type="password" id="gateCode" placeholder="รหัสผ่าน" autocomplete="off" autofocus />
+    <div id="gateError" style="color:var(--bad);font-size:12px;margin-top:6px;display:none"></div>
+    <button type="submit" style="width:100%;margin-top:10px">เข้าสู่ระบบ</button>
+  </form>
+</div>
+
+<div id="consoleScreen" style="display:none">
+  <header class="topbar">
+    <h1>🛡️ Admin Console</h1>
+    <div class="right-group">
+      <button id="adminLogoutBtn">ออกจากระบบ</button>
+    </div>
+  </header>
+
+  <section class="panel">
+    <div class="adm-toolbar">
+      <input type="text" id="adminSearch" placeholder="ค้นหาด้วยชื่อหรือ ID" />
+      <button id="adminRefreshBtn">🔄 รีเฟรช</button>
+    </div>
+    <div id="adminStatusMsg"></div>
+    <div style="overflow-x:auto">
+      <table class="adm-table">
+        <thead>
+          <tr>
+            <th>ผู้เล่น</th><th>สถานะ</th><th>เงิน</th><th>เด็ค</th><th>อุปกรณ์</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="adminTableBody"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<!-- Detail / edit modal -->
+<div id="adminOverlay">
+  <div class="panel adm-modal" onclick="event.stopPropagation()">
+    <div class="adm-modal-header">
+      <strong id="adminModalTitle">รายละเอียดบัญชี</strong>
+      <button id="adminModalCloseBtn">✕</button>
+    </div>
+    <div id="adminModalBody"></div>
+  </div>
+</div>
+
+<script>
+  const ADMIN_TOKEN_KEY = "adminToken";
+  let players = [];
+  let bagKeys = [];
+
+  function getToken() { return sessionStorage.getItem(ADMIN_TOKEN_KEY); }
+  function setToken(t) { sessionStorage.setItem(ADMIN_TOKEN_KEY, t); }
+  function clearToken() { sessionStorage.removeItem(ADMIN_TOKEN_KEY); }
+
+  async function adminFetch(path, options = {}) {
+    const headers = Object.assign({ "Content-Type": "application/json" }, options.headers || {});
+    const token = getToken();
+    if (token) headers["Authorization"] = "Bearer " + token;
+    const res = await fetch("/api/admin" + path, { ...options, headers });
+    const data = await res.json().catch(() => null);
+    if (res.status === 401) {
+      clearToken();
+      showGate("เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่");
+      throw new Error("unauthorized");
+    }
+    if (!res.ok) throw new Error(data?.error || `http ${res.status}`);
+    return data;
+  }
+
+  function showGate(errorMsg) {
+    document.getElementById("gateScreen").style.display = "block";
+    document.getElementById("consoleScreen").style.display = "none";
+    const errEl = document.getElementById("gateError");
+    if (errorMsg) { errEl.textContent = errorMsg; errEl.style.display = "block"; }
+    else { errEl.style.display = "none"; }
+  }
+
+  function showConsole() {
+    document.getElementById("gateScreen").style.display = "none";
+    document.getElementById("consoleScreen").style.display = "block";
+    loadBagKeys();
+    loadPlayers();
+  }
+
+  document.getElementById("gateForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const code = document.getElementById("gateCode").value;
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "เข้าสู่ระบบไม่สำเร็จ");
+      setToken(data.token);
+      showConsole();
+    } catch (err) {
+      document.getElementById("gateError").textContent = err.message;
+      document.getElementById("gateError").style.display = "block";
+    }
+  });
+
+  document.getElementById("adminLogoutBtn").addEventListener("click", async () => {
+    try { await adminFetch("/logout", { method: "POST" }); } catch {}
+    clearToken();
+    showGate();
+  });
+
+  async function loadBagKeys() {
+    try { bagKeys = await adminFetch("/bag-keys"); } catch { bagKeys = []; }
+  }
+
+  function statusLabel(s) {
+    return s === "active" ? "ปกติ" : s === "suspended" ? "ระงับ" : "แบน";
+  }
+
+  async function loadPlayers() {
+    const statusMsg = document.getElementById("adminStatusMsg");
+    statusMsg.textContent = "กำลังโหลด…";
+    try {
+      const q = document.getElementById("adminSearch").value.trim();
+      players = await adminFetch("/players" + (q ? `?q=${encodeURIComponent(q)}` : ""));
+      renderTable();
+      statusMsg.textContent = `บัญชีทั้งหมด ${players.length} รายการ`;
+    } catch (err) {
+      statusMsg.textContent = "โหลดไม่สำเร็จ: " + err.message;
+    }
+  }
+
+  function renderTable() {
+    const body = document.getElementById("adminTableBody");
+    if (players.length === 0) {
+      body.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">ไม่พบบัญชี</td></tr>`;
+      return;
+    }
+    body.innerHTML = players.map((p) => `
+      <tr>
+        <td>
+          <div><strong>${escapeHtml(p.username)}</strong></div>
+          <div class="adm-id">${p.publicId || "-"}</div>
+        </td>
+        <td><span class="adm-badge ${p.status}">${statusLabel(p.status)}</span></td>
+        <td>💰 ${p.money}</td>
+        <td>${p.deckCount}</td>
+        <td>${p.equipCount}</td>
+        <td>
+          <div class="adm-actions">
+            <button data-act="edit" data-id="${p.id}">✏️ แก้ไข</button>
+            <button data-act="mail" data-id="${p.id}">📮 ส่งเมล</button>
+            <button data-act="delete" data-id="${p.id}" class="danger">🗑️ ลบ</button>
+          </div>
+        </td>
+      </tr>
+    `).join("");
+
+    body.querySelectorAll("button[data-act]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.id;
+        const act = btn.dataset.act;
+        if (act === "edit") openEditModal(id);
+        if (act === "mail") openMailModal(id);
+        if (act === "delete") openDeleteConfirm(id);
+      });
+    });
+  }
+
+  function escapeHtml(s) {
+    const d = document.createElement("div");
+    d.textContent = s == null ? "" : s;
+    return d.innerHTML;
+  }
+
+  document.getElementById("adminSearch").addEventListener("input", debounce(loadPlayers, 350));
+  document.getElementById("adminRefreshBtn").addEventListener("click", loadPlayers);
+
+  function debounce(fn, ms) {
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+  }
+
+  function openModal(title, bodyHtml) {
+    document.getElementById("adminModalTitle").textContent = title;
+    document.getElementById("adminModalBody").innerHTML = bodyHtml;
+    document.getElementById("adminOverlay").classList.add("open");
+  }
+  function closeModal() { document.getElementById("adminOverlay").classList.remove("open"); }
+  document.getElementById("adminModalCloseBtn").addEventListener("click", closeModal);
+  document.getElementById("adminOverlay").addEventListener("click", closeModal);
+
+  // ---- Edit (rename / status) ----
+  function openEditModal(id) {
+    const p = players.find((x) => x.id === id);
+    if (!p) return;
+    openModal("แก้ไขบัญชี", `
+      <div class="adm-id" style="margin-bottom:14px">ID: ${p.publicId || "-"}</div>
+      <div class="adm-field">
+        <label>ชื่อบัญชี</label>
+        <input type="text" id="editUsername" value="${escapeHtml(p.username)}" />
+      </div>
+      <div class="adm-field">
+        <label>สถานะ</label>
+        <select id="editStatus">
+          <option value="active" ${p.status === "active" ? "selected" : ""}>ปกติ</option>
+          <option value="suspended" ${p.status === "suspended" ? "selected" : ""}>ระงับการใช้งาน</option>
+          <option value="banned" ${p.status === "banned" ? "selected" : ""}>แบน</option>
+        </select>
+      </div>
+      <div id="editError" style="color:var(--bad);font-size:12px;margin-bottom:8px;display:none"></div>
+      <button id="editSaveBtn" style="width:100%">บันทึกการเปลี่ยนแปลง</button>
+    `);
+    document.getElementById("editSaveBtn").addEventListener("click", async () => {
+      const username = document.getElementById("editUsername").value.trim();
+      const status = document.getElementById("editStatus").value;
+      try {
+        await adminFetch(`/players/${id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ username, status }),
+        });
+        closeModal();
+        loadPlayers();
+      } catch (err) {
+        const errEl = document.getElementById("editError");
+        errEl.textContent = err.message;
+        errEl.style.display = "block";
+      }
+    });
+  }
+
+  // ---- Delete ----
+  function openDeleteConfirm(id) {
+    const p = players.find((x) => x.id === id);
+    if (!p) return;
+    openModal("ลบบัญชีนี้?", `
+      <p style="color:var(--muted);font-size:13px;line-height:1.6;margin-bottom:16px">
+        บัญชี "<strong>${escapeHtml(p.username)}</strong>" (${p.publicId}) จะถูกลบอย่างถาวร
+        รวมถึงกล่องจดหมาย ประวัติการเล่น และทรัพยากรทั้งหมด การกระทำนี้ไม่สามารถย้อนกลับได้
+      </p>
+      <div style="display:flex;gap:8px">
+        <button id="deleteCancelBtn" style="flex:1">ยกเลิก</button>
+        <button id="deleteConfirmBtn" class="danger" style="flex:1">ลบบัญชี</button>
+      </div>
+    `);
+    document.getElementById("deleteCancelBtn").addEventListener("click", closeModal);
+    document.getElementById("deleteConfirmBtn").addEventListener("click", async () => {
+      try {
+        await adminFetch(`/players/${id}`, { method: "DELETE" });
+        closeModal();
+        loadPlayers();
+      } catch (err) {
+        alert("ลบไม่สำเร็จ: " + err.message);
+      }
+    });
+  }
+
+  // ---- Send mail ----
+  function openMailModal(id) {
+    const p = players.find((x) => x.id === id);
+    if (!p) return;
+    const bagOptions = bagKeys.map((k) => `<option value="${k}">${k}</option>`).join("");
+    openModal(`ส่งเมลถึง ${escapeHtml(p.username)}`, `
+      <div class="adm-field">
+        <label>หัวข้อ</label>
+        <input type="text" id="mailSubject" placeholder="เช่น รางวัลกิจกรรม" />
+      </div>
+      <div class="adm-field">
+        <label>ข้อความ</label>
+        <textarea id="mailBody" rows="3"></textarea>
+      </div>
+      <div class="adm-row2">
+        <div class="adm-field">
+          <label>💰 เงิน (ไม่บังคับ)</label>
+          <input type="number" id="mailMoney" value="0" min="0" />
+        </div>
+      </div>
+      <div class="adm-row2">
+        <div class="adm-field">
+          <label>ไอเทมแนบ (ไม่บังคับ)</label>
+          <select id="mailBagKey">
+            <option value="">— ไม่แนบ —</option>
+            ${bagOptions}
+          </select>
+        </div>
+        <div class="adm-field">
+          <label>จำนวน</label>
+          <input type="number" id="mailBagQty" value="0" min="0" />
+        </div>
+      </div>
+      <div id="mailError" style="color:var(--bad);font-size:12px;margin-bottom:8px;display:none"></div>
+      <button id="mailSendBtn" style="width:100%">ส่งเมล</button>
+    `);
+    document.getElementById("mailSendBtn").addEventListener("click", async () => {
+      const subject = document.getElementById("mailSubject").value.trim();
+      const body = document.getElementById("mailBody").value.trim();
+      const money = Number(document.getElementById("mailMoney").value) || 0;
+      const bagKey = document.getElementById("mailBagKey").value || null;
+      const bagQty = Number(document.getElementById("mailBagQty").value) || 0;
+      if (!subject) {
+        const errEl = document.getElementById("mailError");
+        errEl.textContent = "กรุณากรอกหัวข้อ";
+        errEl.style.display = "block";
+        return;
+      }
+      try {
+        await adminFetch(`/players/${id}/mail`, {
+          method: "POST",
+          body: JSON.stringify({ subject, body, money, bagKey, bagQty }),
+        });
+        closeModal();
+      } catch (err) {
+        const errEl = document.getElementById("mailError");
+        errEl.textContent = err.message;
+        errEl.style.display = "block";
+      }
+    });
+  }
+
+  // boot
+  if (getToken()) { showConsole(); } else { showGate(); }
+</script>
+</body>
+</html>
