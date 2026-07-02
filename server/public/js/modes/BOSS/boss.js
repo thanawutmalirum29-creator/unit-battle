@@ -180,8 +180,8 @@ async function startBattle(){
   const cancelBtn = document.getElementById("cancelBattleBtn");
   if (cancelBtn){
     cancelBtn.style.display="inline-block";
-    cancelBtn.onclick = ()=>{
-      if (confirm("❌ ยกเลิกการต่อสู้?")){
+    cancelBtn.onclick = async ()=>{
+      if (await uiConfirm("❌ ยกเลิกการต่อสู้?")){
         log("⚠️ การต่อสู้ถูกยกเลิก", "system");
         endBattle(false);
       }
