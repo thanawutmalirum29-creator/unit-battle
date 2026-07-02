@@ -2,6 +2,7 @@
 const express = require('express');
 const pool = require('../db/pool');
 const asyncHandler = require('../middleware/asyncHandler');
+const { generateUniquePublicId } = require('../utils/publicId');
 
 const router = express.Router();
 
@@ -14,12 +15,26 @@ router.post('/identify', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'invalid username' });
   }
 
+  // public_id is only assigned on first insert (ON CONFLICT keeps the existing one,
+  // since EXCLUDED.public_id would otherwise overwrite it with a fresh value every call).
+  const publicId = await generateUniquePublicId(pool);
+
   const { rows } = await pool.query(
-    `INSERT INTO players (username) VALUES ($1)
+    `INSERT INTO players (username, public_id) VALUES ($1, $2)
      ON CONFLICT (username) DO UPDATE SET username = EXCLUDED.username
-     RETURNING id, username, team_id`,
-    [username]
+     RETURNING id, username, team_id, public_id, status`,
+    [username, publicId]
   );
+
+  if (rows[0].status !== 'active') {
+    return res.status(403).json({ error: `account ${rows[0].status}` });
+  }
+  // self-heal: pre-patch rows that matched an existing username but never got a public_id
+  if (!rows[0].public_id) {
+    await pool.query(`UPDATE players SET public_id = $1 WHERE id = $2`, [publicId, rows[0].id]);
+    rows[0].public_id = publicId;
+  }
+
   res.json(rows[0]);
 }));
 

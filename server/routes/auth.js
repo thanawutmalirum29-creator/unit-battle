@@ -7,6 +7,7 @@ const { OAuth2Client } = require('google-auth-library');
 const pool = require('../db/pool');
 const asyncHandler = require('../middleware/asyncHandler');
 const { requireAuth } = require('../middleware/auth');
+const { generateUniquePublicId } = require('../utils/publicId');
 
 const router = express.Router();
 
@@ -49,11 +50,12 @@ router.post('/register', asyncHandler(async (req, res) => {
 
   const pinHash = await bcrypt.hash(pin, 10);
   const token = uuid();
+  const publicId = await generateUniquePublicId(pool);
 
   const { rows } = await pool.query(
-    `INSERT INTO players (username, pin_hash, session_token) VALUES ($1, $2, $3)
-     RETURNING id, username`,
-    [username, pinHash, token]
+    `INSERT INTO players (username, pin_hash, session_token, public_id) VALUES ($1, $2, $3, $4)
+     RETURNING id, username, public_id, status`,
+    [username, pinHash, token, publicId]
   );
 
   await pool.query(
@@ -61,7 +63,7 @@ router.post('/register', asyncHandler(async (req, res) => {
     [rows[0].id]
   );
 
-  res.json({ playerId: rows[0].id, username: rows[0].username, token });
+  res.json({ playerId: rows[0].id, username: rows[0].username, token, publicId: rows[0].public_id, status: rows[0].status });
 }));
 
 // POST /api/auth/login { username, pin }
@@ -73,7 +75,7 @@ router.post('/login', asyncHandler(async (req, res) => {
   }
 
   const { rows } = await pool.query(
-    `SELECT id, pin_hash FROM players WHERE username = $1`,
+    `SELECT id, pin_hash, public_id, status FROM players WHERE username = $1`,
     [username]
   );
   if (rows.length === 0) return res.status(404).json({ error: 'no such player, register first' });
@@ -81,8 +83,15 @@ router.post('/login', asyncHandler(async (req, res) => {
 
   const ok = await bcrypt.compare(pin, rows[0].pin_hash);
   if (!ok) return res.status(401).json({ error: 'wrong pin' });
+  if (rows[0].status !== 'active') return res.status(403).json({ error: `account ${rows[0].status}` });
 
   const token = uuid();
+  // self-heal: accounts created before the admin-console patch may not have a public_id yet
+  let publicId = rows[0].public_id;
+  if (!publicId) {
+    publicId = await generateUniquePublicId(pool);
+    await pool.query(`UPDATE players SET public_id = $1 WHERE id = $2`, [publicId, rows[0].id]);
+  }
   await pool.query(`UPDATE players SET session_token = $2 WHERE id = $1`, [rows[0].id, token]);
 
   await pool.query(
@@ -90,7 +99,7 @@ router.post('/login', asyncHandler(async (req, res) => {
     [rows[0].id]
   );
 
-  res.json({ playerId: rows[0].id, username, token });
+  res.json({ playerId: rows[0].id, username, token, publicId });
 }));
 
 // GET /api/auth/config — tells the frontend which Google client ID to use for
@@ -122,25 +131,35 @@ router.post('/google', asyncHandler(async (req, res) => {
   const googleId = payload.sub;
   const token = uuid();
 
-  const existing = await pool.query(`SELECT id, username FROM players WHERE google_id = $1`, [googleId]);
+  const existing = await pool.query(`SELECT id, username, public_id, status FROM players WHERE google_id = $1`, [googleId]);
 
   if (existing.rows.length > 0) {
+    if (existing.rows[0].status !== 'active') {
+      return res.status(403).json({ error: `account ${existing.rows[0].status}` });
+    }
     // Returning Google user — just refresh their session token.
+    let publicId = existing.rows[0].public_id;
+    if (!publicId) {
+      publicId = await generateUniquePublicId(pool);
+      await pool.query(`UPDATE players SET public_id = $1 WHERE id = $2`, [publicId, existing.rows[0].id]);
+    }
     await pool.query(`UPDATE players SET session_token = $2 WHERE id = $1`, [existing.rows[0].id, token]);
     return res.json({
       playerId: existing.rows[0].id,
       username: existing.rows[0].username,
       token,
+      publicId,
       isNewAccount: false,
     });
   }
 
   // First time this Google account has signed in — mint a random username.
   const username = await generateRandomUsername();
+  const publicId = await generateUniquePublicId(pool);
   const { rows } = await pool.query(
-    `INSERT INTO players (username, google_id, session_token) VALUES ($1, $2, $3)
-     RETURNING id, username`,
-    [username, googleId, token]
+    `INSERT INTO players (username, google_id, session_token, public_id) VALUES ($1, $2, $3, $4)
+     RETURNING id, username, public_id`,
+    [username, googleId, token, publicId]
   );
 
   await pool.query(
@@ -148,7 +167,7 @@ router.post('/google', asyncHandler(async (req, res) => {
     [rows[0].id]
   );
 
-  res.json({ playerId: rows[0].id, username: rows[0].username, token, isNewAccount: true });
+  res.json({ playerId: rows[0].id, username: rows[0].username, token, publicId: rows[0].public_id, isNewAccount: true });
 }));
 
 // PATCH /api/auth/username { username } — rename your own account (works for
@@ -165,6 +184,16 @@ router.patch('/username', requireAuth, asyncHandler(async (req, res) => {
 
   await pool.query(`UPDATE players SET username = $1 WHERE id = $2`, [username, req.playerId]);
   res.json({ username });
+}));
+
+// GET /api/auth/me — current session's public_id + status, for the account page.
+router.get('/me', requireAuth, asyncHandler(async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT username, public_id, status FROM players WHERE id = $1`,
+    [req.playerId]
+  );
+  if (rows.length === 0) return res.status(404).json({ error: 'player not found' });
+  res.json({ username: rows[0].username, publicId: rows[0].public_id, status: rows[0].status });
 }));
 
 module.exports = router;
