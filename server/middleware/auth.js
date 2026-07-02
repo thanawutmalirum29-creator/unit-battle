@@ -12,10 +12,13 @@ async function requireAuth(req, res, next) {
 
   try {
     const { rows } = await pool.query(
-      `SELECT id FROM players WHERE session_token = $1`,
+      `SELECT id, status FROM players WHERE session_token = $1`,
       [token]
     );
     if (rows.length === 0) return res.status(401).json({ error: 'invalid or expired session' });
+    if (rows[0].status !== 'active') {
+      return res.status(403).json({ error: `account ${rows[0].status}` });
+    }
     req.playerId = rows[0].id;
     next();
   } catch (err) {
