@@ -216,8 +216,8 @@ document.getElementById("cancelBattleBtn").style.display = "none";
     renderBattlefield();
     renderStageButtons(); 
 }
-document.getElementById("cancelBattleBtn").addEventListener("click", () => {
-  if(confirm("คุณต้องการยกเลิกการต่อสู้หรือไม่?")){
+document.getElementById("cancelBattleBtn").addEventListener("click", async () => {
+  if(await uiConfirm("คุณต้องการยกเลิกการต่อสู้หรือไม่?")){
     log("⚠️ การต่อสู้ถูกยกเลิก", "system");
     updateResult("❌ คุณยกเลิกการต่อสู้");
     endBattlecancle(false);
