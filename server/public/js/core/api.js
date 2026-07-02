@@ -273,8 +273,15 @@ const GameAPI = (() => {
     equipGachaRoll, equipItemOnCard, unequipItemFromCard, deleteEquip, deleteEquipByRarityServer,
   };
 })();
+return {
+    ensurePlayer, reportNormalClear, infRunStart, infStageClear, infRunFinish, getInfRunId,
+    isLoggedIn, register, login, loginWithGoogle, logout, getAuthConfig, updateUsername, getUsername,
+    fetchEconomyState, claimNormalReward, claimInfReward,
+    bossRunStart, bossClaimTier, bossRunFinish,
+    shopGetCurrent, shopBuy, gachaRoll, upgradeGuaranteed,
+    upgradePaid, upgradeDuplicate, sellCard, sellAllCards,
+    equipGachaRoll, equipItemOnCard, unequipItemFromCard, deleteEquip, deleteEquipByRarityServer,
+  };
 })();
 
-// สำคัญมาก: `const GameAPI = ...` ข้างบนไม่ได้ทำให้ window.GameAPI มีค่าอัตโนมัติ
-// (เป็นพฤติกรรมมาตรฐานของ JS — const/let ที่ประกาศบนสุดของไฟล์ ไม่แปะเข้า window
-// ต่างจาก var) แต่ทุกหน้าในเกมเช็ค `window.GameAPI` กันหมด ต้องแปะมือแบบนี้
+window.GameAPI = GameAPI;
