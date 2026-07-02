@@ -187,9 +187,30 @@ const GameAPI = (() => {
     return get("/api/economy/shop/current", false);
   }
 
+  // Per-player purchased slots + rarity locks for the current cycle (requires login).
+  async function shopMyStatus() {
+    if (!isLoggedIn()) return null;
+    return get("/api/economy/shop/my-status", true);
+  }
+
   async function shopBuy(slotIndex) {
     if (!isLoggedIn()) return { error: "not logged in" };
     return post("/api/economy/shop/buy", { slotIndex }, true);
+  }
+
+  // Buy a shop card with memory fragments instead of money (fixed cost, one
+  // fragment type per rarity — see SHOP_MEMORY_KEY_BY_RARITY on the server).
+  async function shopBuyWithShard(slotIndex) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/shop/buy-with-shard", { slotIndex }, true);
+  }
+
+  // Card SKILL upgrade (bumps "Name LN" in card.skill) — separate from the card
+  // LEVEL upgrades below. Shards are spent whether or not the roll succeeds;
+  // check the returned `success` flag.
+  async function skillUpgrade(cardId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/skills/upgrade", { cardId }, true);
   }
 
   async function gachaRoll(poolId, times) {
@@ -300,7 +321,7 @@ return {
     getPublicId, refreshMe, fetchMailbox, fetchMailDetail, claimMail,
     fetchEconomyState, claimNormalReward, claimInfReward,
     bossRunStart, bossClaimTier, bossRunFinish,
-    shopGetCurrent, shopBuy, gachaRoll, upgradeGuaranteed,
+    shopGetCurrent, shopMyStatus, shopBuy, shopBuyWithShard, skillUpgrade, gachaRoll, upgradeGuaranteed,
     upgradePaid, upgradeDuplicate, sellCard, sellAllCards,
     equipGachaRoll, equipItemOnCard, unequipItemFromCard, deleteEquip, deleteEquipByRarityServer,
   };

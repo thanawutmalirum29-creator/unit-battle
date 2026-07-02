@@ -149,9 +149,9 @@ const stats = getRenderStats(card);
     // 🎯 กดค้างเพื่อลบ (ขาย)
     let pressTimer;
     function startPress() {
-      pressTimer = setTimeout(() => {
+      pressTimer = setTimeout(async () => {
         if (card.locked) return;
-        if (confirm(`ต้องการขายการ์ด ${card.name} ไหม?`)) {
+        if (await uiConfirm(`ต้องการขายการ์ด ${card.name} ไหม?`)) {
           sellCard(card.id);
         }
       }, 600);
@@ -271,7 +271,7 @@ async function sellAllUnlocked() {
     return;
   }
 
-  if (!confirm(`คุณต้องการขายการ์ดทั้งหมดที่ไม่ได้ล็อค (${cardIds.length} ใบ)?`)) return;
+  if (!(await uiConfirm(`คุณต้องการขายการ์ดทั้งหมดที่ไม่ได้ล็อค (${cardIds.length} ใบ)?`))) return;
 
   // 🔐 เซิฟเป็นคนตรวจว่าการ์ดแต่ละใบมีจริง + คิดราคาเอง ไม่เชื่อยอดรวมจาก client
   const result = await GameAPI.sellAllCards(cardIds);
