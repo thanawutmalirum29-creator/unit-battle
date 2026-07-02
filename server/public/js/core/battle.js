@@ -17,7 +17,7 @@ function handleDeath(victim, killer) {
     }
 
     if (reward > 0) {
-      log(`💰 สังหาร ${victim.name} (เงินจริงจะได้ตอนผ่านด่าน)`, "system");
+      log(`💰 สังหาร ${victim.name} ได้ ${reward} เหรียญ`, "system");
     }
     victim._rewarded = true;
   }
