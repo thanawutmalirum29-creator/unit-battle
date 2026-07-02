@@ -11,6 +11,8 @@ const leaderboardRoute = require('./routes/leaderboard');
 const progressRoute = require('./routes/progress');
 const authRoute = require('./routes/auth');
 const economyRoute = require('./routes/economy');
+const mailboxRoute = require('./routes/mailbox');
+const adminRoute = require('./routes/admin');
 
 const app = express();
 app.set('trust proxy', 1); // Railway sits behind a reverse proxy — required for express-rate-limit
@@ -26,6 +28,9 @@ app.use('/api/leaderboard', apiLimiter, leaderboardRoute);
 app.use('/api/progress', apiLimiter, progressRoute);
 app.use('/api/auth', apiLimiter, authRoute);
 app.use('/api/economy', apiLimiter, economyRoute);
+app.use('/api/mailbox', apiLimiter, mailboxRoute);
+// admin router has its own (stricter) rate limiter on /login — see routes/admin.js
+app.use('/api/admin', adminRoute);
 
 // serve the cleaned-up game client
 app.use(express.static(path.join(__dirname, 'public')));
@@ -34,6 +39,10 @@ app.get('/health', (req, res) => res.json({ ok: true }));
 
 // open the game directly at the root URL
 app.get('/', (req, res) => res.redirect('/pages/game.html'));
+
+// Hidden admin console — deliberately NOT linked from any in-game nav/menu.
+// The page itself still requires the admin code before showing anything.
+app.get('/admin-251029', (req, res) => res.sendFile(path.join(__dirname, 'public/pages/admin-251029.html')));
 
 // 404 for unmatched API routes (keeps responses JSON instead of falling through to the static 404 page)
 app.use('/api', (req, res) => res.status(404).json({ error: 'not found' }));
