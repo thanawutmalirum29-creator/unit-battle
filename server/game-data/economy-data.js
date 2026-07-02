@@ -574,6 +574,28 @@ function applyLevelGrowth(card) {
 }
 
 // ---------------------------------------------------------------------------
+// Shop — memory-fragment exchange path (ported from public/pages/shop.html's
+// buyWithShard(), which spent memory fragments purely client-side — see
+// routes/economy.js POST /shop/buy-with-shard for the server-authoritative version).
+// Common has no shop listing (see SHOP_SLOTS above), so it has no memory key either.
+// ---------------------------------------------------------------------------
+const SHOP_MEMORY_KEY_BY_RARITY = {
+  Rare: "memoryRare", Epic: "memoryEpic", Legendary: "memoryLegendary",
+  Mythical: "memoryMythical", Cosmic: "memoryCosmic",
+};
+const SHOP_SHARD_EXCHANGE_COST = 50;
+
+// ---------------------------------------------------------------------------
+// Card SKILL upgrade (separate mechanic from the card LEVEL upgrade above —
+// bumps the "Name LN" suffix in card.skill, not card.level). Ported from
+// public/js/data/upgradeSkills.js's upgradeSkill(), which rolled the RNG and
+// wrote bag/deck straight to localStorage client-side.
+// ---------------------------------------------------------------------------
+const SKILL_UPGRADE_MAX_LEVEL = 3;
+const SKILL_UPGRADE_SHARD_COST_PER_LEVEL = 10; // cost = this * current level
+const SKILL_UPGRADE_SUCCESS_RATE = { 1: 0.20, 2: 0.05, 3: 0.01 };
+
+// ---------------------------------------------------------------------------
 // Card selling — canonical prices. The client had TWO different price tables
 // (render.js and GACHA.html) that disagreed with each other; this is now the
 // only one that matters. Client-sent prices are never trusted.
@@ -597,5 +619,7 @@ module.exports = {
   UPGRADE_SHARD_KEY_BY_RARITY, UPGRADE_SHARDS_NEEDED, UPGRADE_MAX_LEVEL,
   UPGRADE_BASE_COST_BY_RARITY, UPGRADE_SUCCESS_RATE_TABLE, UPGRADE_DUPLICATE_COST_BY_RARITY,
   calcUpgradeCost, calcSuccessRate, applyLevelGrowth,
+  SHOP_MEMORY_KEY_BY_RARITY, SHOP_SHARD_EXCHANGE_COST,
+  SKILL_UPGRADE_MAX_LEVEL, SKILL_UPGRADE_SHARD_COST_PER_LEVEL, SKILL_UPGRADE_SUCCESS_RATE,
   SELL_PRICE_BY_RARITY, calcSellPrice,
 };
