@@ -278,4 +278,3 @@ const GameAPI = (() => {
 // สำคัญมาก: `const GameAPI = ...` ข้างบนไม่ได้ทำให้ window.GameAPI มีค่าอัตโนมัติ
 // (เป็นพฤติกรรมมาตรฐานของ JS — const/let ที่ประกาศบนสุดของไฟล์ ไม่แปะเข้า window
 // ต่างจาก var) แต่ทุกหน้าในเกมเช็ค `window.GameAPI` กันหมด ต้องแปะมือแบบนี้
-window.GameAPI = GameAPI;
