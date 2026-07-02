@@ -447,8 +447,8 @@ function endInfBattle(win = false) {
 /* ============================
    CANCEL BATTLE
    ============================ */
-document.getElementById("cancelBattleBtn").addEventListener("click", () => {
-  if (confirm("คุณต้องการยกเลิกการต่อสู้หรือไม่?")) {
+document.getElementById("cancelBattleBtn").addEventListener("click", async () => {
+  if (await uiConfirm("คุณต้องการยกเลิกการต่อสู้หรือไม่?")) {
     cancelInfBattle();
   }
 });
