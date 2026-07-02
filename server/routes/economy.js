@@ -45,7 +45,7 @@ async function getOrCreateEconomy(client, playerId) {
 router.get('/state', requireAuth, asyncHandler(async (req, res) => {
   await pool.query(`INSERT INTO player_economy (player_id) VALUES ($1) ON CONFLICT DO NOTHING`, [req.playerId]);
   const { rows } = await pool.query(`SELECT money, bag, deck, equip_bag FROM player_economy WHERE player_id = $1`, [req.playerId]);
-  res.json(rows[0]);
+  res.json({ ...rows[0], money: Number(rows[0].money) });
 }));
 
 // ---------------------------------------------------------------------------
