@@ -123,3 +123,37 @@ CREATE TABLE IF NOT EXISTS shop_purchases (
   purchased_at    TIMESTAMPTZ DEFAULT now(),
   UNIQUE (player_id, cycle, slot_index)
 );
+
+-- ============================================================================
+-- Admin console: public-facing player ID, account status, mailbox
+-- ============================================================================
+
+-- Human-shareable 15-char ID (letters+digits) shown on the account page, separate
+-- from the internal UUID `players.id` so nothing that already references player_id
+-- has to change. Generated once at account-creation time (see routes/auth.js /
+-- routes/players.js) and backfilled for existing rows by db/backfill-public-id.js.
+ALTER TABLE players ADD COLUMN IF NOT EXISTS public_id TEXT UNIQUE;
+
+-- Account status the admin console can set. 'suspended' blocks login/API access
+-- (see middleware/auth.js); 'banned' is the same but intended as the permanent form.
+ALTER TABLE players ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active';
+ALTER TABLE players DROP CONSTRAINT IF EXISTS players_status_check;
+ALTER TABLE players ADD CONSTRAINT players_status_check CHECK (status IN ('active', 'suspended', 'banned'));
+
+-- One row per mail. A mail can carry money and/or one bag currency as a reward;
+-- the player claims it from the mailbox popup, which credits player_economy the
+-- same server-authoritative way every other reward path does (see routes/mailbox.js).
+CREATE TABLE IF NOT EXISTS mailbox (
+  id            BIGSERIAL PRIMARY KEY,
+  player_id     UUID NOT NULL REFERENCES players(id),
+  subject       TEXT NOT NULL,
+  body          TEXT NOT NULL DEFAULT '',
+  reward_money  BIGINT NOT NULL DEFAULT 0 CHECK (reward_money >= 0),
+  reward_bag_key TEXT,          -- one of the known bag currency keys, or NULL
+  reward_bag_qty BIGINT NOT NULL DEFAULT 0 CHECK (reward_bag_qty >= 0),
+  sent_by       TEXT NOT NULL DEFAULT 'admin',
+  created_at    TIMESTAMPTZ DEFAULT now(),
+  read_at       TIMESTAMPTZ,
+  claimed_at    TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_mailbox_player ON mailbox (player_id, created_at DESC);
