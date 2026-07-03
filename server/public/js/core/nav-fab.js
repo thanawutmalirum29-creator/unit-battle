@@ -39,7 +39,9 @@
   // ก่อนที่จะส่งอีเวนต์ให้หน้าเว็บเลย — ต่อให้ลูกบอลอยู่ตรงนั้นพอดี กด "ติด" แค่ในทางสายตา
   // แต่ pointerup ไม่มาถึงจริง จึงเปิดเมนูไม่ได้ ต้องกันไม่ให้ลูกบอลถูกลากเข้าไปโซนนี้
   const BOTTOM_SAFE_FALLBACK = 28; // px ใช้ตอนอ่าน safe-area-inset ไม่ได้
+  const TOP_SAFE_FALLBACK = 24;    // px กันโซนบนสุด (status bar / notch / dynamic island)
   let _cachedBottomInset = null;
+  let _cachedTopInset = null;
   function bottomSafeInset() {
     if (_cachedBottomInset != null) return _cachedBottomInset;
     try {
@@ -51,6 +53,18 @@
       _cachedBottomInset = Math.max(inset, 0);
     } catch (e) { _cachedBottomInset = 0; }
     return _cachedBottomInset;
+  }
+  function topSafeInset() {
+    if (_cachedTopInset != null) return _cachedTopInset;
+    try {
+      const probe = document.createElement("div");
+      probe.style.cssText = "position:fixed;top:0;height:0;padding-top:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none;";
+      document.body.appendChild(probe);
+      const inset = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+      probe.remove();
+      _cachedTopInset = Math.max(inset, 0);
+    } catch (e) { _cachedTopInset = 0; }
+    return _cachedTopInset;
   }
 
   function currentFile() {
@@ -244,9 +258,10 @@
     function clamp(x, y) {
       const half = BALL_SIZE / 2;
       const bottomSafe = EDGE_MARGIN + Math.max(bottomSafeInset(), BOTTOM_SAFE_FALLBACK);
+      const topSafe = EDGE_MARGIN + Math.max(topSafeInset(), TOP_SAFE_FALLBACK);
       const minX = half + EDGE_MARGIN;
       const maxX = window.innerWidth - half - EDGE_MARGIN;
-      const minY = half + EDGE_MARGIN;
+      const minY = half + topSafe;
       const maxY = window.innerHeight - half - bottomSafe;
       return {
         x: Math.min(Math.max(x, minX), Math.max(minX, maxX)),
@@ -363,6 +378,7 @@
     window.addEventListener("resize", reclamp);
     window.addEventListener("orientationchange", () => {
       _cachedBottomInset = null;
+      _cachedTopInset = null;
       setTimeout(reclamp, 120);
     });
 
