@@ -63,6 +63,12 @@ function renderStageButtons() {
 
     stageList.appendChild(btn);
   }
+
+  // เลื่อนแถบเลือกสเตจไปโชว์ "ด่านล่าสุดที่ไปถึง" เสมอ (ปุ่มขวาสุดของช่วงที่แสดง)
+  // ไม่งั้นตอนโหลดหน้าใหม่ .stage-list (overflow-x:auto) จะเริ่มที่ scrollLeft=0
+  // คือด่านแรกสุดของช่วง ต้องเลื่อนเองไปหาด่านล่าสุด
+  const lastBtn = document.getElementById("btn-stage-" + end);
+  if (lastBtn) lastBtn.scrollIntoView({ behavior: "auto", inline: "end", block: "nearest" });
 }
 
 function deepClone(obj) { 
