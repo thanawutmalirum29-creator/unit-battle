@@ -105,6 +105,14 @@ ALTER TABLE player_economy ADD COLUMN IF NOT EXISTS equip_bag JSONB NOT NULL DEF
 -- server-persisted like everything else in this table.
 ALTER TABLE player_economy ADD COLUMN IF NOT EXISTS equip_blacklist JSONB NOT NULL DEFAULT '[]';
 
+-- Character-gacha "auto-discard" blacklist (list of character names). This one was
+-- never actually wired up server-side at all (see routes/economy.js gacha/roll —
+-- the old TODO comment there): every rolled card, blacklisted or not, was pushed
+-- straight into `deck`. The client's ❌ tick was cosmetic-only and the
+-- "sell blacklisted cards after reveal" code never ran because nothing ever set
+-- `_blacklisted` on the results it checked. Now enforced server-side like equip_blacklist.
+ALTER TABLE player_economy ADD COLUMN IF NOT EXISTS gacha_blacklist JSONB NOT NULL DEFAULT '[]';
+
 -- One row per reward payout. Prevents an INF/boss stage from being paid out twice
 -- (e.g. client retries the claim call after a slow/dropped response).
 CREATE TABLE IF NOT EXISTS reward_claims (
