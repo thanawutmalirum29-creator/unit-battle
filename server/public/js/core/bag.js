@@ -162,7 +162,8 @@ const ITEM_ICON_META = {
 function itemIconHTML(key) {
     const meta = ITEM_ICON_META[key];
     if (!meta) return "";
-    const cls = "item-icon" + (meta.glow ? " item-icon--glow" : "");
+    const kind = key.indexOf("shard") === 0 ? "item-icon--shard" : "item-icon--memory";
+    const cls = "item-icon " + kind + (meta.glow ? " item-icon--glow" : "");
     return '<span class="' + cls + '" style="--icon-color:' + meta.color + '" aria-hidden="true"></span>';
 }
 
@@ -178,14 +179,17 @@ function injectItemIconStyles() {
   width:15px; height:15px;
   margin-right:6px;
   vertical-align:-3px;
-  border-radius:4px;
   background:var(--icon-color);
   box-shadow:
     inset -2px -3px 4px rgba(0,0,0,.35),
     inset 2px 2px 3px rgba(255,255,255,.28),
     0 1px 2px rgba(0,0,0,.4);
 }
-.item-icon::before{
+/* ชิ้นส่วนความทรงจำ (memory) — รูปจิ๊กซอ: สี่เหลี่ยมมุมโค้ง + ปุ่มนูน 1 จุด + รอยเว้า 1 จุด */
+.item-icon--memory{
+  border-radius:4px;
+}
+.item-icon--memory::before{
   content:"";
   position:absolute;
   top:-4px; left:50%;
@@ -197,7 +201,7 @@ function injectItemIconStyles() {
     inset -1px -1px 2px rgba(0,0,0,.35),
     inset 1px 1px 1px rgba(255,255,255,.3);
 }
-.item-icon::after{
+.item-icon--memory::after{
   content:"";
   position:absolute;
   bottom:-2px; right:-2px;
@@ -206,12 +210,30 @@ function injectItemIconStyles() {
   background:var(--bg-1,#0c121b);
   box-shadow:inset 1px 1px 2px rgba(0,0,0,.55);
 }
+/* ชาร์ด (shard) — รูปเศษคริสตัลเหลี่ยม ไม่มีปุ่มนูน/รอยเว้าแบบจิ๊กซอ ให้แยกจากความทรงจำชัดเจน */
+.item-icon--shard{
+  border-radius:0;
+  clip-path: polygon(50% 0%, 88% 38%, 72% 100%, 28% 100%, 12% 38%);
+}
+.item-icon--shard::before{
+  content:"";
+  position:absolute;
+  top:8%; left:46%;
+  width:2px; height:58%;
+  background:rgba(255,255,255,.45);
+  transform:skewX(-12deg);
+}
+.item-icon--shard::after{
+  content:"";
+  position:absolute;
+  left:26%; right:26%; top:60%; bottom:0;
+  background:rgba(0,0,0,.2);
+  clip-path: polygon(0% 0%, 100% 0%, 68% 100%, 32% 100%);
+}
+/* ของหายากขึ้น (Legendary/Mythical/Cosmic/shardGold) เรืองแสงรอบนอกเบาๆ —
+   ใช้ drop-shadow แทน box-shadow เพราะ clip-path (ชาร์ด) จะตัด box-shadow ที่ล้นออกนอกกรอบทิ้ง */
 .item-icon--glow{
-  box-shadow:
-    inset -2px -3px 4px rgba(0,0,0,.35),
-    inset 2px 2px 3px rgba(255,255,255,.28),
-    0 0 6px 1px var(--icon-color),
-    0 1px 2px rgba(0,0,0,.4);
+  filter: drop-shadow(0 0 3px var(--icon-color)) drop-shadow(0 0 1px var(--icon-color));
 }
 `;
     document.head.appendChild(style);
