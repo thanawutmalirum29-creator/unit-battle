@@ -297,15 +297,24 @@ const GameAPI = (() => {
     return post("/api/progress/normal-clear", { playerId, stage });
   }
 
-  // ---- INF mode: one continuous run from stage 1 until loss/full-clear ----
-  async function infRunStart() {
+  // ---- INF mode: one continuous run from stage 1 (or a cleared checkpoint) until loss/full-clear ----
+  async function infRunStart(startStage) {
     await ensurePlayer();
-    if (!playerId) return;
-    const data = await post("/api/runs/start", { playerId, mode: "inf" });
+    if (!playerId) return null;
+    const data = await post("/api/runs/start", { playerId, mode: "inf", startStage: startStage || 1 });
     if (data?.runId) {
       infRunId = data.runId;
       infRunToken = data.token;
     }
+    return data;
+  }
+
+  // Best-ever validated INF stage for this player, used to unlock checkpoint buttons.
+  async function fetchInfProgress() {
+    await ensurePlayer();
+    if (!playerId) return 0;
+    const data = await get(`/api/progress/inf/${playerId}`, false);
+    return data?.maxStage ?? 0;
   }
 
   async function infStageClear(stage) {
@@ -323,7 +332,7 @@ const GameAPI = (() => {
 
   function getInfRunId() { return infRunId; }
 return {
-    ensurePlayer, reportNormalClear, infRunStart, infStageClear, infRunFinish, getInfRunId,
+    ensurePlayer, reportNormalClear, infRunStart, infStageClear, infRunFinish, getInfRunId, fetchInfProgress,
     isLoggedIn, register, login, loginWithGoogle, logout, getAuthConfig, updateUsername, getUsername,
     getPublicId, refreshMe, fetchMailbox, fetchMailDetail, claimMail,
     fetchEconomyState, claimNormalReward, claimInfReward,
