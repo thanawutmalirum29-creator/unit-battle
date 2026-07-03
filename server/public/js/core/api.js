@@ -313,6 +313,17 @@ const GameAPI = (() => {
     return post("/api/progress/normal-clear", { playerId, stage });
   }
 
+  // Best-ever validated NORMAL stage for this player, used to restore unlocked stages
+  // on load instead of trusting localStorage alone (mirrors fetchInfProgress below).
+  // Returns { maxStage, ok }. ok=false means offline / no player yet.
+  async function fetchNormalProgress() {
+    await ensurePlayer();
+    if (!playerId) return { maxStage: 0, ok: false };
+    const data = await get(`/api/progress/normal/${playerId}`, false);
+    if (!data) return { maxStage: 0, ok: false };
+    return { maxStage: data.maxStage ?? 0, ok: true };
+  }
+
   // ---- INF mode: one continuous run from stage 1 (or a cleared checkpoint) until loss/full-clear ----
   async function infRunStart(startStage) {
     await ensurePlayer();
@@ -352,7 +363,7 @@ const GameAPI = (() => {
 
   function getInfRunId() { return infRunId; }
 return {
-    ensurePlayer, reportNormalClear, infRunStart, infStageClear, infRunFinish, getInfRunId, fetchInfProgress,
+    ensurePlayer, reportNormalClear, fetchNormalProgress, infRunStart, infStageClear, infRunFinish, getInfRunId, fetchInfProgress,
     isLoggedIn, register, login, loginWithGoogle, logout, getAuthConfig, updateUsername, getUsername,
     getPublicId, refreshMe, fetchMailbox, fetchMailDetail, claimMail,
     fetchEconomyState, claimNormalReward, claimInfReward,
