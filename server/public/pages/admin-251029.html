@@ -14,34 +14,60 @@
   body{ max-width:900px; }
   #gateScreen{ max-width:340px; margin:80px auto 0; text-align:center; }
   #gateScreen input{ text-align:center; letter-spacing:4px; font-size:18px; }
+
   .adm-table{ width:100%; border-collapse:collapse; font-size:13.5px; }
   .adm-table th{ text-align:left; color:var(--muted); font-weight:600; font-size:12px; padding:8px 6px; border-bottom:1px solid var(--border); }
-  .adm-table td{ padding:9px 6px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  .adm-table td{ padding:10px 6px; border-bottom:1px solid var(--border); vertical-align:middle; }
   .adm-table tr:last-child td{ border-bottom:none; }
+  .adm-table tbody tr{ cursor:pointer; transition:background .12s; }
+  .adm-table tbody tr:hover{ background:var(--panel-soft); }
   .adm-id{ font-family:monospace; font-size:11.5px; color:var(--muted); word-break:break-all; }
-  .adm-badge{ font-size:11px; padding:2px 8px; border-radius:999px; }
+  .adm-chevron{ color:var(--muted); text-align:right; }
+  .adm-badge{ font-size:11px; padding:2px 8px; border-radius:999px; white-space:nowrap; }
   .adm-badge.active{ background:rgba(16,185,129,.15); color:var(--good); }
   .adm-badge.suspended{ background:rgba(255,213,79,.15); color:var(--gold); }
   .adm-badge.banned{ background:rgba(239,68,68,.15); color:var(--bad); }
-  .adm-actions{ display:flex; gap:6px; flex-wrap:wrap; }
-  .adm-actions button{ padding:4px 9px; font-size:12px; }
-  .adm-actions button.danger{ border-color:rgba(239,68,68,.4); color:#ffd5d5; }
   .adm-toolbar{ display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center; }
   .adm-toolbar input[type="text"]{ flex:1 1 220px; }
+
   #adminOverlay{
     display:none; position:fixed; inset:0; background:rgba(4,6,10,.72);
-    align-items:center; justify-content:center; padding:16px; z-index:90;
+    align-items:flex-start; justify-content:center; padding:16px; z-index:90;
+    overflow-y:auto;
   }
   #adminOverlay.open{ display:flex; }
-  .adm-modal{ width:100%; max-width:420px; max-height:85vh; overflow-y:auto; }
-  .adm-modal-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
-  .adm-modal-header button{ background:none; border:none; color:var(--muted); font-size:18px; padding:0; }
+  .adm-modal{ width:100%; max-width:460px; margin:24px auto; }
+  .adm-modal-header{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px; gap:8px; }
+  .adm-modal-header button{ background:none; border:none; color:var(--muted); font-size:18px; padding:0; line-height:1; }
+  .adm-modal-sub{ color:var(--muted); font-size:12px; margin-bottom:14px; }
+
+  .adm-tabs{ display:flex; gap:4px; margin-bottom:14px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  .adm-tab{ background:none; border:none; padding:8px 10px; font-size:12.5px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; }
+  .adm-tab.active{ color:var(--text); border-bottom-color:var(--accent); font-weight:700; }
+  .adm-tab.danger.active{ color:#ffd5d5; border-bottom-color:var(--bad); }
+
   .adm-field{ margin-bottom:12px; }
   .adm-field label{ display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
   .adm-field input, .adm-field select, .adm-field textarea{ width:100%; }
   .adm-row2{ display:flex; gap:8px; }
   .adm-row2 > div{ flex:1; }
+  .adm-hint{ font-size:11.5px; color:var(--muted); margin:-6px 0 12px; }
+  .adm-section-title{ font-weight:700; font-size:13px; margin:0 0 8px; }
+  .adm-divider{ border:none; border-top:1px solid var(--border); margin:16px 0; }
+
+  .adm-overview-row{ display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid var(--border); font-size:13px; }
+  .adm-overview-row:last-child{ border-bottom:none; }
+  .adm-overview-row .label{ color:var(--muted); }
+
+  .adm-mini-list{ max-height:160px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius-sm); padding:6px 8px; margin-top:4px; }
+  .adm-mini-item{ display:flex; justify-content:space-between; gap:8px; font-size:12.5px; padding:4px 0; border-bottom:1px solid var(--border); }
+  .adm-mini-item:last-child{ border-bottom:none; }
+  .adm-mini-empty{ color:var(--muted); font-size:12.5px; text-align:center; padding:10px 0; }
+
   #adminStatusMsg{ font-size:12px; color:var(--muted); margin-bottom:10px; }
+  .adm-formmsg{ font-size:12px; margin-bottom:8px; display:none; }
+  .adm-formmsg.error{ color:var(--bad); }
+  .adm-formmsg.ok{ color:var(--good); }
 </style>
 </head>
 <body>
@@ -74,7 +100,7 @@
       <table class="adm-table">
         <thead>
           <tr>
-            <th>ผู้เล่น</th><th>สถานะ</th><th>เงิน</th><th>เด็ค</th><th>อุปกรณ์</th><th></th>
+            <th>ผู้เล่น</th><th>Public ID</th><th>Internal ID</th><th>สถานะ</th><th></th>
           </tr>
         </thead>
         <tbody id="adminTableBody"></tbody>
@@ -83,12 +109,21 @@
   </section>
 </div>
 
-<!-- Detail / edit modal -->
+<!-- Player detail / management popup -->
 <div id="adminOverlay">
   <div class="panel adm-modal" onclick="event.stopPropagation()">
     <div class="adm-modal-header">
-      <strong id="adminModalTitle">รายละเอียดบัญชี</strong>
+      <div>
+        <strong id="adminModalTitle">ผู้เล่น</strong>
+        <div class="adm-modal-sub" id="adminModalSub"></div>
+      </div>
       <button id="adminModalCloseBtn">✕</button>
+    </div>
+    <div class="adm-tabs" id="adminTabs">
+      <button class="adm-tab" data-tab="overview">ภาพรวม</button>
+      <button class="adm-tab" data-tab="edit">แก้ไข</button>
+      <button class="adm-tab" data-tab="gift">ส่งเมล / ไอเทม</button>
+      <button class="adm-tab danger" data-tab="danger">ลบบัญชี</button>
     </div>
     <div id="adminModalBody"></div>
   </div>
@@ -98,6 +133,10 @@
   const ADMIN_TOKEN_KEY = "adminToken";
   let players = [];
   let bagKeys = [];
+  let catalog = { characters: [], equips: [] };
+  let activePlayerId = null;
+  let activeTab = "overview";
+  let activePlayerDetail = null; // cached full detail (deck/equip/bag) for the open modal
 
   function getToken() { return sessionStorage.getItem(ADMIN_TOKEN_KEY); }
   function setToken(t) { sessionStorage.setItem(ADMIN_TOKEN_KEY, t); }
@@ -130,6 +169,7 @@
     document.getElementById("gateScreen").style.display = "none";
     document.getElementById("consoleScreen").style.display = "block";
     loadBagKeys();
+    loadCatalog();
     loadPlayers();
   }
 
@@ -162,6 +202,10 @@
     try { bagKeys = await adminFetch("/bag-keys"); } catch { bagKeys = []; }
   }
 
+  async function loadCatalog() {
+    try { catalog = await adminFetch("/catalog"); } catch { catalog = { characters: [], equips: [] }; }
+  }
+
   function statusLabel(s) {
     return s === "active" ? "ปกติ" : s === "suspended" ? "ระงับ" : "แบน";
   }
@@ -182,37 +226,21 @@
   function renderTable() {
     const body = document.getElementById("adminTableBody");
     if (players.length === 0) {
-      body.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">ไม่พบบัญชี</td></tr>`;
+      body.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">ไม่พบบัญชี</td></tr>`;
       return;
     }
     body.innerHTML = players.map((p) => `
-      <tr>
-        <td>
-          <div><strong>${escapeHtml(p.username)}</strong></div>
-          <div class="adm-id">${p.publicId || "-"}</div>
-        </td>
+      <tr data-id="${p.id}">
+        <td><strong>${escapeHtml(p.username)}</strong></td>
+        <td class="adm-id">${p.publicId || "-"}</td>
+        <td class="adm-id">${p.id}</td>
         <td><span class="adm-badge ${p.status}">${statusLabel(p.status)}</span></td>
-        <td>💰 ${p.money}</td>
-        <td>${p.deckCount}</td>
-        <td>${p.equipCount}</td>
-        <td>
-          <div class="adm-actions">
-            <button data-act="edit" data-id="${p.id}">✏️ แก้ไข</button>
-            <button data-act="mail" data-id="${p.id}">📮 ส่งเมล</button>
-            <button data-act="delete" data-id="${p.id}" class="danger">🗑️ ลบ</button>
-          </div>
-        </td>
+        <td class="adm-chevron">›</td>
       </tr>
     `).join("");
 
-    body.querySelectorAll("button[data-act]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = btn.dataset.id;
-        const act = btn.dataset.act;
-        if (act === "edit") openEditModal(id);
-        if (act === "mail") openMailModal(id);
-        if (act === "delete") openDeleteConfirm(id);
-      });
+    body.querySelectorAll("tr[data-id]").forEach((row) => {
+      row.addEventListener("click", () => openPlayerModal(row.dataset.id));
     });
   }
 
@@ -230,21 +258,96 @@
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
   }
 
-  function openModal(title, bodyHtml) {
-    document.getElementById("adminModalTitle").textContent = title;
-    document.getElementById("adminModalBody").innerHTML = bodyHtml;
+  // ------------------------------------------------------------------
+  // Player popup — one modal, tabbed: overview / edit / gift / danger
+  // ------------------------------------------------------------------
+  async function openPlayerModal(id) {
+    activePlayerId = id;
+    activeTab = "overview";
+    const p = players.find((x) => x.id === id);
+    if (!p) return;
+
+    document.getElementById("adminModalTitle").textContent = p.username;
+    document.getElementById("adminModalSub").innerHTML =
+      `Public ID: <span class="adm-id">${p.publicId || "-"}</span> · Internal ID: <span class="adm-id">${p.id}</span>`;
     document.getElementById("adminOverlay").classList.add("open");
+    document.getElementById("adminModalBody").innerHTML = `<p class="muted" style="text-align:center;padding:20px 0">กำลังโหลด…</p>`;
+
+    setActiveTab("overview");
+
+    try {
+      activePlayerDetail = await adminFetch(`/players/${id}`);
+    } catch (err) {
+      document.getElementById("adminModalBody").innerHTML = `<p style="color:var(--bad)">โหลดข้อมูลไม่สำเร็จ: ${escapeHtml(err.message)}</p>`;
+      return;
+    }
+    renderTabBody();
   }
-  function closeModal() { document.getElementById("adminOverlay").classList.remove("open"); }
+
+  function closeModal() {
+    document.getElementById("adminOverlay").classList.remove("open");
+    activePlayerId = null;
+    activePlayerDetail = null;
+  }
   document.getElementById("adminModalCloseBtn").addEventListener("click", closeModal);
   document.getElementById("adminOverlay").addEventListener("click", closeModal);
 
+  document.getElementById("adminTabs").addEventListener("click", (e) => {
+    const btn = e.target.closest(".adm-tab");
+    if (!btn) return;
+    setActiveTab(btn.dataset.tab);
+    renderTabBody();
+  });
+
+  function setActiveTab(tab) {
+    activeTab = tab;
+    document.querySelectorAll(".adm-tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+  }
+
+  function renderTabBody() {
+    const p = players.find((x) => x.id === activePlayerId);
+    if (!p || !activePlayerDetail) return;
+    const body = document.getElementById("adminModalBody");
+    if (activeTab === "overview") body.innerHTML = overviewTabHtml(p, activePlayerDetail);
+    if (activeTab === "edit") body.innerHTML = editTabHtml(p);
+    if (activeTab === "gift") body.innerHTML = giftTabHtml(p);
+    if (activeTab === "danger") body.innerHTML = dangerTabHtml(p);
+    bindTabHandlers();
+  }
+
+  function bindTabHandlers() {
+    if (activeTab === "edit") bindEditTab();
+    if (activeTab === "gift") bindGiftTab();
+    if (activeTab === "danger") bindDangerTab();
+  }
+
+  // ---- Overview ----
+  function overviewTabHtml(p, d) {
+    const created = d.createdAt ? new Date(d.createdAt).toLocaleString("th-TH") : "-";
+    const deckRows = d.deck.length
+      ? d.deck.map((c) => `<div class="adm-mini-item"><span>${escapeHtml(c.name)} <span class="muted">(${escapeHtml(c.rarity)})</span></span><span class="muted">Lv.${c.level || 1}</span></div>`).join("")
+      : `<div class="adm-mini-empty">ไม่มีการ์ดในเด็ค</div>`;
+    const equipRows = d.equipBag.length
+      ? d.equipBag.map((it) => `<div class="adm-mini-item"><span>${escapeHtml(it.name)} <span class="muted">(${escapeHtml(it.rarity)})</span></span><span class="muted">${escapeHtml(it.type)}</span></div>`).join("")
+      : `<div class="adm-mini-empty">ไม่มีอุปกรณ์ในกระเป๋า</div>`;
+
+    return `
+      <div class="adm-overview-row"><span class="label">สถานะ</span><span class="adm-badge ${p.status}">${statusLabel(p.status)}</span></div>
+      <div class="adm-overview-row"><span class="label">สมัครเมื่อ</span><span>${created}</span></div>
+      <div class="adm-overview-row"><span class="label">💰 เงิน</span><span>${d.money}</span></div>
+      <div class="adm-overview-row"><span class="label">🎴 การ์ดในเด็ค</span><span>${d.deck.length}</span></div>
+      <div class="adm-overview-row"><span class="label">🛡️ อุปกรณ์ในกระเป๋า</span><span>${d.equipBag.length}</span></div>
+      <hr class="adm-divider" />
+      <div class="adm-section-title">🎴 เด็คปัจจุบัน</div>
+      <div class="adm-mini-list">${deckRows}</div>
+      <div class="adm-section-title" style="margin-top:12px">🛡️ กระเป๋าอุปกรณ์</div>
+      <div class="adm-mini-list">${equipRows}</div>
+    `;
+  }
+
   // ---- Edit (rename / status) ----
-  function openEditModal(id) {
-    const p = players.find((x) => x.id === id);
-    if (!p) return;
-    openModal("แก้ไขบัญชี", `
-      <div class="adm-id" style="margin-bottom:14px">ID: ${p.publicId || "-"}</div>
+  function editTabHtml(p) {
+    return `
       <div class="adm-field">
         <label>ชื่อบัญชี</label>
         <input type="text" id="editUsername" value="${escapeHtml(p.username)}" />
@@ -257,59 +360,48 @@
           <option value="banned" ${p.status === "banned" ? "selected" : ""}>แบน</option>
         </select>
       </div>
-      <div id="editError" style="color:var(--bad);font-size:12px;margin-bottom:8px;display:none"></div>
+      <div id="editMsg" class="adm-formmsg"></div>
       <button id="editSaveBtn" style="width:100%">บันทึกการเปลี่ยนแปลง</button>
-    `);
+    `;
+  }
+
+  function bindEditTab() {
     document.getElementById("editSaveBtn").addEventListener("click", async () => {
       const username = document.getElementById("editUsername").value.trim();
       const status = document.getElementById("editStatus").value;
+      const msgEl = document.getElementById("editMsg");
       try {
-        await adminFetch(`/players/${id}`, {
+        await adminFetch(`/players/${activePlayerId}`, {
           method: "PATCH",
           body: JSON.stringify({ username, status }),
         });
-        closeModal();
-        loadPlayers();
+        msgEl.className = "adm-formmsg ok";
+        msgEl.textContent = "บันทึกแล้ว";
+        msgEl.style.display = "block";
+        await loadPlayers();
+        const p = players.find((x) => x.id === activePlayerId);
+        if (p) {
+          document.getElementById("adminModalTitle").textContent = p.username;
+        }
       } catch (err) {
-        const errEl = document.getElementById("editError");
-        errEl.textContent = err.message;
-        errEl.style.display = "block";
+        msgEl.className = "adm-formmsg error";
+        msgEl.textContent = err.message;
+        msgEl.style.display = "block";
       }
     });
   }
 
-  // ---- Delete ----
-  function openDeleteConfirm(id) {
-    const p = players.find((x) => x.id === id);
-    if (!p) return;
-    openModal("ลบบัญชีนี้?", `
-      <p style="color:var(--muted);font-size:13px;line-height:1.6;margin-bottom:16px">
-        บัญชี "<strong>${escapeHtml(p.username)}</strong>" (${p.publicId}) จะถูกลบอย่างถาวร
-        รวมถึงกล่องจดหมาย ประวัติการเล่น และทรัพยากรทั้งหมด การกระทำนี้ไม่สามารถย้อนกลับได้
-      </p>
-      <div style="display:flex;gap:8px">
-        <button id="deleteCancelBtn" style="flex:1">ยกเลิก</button>
-        <button id="deleteConfirmBtn" class="danger" style="flex:1">ลบบัญชี</button>
-      </div>
-    `);
-    document.getElementById("deleteCancelBtn").addEventListener("click", closeModal);
-    document.getElementById("deleteConfirmBtn").addEventListener("click", async () => {
-      try {
-        await adminFetch(`/players/${id}`, { method: "DELETE" });
-        closeModal();
-        loadPlayers();
-      } catch (err) {
-        alert("ลบไม่สำเร็จ: " + err.message);
-      }
-    });
-  }
-
-  // ---- Send mail ----
-  function openMailModal(id) {
-    const p = players.find((x) => x.id === id);
-    if (!p) return;
+  // ---- Gift: mail + money + bag item + character + equipment, all in one send ----
+  function giftTabHtml(p) {
     const bagOptions = bagKeys.map((k) => `<option value="${k}">${k}</option>`).join("");
-    openModal(`ส่งเมลถึง ${escapeHtml(p.username)}`, `
+    const charOptions = catalog.characters
+      .slice().sort((a, b) => a.name.localeCompare(b.name))
+      .map((c) => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)} — ${escapeHtml(c.rarity)}</option>`).join("");
+    const equipOptions = catalog.equips
+      .slice().sort((a, b) => a.name.localeCompare(b.name))
+      .map((e) => `<option value="${escapeHtml(e.name)}">${escapeHtml(e.name)} — ${escapeHtml(e.rarity)} (${escapeHtml(e.type)})</option>`).join("");
+
+    return `
       <div class="adm-field">
         <label>หัวข้อ</label>
         <input type="text" id="mailSubject" placeholder="เช่น รางวัลกิจกรรม" />
@@ -318,15 +410,18 @@
         <label>ข้อความ</label>
         <textarea id="mailBody" rows="3"></textarea>
       </div>
+
+      <div class="adm-section-title">แนบของรางวัล (เลือกได้หลายอย่าง ไม่บังคับ)</div>
+
       <div class="adm-row2">
         <div class="adm-field">
-          <label>💰 เงิน (ไม่บังคับ)</label>
+          <label>💰 เงิน</label>
           <input type="number" id="mailMoney" value="0" min="0" />
         </div>
       </div>
       <div class="adm-row2">
         <div class="adm-field">
-          <label>ไอเทมแนบ (ไม่บังคับ)</label>
+          <label>ไอเทมทรัพยากร</label>
           <select id="mailBagKey">
             <option value="">— ไม่แนบ —</option>
             ${bagOptions}
@@ -337,31 +432,97 @@
           <input type="number" id="mailBagQty" value="0" min="0" />
         </div>
       </div>
-      <div id="mailError" style="color:var(--bad);font-size:12px;margin-bottom:8px;display:none"></div>
+      <div class="adm-field">
+        <label>🧑‍🤝‍🧑 ส่งตัวละคร</label>
+        <select id="mailCard">
+          <option value="">— ไม่แนบ —</option>
+          ${charOptions}
+        </select>
+      </div>
+      <div class="adm-hint">ตัวละครจะเข้าเด็คของผู้เล่นเป็น Lv.1 ทันทีที่กดรับเมล</div>
+      <div class="adm-field">
+        <label>🗡️ ส่งอุปกรณ์</label>
+        <select id="mailEquip">
+          <option value="">— ไม่แนบ —</option>
+          ${equipOptions}
+        </select>
+      </div>
+      <div class="adm-hint">อุปกรณ์จะเข้ากระเป๋าอุปกรณ์ของผู้เล่นทันทีที่กดรับเมล</div>
+
+      <div id="mailMsg" class="adm-formmsg"></div>
       <button id="mailSendBtn" style="width:100%">ส่งเมล</button>
-    `);
+    `;
+  }
+
+  function bindGiftTab() {
     document.getElementById("mailSendBtn").addEventListener("click", async () => {
       const subject = document.getElementById("mailSubject").value.trim();
       const body = document.getElementById("mailBody").value.trim();
       const money = Number(document.getElementById("mailMoney").value) || 0;
       const bagKey = document.getElementById("mailBagKey").value || null;
       const bagQty = Number(document.getElementById("mailBagQty").value) || 0;
+      const cardName = document.getElementById("mailCard").value || null;
+      const equipName = document.getElementById("mailEquip").value || null;
+      const msgEl = document.getElementById("mailMsg");
+
       if (!subject) {
-        const errEl = document.getElementById("mailError");
-        errEl.textContent = "กรุณากรอกหัวข้อ";
-        errEl.style.display = "block";
+        msgEl.className = "adm-formmsg error";
+        msgEl.textContent = "กรุณากรอกหัวข้อ";
+        msgEl.style.display = "block";
         return;
       }
+
+      const sendBtn = document.getElementById("mailSendBtn");
+      sendBtn.disabled = true;
+      sendBtn.textContent = "กำลังส่ง…";
       try {
-        await adminFetch(`/players/${id}/mail`, {
+        await adminFetch(`/players/${activePlayerId}/mail`, {
           method: "POST",
-          body: JSON.stringify({ subject, body, money, bagKey, bagQty }),
+          body: JSON.stringify({ subject, body, money, bagKey, bagQty, cardName, equipName }),
         });
-        closeModal();
+        msgEl.className = "adm-formmsg ok";
+        msgEl.textContent = "ส่งเมลแล้ว ✅";
+        msgEl.style.display = "block";
+        document.getElementById("mailSubject").value = "";
+        document.getElementById("mailBody").value = "";
+        document.getElementById("mailMoney").value = "0";
+        document.getElementById("mailBagKey").value = "";
+        document.getElementById("mailBagQty").value = "0";
+        document.getElementById("mailCard").value = "";
+        document.getElementById("mailEquip").value = "";
       } catch (err) {
-        const errEl = document.getElementById("mailError");
-        errEl.textContent = err.message;
-        errEl.style.display = "block";
+        msgEl.className = "adm-formmsg error";
+        msgEl.textContent = err.message;
+        msgEl.style.display = "block";
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = "ส่งเมล";
+      }
+    });
+  }
+
+  // ---- Danger: delete ----
+  function dangerTabHtml(p) {
+    return `
+      <p style="color:var(--muted);font-size:13px;line-height:1.6;margin-bottom:16px">
+        บัญชี "<strong>${escapeHtml(p.username)}</strong>" (${p.publicId}) จะถูกลบอย่างถาวร
+        รวมถึงกล่องจดหมาย ประวัติการเล่น และทรัพยากรทั้งหมด การกระทำนี้ไม่สามารถย้อนกลับได้
+      </p>
+      <button id="deleteConfirmBtn" class="danger" style="width:100%">ลบบัญชีนี้ถาวร</button>
+    `;
+  }
+
+  function bindDangerTab() {
+    document.getElementById("deleteConfirmBtn").addEventListener("click", async () => {
+      const p = players.find((x) => x.id === activePlayerId);
+      if (!p) return;
+      if (!(await uiConfirm(`ยืนยันลบบัญชี "${p.username}" ถาวร?`))) return;
+      try {
+        await adminFetch(`/players/${activePlayerId}`, { method: "DELETE" });
+        closeModal();
+        loadPlayers();
+      } catch (err) {
+        alert("ลบไม่สำเร็จ: " + err.message);
       }
     });
   }
