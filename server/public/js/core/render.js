@@ -260,7 +260,9 @@ async function sellAllUnlocked() {
     return;
   }
 
-  const cardIds = deck.filter(c => !c.locked).map(c => c.id);
+  const cardIds = deck
+    .filter(c => !c.locked && !selectedIndexes.includes(c.id))
+    .map(c => c.id);
   if (cardIds.length === 0) {
     alert("❌ ไม่มีการ์ดที่ขายได้");
     return;
@@ -271,7 +273,7 @@ async function sellAllUnlocked() {
     return;
   }
 
-  if (!(await uiConfirm(`คุณต้องการขายการ์ดทั้งหมดที่ไม่ได้ล็อค (${cardIds.length} ใบ)?`))) return;
+  if (!(await uiConfirm(`คุณต้องการขายการ์ดทั้งหมดที่ไม่ได้ล็อคและไม่ได้อยู่ในทีม (${cardIds.length} ใบ)?`))) return;
 
   // 🔐 เซิฟเป็นคนตรวจว่าการ์ดแต่ละใบมีจริง + คิดราคาเอง ไม่เชื่อยอดรวมจาก client
   const result = await GameAPI.sellAllCards(cardIds);
