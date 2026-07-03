@@ -248,4 +248,21 @@ updateBagUI();
 renderDeck();
 renderStageButtons();
 updateMoneyUI();
+
+// 🟢 localStorage เป็นแค่ cache ฝั่งเครื่อง — ด่านที่ปลดล็อคจริงถูกบันทึกไว้ในเซิร์ฟเวอร์แล้ว
+// (ทุกครั้งที่ชนะจะยิง GameAPI.reportNormalClear) แต่ก่อนหน้านี้ไม่เคยมีการดึงค่านั้นกลับมาโหลด
+// เลย ทำให้เปิดเกมบนเครื่อง/เบราว์เซอร์/การติดตั้ง PWA อื่น หรือหลังเคลียร์ข้อมูลเบราว์เซอร์
+// แล้วเห็นเหมือนด่านที่ปลดล็อคหายไปทั้งที่เซิร์ฟเวอร์ยังมีอยู่ — ตรงนี้ดึงค่าจากเซิร์ฟเวอร์มา
+// เทียบกับ localStorage แล้วใช้ค่าที่มากกว่า (กันเคสออฟไลน์ที่ localStorage อาจนำหน้าชั่วคราว)
+(async () => {
+  const { maxStage, ok } = await GameAPI.fetchNormalProgress();
+  if (!ok) return; // ออฟไลน์ / ยังไม่ได้ล็อกอิน — เล่นต่อด้วยค่า localStorage เดิมไปก่อน
+  const serverUnlocked = maxStage + 1;
+  if (serverUnlocked > unlockedStage) {
+    unlockedStage = serverUnlocked;
+    localStorage.setItem("unlockedStage", unlockedStage);
+    renderStageButtons();
+  }
+})();
+
 // allow Start Battle from UI buttons
