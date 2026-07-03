@@ -26,8 +26,8 @@ const SHARD_KEY_BY_RARITY = {
   Legendary: "shardGold", Mythical: "shardRed", Cosmic: "shardSky",
 };
 const SHARD_NAME_BY_KEY = {
-  shardGray: "⚪ ชาร์ดเทา", shardBlue: "🔵 ชาร์ดน้ำเงิน", shardPurple: "🟣 ชาร์ดม่วง",
-  shardGold: "🟡 ชาร์ดทอง", shardRed: "🔴 ชาร์ดแดง", shardSky: "🌌 ชาร์ดฟ้า",
+  shardGray: "ชาร์ดเทา", shardBlue: "ชาร์ดน้ำเงิน", shardPurple: "ชาร์ดม่วง",
+  shardGold: "ชาร์ดทอง", shardRed: "ชาร์ดแดง", shardSky: "ชาร์ดฟ้า",
 };
 
 function renderUpgradeDeck() {
@@ -83,6 +83,7 @@ function showSkillDetail(id) {
   const bag = typeof loadBag === "function" ? loadBag() : {};
   const have = shardKey ? (bag[shardKey] || 0) : 0;
   const shardName = shardKey ? (SHARD_NAME_BY_KEY[shardKey] || shardKey) : "";
+  const shardIcon = shardKey && typeof itemIconHTML === "function" ? itemIconHTML(shardKey) : "";
 
   let barHtml = `<div class="progress-bar"><div id="progress-bar" class="progress-fill"></div></div>`;
   let btnHtml;
@@ -92,7 +93,7 @@ function showSkillDetail(id) {
     const disabled = (!loggedIn || have < cost) ? "disabled" : "";
     btnHtml = `<button class="upgrade-btn" onclick="upgradeSkill('${id}')" ${disabled}>
                   ⬆ อัปเกรดเป็น ${nextSkill}
-                  <br>(ใช้ ${have}/${cost} ${shardName})
+                  <br>(ใช้ ${have}/${cost} ${shardIcon}${shardName})
                   <br>💡 โอกาสสำเร็จ: ${chance}
                </button>
                ${!loggedIn ? '<div class="muted" style="margin-top:6px">ต้องเข้าสู่ระบบ (username + PIN) ก่อนอัปเกรด</div>' : ''}`;
