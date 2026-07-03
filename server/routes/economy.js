@@ -46,7 +46,7 @@ async function getOrCreateEconomy(client, playerId) {
 // ---------------------------------------------------------------------------
 router.get('/state', requireAuth, asyncHandler(async (req, res) => {
   await pool.query(`INSERT INTO player_economy (player_id) VALUES ($1) ON CONFLICT DO NOTHING`, [req.playerId]);
-  const { rows } = await pool.query(`SELECT money, bag, deck, equip_bag, equip_blacklist FROM player_economy WHERE player_id = $1`, [req.playerId]);
+  const { rows } = await pool.query(`SELECT money, bag, deck, equip_bag, equip_blacklist, gacha_blacklist FROM player_economy WHERE player_id = $1`, [req.playerId]);
   res.json({ ...rows[0], money: Number(rows[0].money) });
 }));
 
@@ -506,10 +506,26 @@ router.post('/shop/buy-with-shard', requireAuth, asyncHandler(async (req, res) =
 
 // ---------------------------------------------------------------------------
 // Gacha — cost and pool weights come only from GACHA_POOLS on the server.
+// blacklist (optional array of character names) mirrors the equip-gacha "auto-discard"
+// feature. Ported from the original client-only gachaPull() in the reference
+// UnitBattle/GACHA.html build, which this server route previously didn't match:
+//   - A rolled card whose name is blacklisted never enters the deck. It is
+//     auto-sold at the canonical sell price (calcSellPrice, same table as
+//     POST /sell) AND grants 1 memory-fragment shard of the matching rarity
+//     (SHOP_MEMORY_KEY_BY_RARITY) — same as the old client's toggleBlacklist
+//     flow (roll-time shard credit + cleanupAndSell's auto sellCard on close).
+//   - A rolled card that is NOT blacklisted but is a duplicate (player already
+//     owns that name, from a previous roll or earlier in this same batch)
+//     still enters the deck as normal, but also grants a bonus memory-fragment
+//     shard — matches the old client's owned/countSame > 1 branch.
+//   - Common-rarity cards have no memory-fragment key (matches the shop, which
+//     has no Common listing either), so blacklisted/duplicate Commons only
+//     affect money, never bag.
 // ---------------------------------------------------------------------------
 router.post('/gacha/roll', requireAuth, asyncHandler(async (req, res) => {
   const poolId = req.body?.poolId;
   const times = [1, 3, 10].includes(Number(req.body?.times)) ? Number(req.body.times) : 1;
+  const clientBlacklist = Array.isArray(req.body?.blacklist) ? req.body.blacklist.filter(n => typeof n === 'string') : [];
   const gacha = GACHA_POOLS[poolId];
   if (!gacha) return res.status(400).json({ error: 'unknown gacha pool' });
 
@@ -527,28 +543,74 @@ router.post('/gacha/roll', requireAuth, asyncHandler(async (req, res) => {
       return res.status(400).json({ error: 'not enough money' });
     }
 
+    // ใช้ blacklist ที่เก็บในเซิร์ฟเวอร์เป็นหลัก (เหมือน equip-gacha) ผสานกับที่ client
+    // เพิ่งส่งมาด้วย กันเคสเพิ่งติ๊กแล้วยัง sync กลับไม่ทัน
+    const serverBlacklist = Array.isArray(econ.gacha_blacklist) ? econ.gacha_blacklist : [];
+    const blacklistSet = new Set([...serverBlacklist, ...clientBlacklist]);
+
+    // ชื่อตัวละครที่มีอยู่แล้ว (ก่อนหน้าเซสชันนี้ + ที่เพิ่งสุ่มได้ในล็อตนี้) ใช้เช็คว่าใบที่สุ่มได้ "ซ้ำ" หรือเปล่า
+    const ownedNames = new Set(econ.deck.map(c => c.name));
+
     const results = [];
+    const kept = [];
+    let bonusMoney = 0;
+    let bagDelta = {};
+
     for (let i = 0; i < times; i++) {
       const c = rollGachaOnce(poolId);
-      if (c) results.push({ ...c, id: uuid(), level: 1, stars: 1 });
+      if (!c) continue;
+      const card = { ...c, id: uuid(), level: 1, stars: 1 };
+      const memoryKey = SHOP_MEMORY_KEY_BY_RARITY[card.rarity]; // undefined for Common
+      const isDuplicate = ownedNames.has(card.name);
+
+      if (blacklistSet.has(card.name)) {
+        // แบล็คลิสต์ → ไม่เข้าเด็ค, ขายอัตโนมัติเป็นเงินตามราคาขายจริง + คืนชิ้นส่วนความทรงจำ 1 ชิ้นตาม rarity
+        const price = calcSellPrice(card);
+        bonusMoney += price;
+        if (memoryKey) bagDelta[memoryKey] = (bagDelta[memoryKey] || 0) + 1;
+        results.push({ ...card, _blacklisted: true, _autoSoldFor: price, _memoryGained: memoryKey ? 1 : 0 });
+      } else {
+        kept.push(card);
+        // ตัวซ้ำที่ไม่ติดแบล็คลิสต์ → เก็บเข้าเด็คตามปกติ แต่แถมชิ้นส่วนความทรงจำ 1 ชิ้น
+        const memoryGained = (isDuplicate && memoryKey) ? 1 : 0;
+        if (memoryGained) bagDelta[memoryKey] = (bagDelta[memoryKey] || 0) + memoryGained;
+        results.push({ ...card, _memoryGained: memoryGained });
+      }
+      ownedNames.add(card.name);
     }
 
-    const newMoney = Number(econ.money) - totalCost;
-    const newDeck = [...econ.deck, ...results];
+    const newMoney = Number(econ.money) - totalCost + bonusMoney;
+    const newDeck = [...econ.deck, ...kept];
+    const newBag = mergeBag(econ.bag, bagDelta);
 
     await client.query(
-      `UPDATE player_economy SET money = $2, deck = $3, updated_at = now() WHERE player_id = $1`,
-      [req.playerId, newMoney, JSON.stringify(newDeck)]
+      `UPDATE player_economy SET money = $2, deck = $3, bag = $4, updated_at = now() WHERE player_id = $1`,
+      [req.playerId, newMoney, JSON.stringify(newDeck), JSON.stringify(newBag)]
     );
 
     await client.query('COMMIT');
-    res.json({ ok: true, results, money: newMoney, deck: newDeck });
+    res.json({ ok: true, results, money: newMoney, deck: newDeck, bag: newBag });
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
   } finally {
     client.release();
   }
+}));
+
+// POST /api/economy/gacha/blacklist { blacklist: string[] }
+// Persists the character-gacha "auto-discard" list server-side (see gacha_blacklist
+// column note in schema.sql), same pattern as equip-gacha/blacklist.
+router.post('/gacha/blacklist', requireAuth, asyncHandler(async (req, res) => {
+  const blacklist = Array.isArray(req.body?.blacklist)
+    ? [...new Set(req.body.blacklist.filter(n => typeof n === 'string'))].slice(0, 500)
+    : [];
+  await pool.query(`INSERT INTO player_economy (player_id) VALUES ($1) ON CONFLICT DO NOTHING`, [req.playerId]);
+  await pool.query(
+    `UPDATE player_economy SET gacha_blacklist = $2, updated_at = now() WHERE player_id = $1`,
+    [req.playerId, JSON.stringify(blacklist)]
+  );
+  res.json({ ok: true, gachaBlacklist: blacklist });
 }));
 
 // ---------------------------------------------------------------------------
