@@ -46,8 +46,26 @@ async function getOrCreateEconomy(client, playerId) {
 // ---------------------------------------------------------------------------
 router.get('/state', requireAuth, asyncHandler(async (req, res) => {
   await pool.query(`INSERT INTO player_economy (player_id) VALUES ($1) ON CONFLICT DO NOTHING`, [req.playerId]);
-  const { rows } = await pool.query(`SELECT money, bag, deck, equip_bag FROM player_economy WHERE player_id = $1`, [req.playerId]);
+  const { rows } = await pool.query(`SELECT money, bag, deck, equip_bag, equip_blacklist FROM player_economy WHERE player_id = $1`, [req.playerId]);
   res.json({ ...rows[0], money: Number(rows[0].money) });
+}));
+
+// ---------------------------------------------------------------------------
+// POST /api/economy/equip-gacha/blacklist { blacklist: string[] }
+// Persists the "auto-discard on roll" list server-side (see equip_blacklist
+// column note in schema.sql) so it's consistent across devices/browsers instead
+// of living only in one browser's localStorage.
+// ---------------------------------------------------------------------------
+router.post('/equip-gacha/blacklist', requireAuth, asyncHandler(async (req, res) => {
+  const blacklist = Array.isArray(req.body?.blacklist)
+    ? [...new Set(req.body.blacklist.filter(n => typeof n === 'string'))].slice(0, 500)
+    : [];
+  await pool.query(`INSERT INTO player_economy (player_id) VALUES ($1) ON CONFLICT DO NOTHING`, [req.playerId]);
+  await pool.query(
+    `UPDATE player_economy SET equip_blacklist = $2, updated_at = now() WHERE player_id = $1`,
+    [req.playerId, JSON.stringify(blacklist)]
+  );
+  res.json({ ok: true, equipBlacklist: blacklist });
 }));
 
 // ---------------------------------------------------------------------------
@@ -893,7 +911,7 @@ router.post('/upgrade/duplicate', requireAuth, asyncHandler(async (req, res) => 
 router.post('/equip-gacha/roll', requireAuth, asyncHandler(async (req, res) => {
   const poolId = req.body?.poolId;
   const times = [1, 3, 10].includes(Number(req.body?.times)) ? Number(req.body.times) : 1;
-  const blacklist = Array.isArray(req.body?.blacklist) ? req.body.blacklist.filter(n => typeof n === 'string') : [];
+  const clientBlacklist = Array.isArray(req.body?.blacklist) ? req.body.blacklist.filter(n => typeof n === 'string') : [];
   if (!EQUIP_GACHA_POOLS[poolId]) return res.status(400).json({ error: 'unknown equip gacha pool' });
 
   const totalCost = equipGachaCost(poolId, times);
@@ -907,7 +925,12 @@ router.post('/equip-gacha/roll', requireAuth, asyncHandler(async (req, res) => {
       return res.status(400).json({ error: 'not enough money' });
     }
 
-    const blacklistSet = new Set(blacklist);
+    // ใช้ blacklist ที่เก็บไว้ในเซิร์ฟเวอร์เป็นหลัก (ตรงกันทุกอุปกรณ์/เบราว์เซอร์) ผสาน
+    // กับอันที่ client เพิ่งส่งมาด้วย (เผื่อเพิ่งติ๊กแล้วยังไม่ทัน sync กลับ) — ไม่ใช้ค่าจาก
+    // client อย่างเดียวเหมือนเดิม เพราะนั่นคือจุดที่ทำให้ของที่แบล็คลิสไว้ (ในเบราว์เซอร์/
+    // เครื่องอื่น หรือหลังล้าง localStorage) หลุดเข้ากระเป๋าได้
+    const serverBlacklist = Array.isArray(econ.equip_blacklist) ? econ.equip_blacklist : [];
+    const blacklistSet = new Set([...serverBlacklist, ...clientBlacklist]);
     const results = [];
     const kept = [];
     for (let i = 0; i < times; i++) {
