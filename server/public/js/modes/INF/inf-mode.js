@@ -9,21 +9,32 @@ let battleRunning = false;
 let autoMode = false;
 let roundCount = 1;
 
-function startInfAuto() {
+function startInfAuto(startStage = 1) {
   autoMode = true;
-  startInfGame();
+  startInfGame(startStage);
 }
 
 /* ============================
    START GAME
+   startStage: 1, or an unlocked checkpoint (25, 50, 75, ...)
    ============================ */
-function startInfGame() {
+async function startInfGame(startStage = 1) {
   if (selectedIndexes.length === 0) {
     alert("กรุณาเลือกทีมก่อน!");
     return;
   }
-  currentInfStage = 1;
-  GameAPI.infRunStart(); // server-tracked run starts here — server times the whole run, not the client
+  if (battleRunning) return;
+
+  // server times the whole run and (for checkpoints) validates the checkpoint is unlocked
+  const runData = await GameAPI.infRunStart(startStage);
+  if (startStage > 1 && runData && runData.error) {
+    alert("❌ ยังไม่ปลดล็อกจุดเริ่มต้นนี้: " + runData.error);
+    autoMode = false;
+    return;
+  }
+
+  currentInfStage = startStage;
+  playerTeam = []; // force a fresh team build at the new starting stage
   document.getElementById("cancelBattleBtn").style.display = "inline-block";
   setInfStage(currentInfStage);
 }
@@ -363,6 +374,7 @@ async function startInfBattle() {
 
         // 💰🧩 เงิน+ดรอปเซิฟเป็นคนคำนวณ ผูกกับ run/stage ที่ผ่าน anti-cheat แล้วเท่านั้น
         GameAPI.infStageClear(currentInfStage).then(() => {
+          renderInfCheckpoints(); // may have just unlocked a new checkpoint (every 25 stages)
           const runId = GameAPI.getInfRunId();
           if (!runId) return;
           GameAPI.claimInfReward(runId, currentInfStage).then((result) => {
@@ -468,6 +480,35 @@ function cancelInfBattle() {
 }
 
 /* ============================
+   CHECKPOINT START LIST (every 25 stages)
+   Unlocked once the player has ever validated-cleared that stage server-side.
+   ============================ */
+let infBestStage = 0;
+
+async function renderInfCheckpoints() {
+  const wrap = document.getElementById("infCheckpointList");
+  if (!wrap) return;
+
+  infBestStage = await GameAPI.fetchInfProgress();
+  const unlockedCount = Math.floor(infBestStage / 25);
+
+  wrap.innerHTML = "";
+
+  if (unlockedCount === 0) {
+    wrap.innerHTML = '<span style="opacity:.6;font-size:13px">ผ่านด่าน 25 เพื่อปลดล็อกจุดเริ่มต้น</span>';
+    return;
+  }
+
+  for (let i = 1; i <= unlockedCount; i++) {
+    const stageNum = i * 25;
+    const btn = document.createElement("button");
+    btn.textContent = "🚩 เริ่มด่าน " + stageNum;
+    btn.onclick = () => startInfGame(stageNum);
+    wrap.appendChild(btn);
+  }
+}
+
+/* ============================
    BATTLE SPEED
    ============================ */
 const SPEEDS = { 1: 1300, 2: 1000, 3: 800, 4: 500 };
@@ -493,3 +534,4 @@ document.querySelectorAll(".speed-btn").forEach(btn => {
    ============================ */
 renderDeck();
 updateBagUI();
+renderInfCheckpoints();
