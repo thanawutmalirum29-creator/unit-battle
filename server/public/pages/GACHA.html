@@ -138,14 +138,15 @@ async function gachaPull(poolKey, count) {
     return;
   }
   // เซิฟเป็นคนคำนวณ cost/สุ่มการ์ด/หักเงิน/บันทึกลง deck ทั้งหมด (ดู routes/economy.js gacha/roll)
-  // หมายเหตุ: กลไก blacklist->memory currency (เดิมทำฝั่ง client ล้วน) ยังไม่ถูกย้ายมาเซิฟ
-  // ต้องทำเป็นเฟสถัดไป — ตอนนี้การ์ดทุกใบที่สุ่มได้จะถูกเติมเข้า deck บนเซิฟเสมอ ไม่มีการแปลงเป็น memory
-  const result = await GameAPI.gachaRoll(poolKey, count);
+  // การ์ดที่ติ๊กแบล็คลิสไว้ (ปุ่ม "!" ดูเรท) จะไม่ถูกเติมเข้า deck เลย — เซิฟเช็คให้แล้ว
+  const blacklist = JSON.parse(localStorage.getItem("gacha_blacklist") || "[]");
+  const result = await GameAPI.gachaRoll(poolKey, count, blacklist);
   if (!result || !result.ok) {
     alert("สุ่มไม่สำเร็จ: " + (result?.error || "unknown error"));
     return;
   }
   applyServerMoney(result.money);
+  if (typeof applyServerDeck === "function") applyServerDeck(result.deck);
   showPulledCards(result.results);
 }
 
@@ -218,6 +219,9 @@ function toggleBlacklist(name){
   }
   localStorage.setItem("gacha_blacklist", JSON.stringify(blacklist));
 
+  // เซฟขึ้นเซิร์ฟเวอร์ด้วย ไม่ใช่แค่ localStorage — กันเบราว์เซอร์/เครื่องอื่นไม่เห็นรายการที่ติ๊กไว้
+  if (window.GameAPI && GameAPI.saveGachaBlacklist) GameAPI.saveGachaBlacklist(blacklist);
+
   if (currentRatePool) {
     showRates(currentRatePool);
   }
@@ -234,6 +238,18 @@ function closePopup(){
 
 document.addEventListener("DOMContentLoaded", renderGachaBoxes);
 
+// ซิงก์แบล็คลิสจากเซิร์ฟเวอร์ตอนโหลดหน้า — กันเบราว์เซอร์/เครื่องอื่นเห็นรายการไม่ตรงกัน
+// (เหมือนกับ syncEquipBlacklistFromServer ใน data/equip-gacha.js)
+async function syncGachaBlacklistFromServer() {
+  if (!window.GameAPI || !GameAPI.isLoggedIn || !GameAPI.isLoggedIn()) return;
+  const state = await GameAPI.fetchEconomyState();
+  if (state && Array.isArray(state.gacha_blacklist)) {
+    localStorage.setItem("gacha_blacklist", JSON.stringify(state.gacha_blacklist));
+    if (currentRatePool) showRates(currentRatePool);
+  }
+}
+document.addEventListener("DOMContentLoaded", syncGachaBlacklistFromServer);
+
 async function showPulledCards(cards) {
   const overlay = document.getElementById("gachaOverlay");
   const skipBtn = document.getElementById("skipButton");
@@ -247,23 +263,14 @@ async function showPulledCards(cards) {
   Array.from(overlay.querySelectorAll(".gacha-fly-card, .gacha-static-card, .result-wrap"))
        .forEach(el => el.remove());
 
-  function cleanupAndSell() {
+  function cleanup() {
     overlay.style.display = "none";
     Array.from(overlay.querySelectorAll(".gacha-fly-card, .gacha-static-card, .result-wrap"))
          .forEach(el => el.remove());
     skipBtn.classList.add("hidden");
     document.body.classList.remove("no-scroll");
-
-    // ⭐ หลังจากปิด overlay → ขายการ์ด blacklist
-    let deck = JSON.parse(localStorage.getItem("deck") || "[]");
-    cards.forEach(c => {
-      if (c._blacklisted) {
-        const idx = deck.findIndex(d => d.id === c.id);
-        if (idx !== -1) deck.splice(idx, 1);
-        sellCard(c.id, c); // ใช้ฟังก์ชันขาย
-      }
-    });
-    localStorage.setItem("deck", JSON.stringify(deck));
+    // การ์ดที่ติ๊กแบล็คลิสไว้ไม่เคยถูกเติมเข้า deck ตั้งแต่แรก (เซิฟกรองให้แล้วใน
+    // /api/economy/gacha/roll) จึงไม่ต้อง "ขายทิ้ง" อะไรตรงนี้อีก
   }
 
   function renderAll() {
@@ -356,7 +363,7 @@ async function showPulledCards(cards) {
       closeBtn.style.color = "white";
       closeBtn.style.fontWeight = "bold";
       closeBtn.style.cursor = "pointer";
-      closeBtn.onclick = cleanupAndSell; // ⭐ ใช้ cleanup ที่ขายการ์ด blacklist
+      closeBtn.onclick = cleanup;
       wrap.appendChild(closeBtn);
     }
 
