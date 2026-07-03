@@ -69,6 +69,11 @@ CREATE INDEX IF NOT EXISTS idx_runs_player ON runs (player_id);
 ALTER TABLE players ADD COLUMN IF NOT EXISTS pin_hash TEXT;
 ALTER TABLE players ADD COLUMN IF NOT EXISTS session_token UUID;
 
+-- Sessions previously never expired once issued (session_token had no TTL at all —
+-- a leaked token stayed valid forever). Every login/register now sets this to
+-- now() + 30 days; requireAuth rejects tokens past this point.
+ALTER TABLE players ADD COLUMN IF NOT EXISTS session_expires_at TIMESTAMPTZ;
+
 -- Google Sign-In: players who log in with Google never set a PIN (pin_hash stays NULL).
 -- google_id is Google's stable "sub" claim, unique per Google account.
 ALTER TABLE players ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE;
