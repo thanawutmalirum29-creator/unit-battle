@@ -15,7 +15,7 @@
       font-size:14px;
     }
     .acct-row:last-child{ border-bottom:none; }
-    .acct-row .label{ color:var(--muted); }
+    .acct-row .label{ color:var(--muted); display:inline-flex; align-items:center; }
     .acct-row .value{ font-weight:700; }
     .acct-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
     #acctLogoutBtn{
@@ -130,22 +130,23 @@
 <section class="panel" id="acctBagPanel" style="display:none">
   <h3>🎒 กระเป๋า</h3>
   <div id="acctBag">
-    <div class="acct-row"><span class="label">💙 ความทรงจำ Rare</span><span class="value" id="acctMemoryRare">0</span></div>
-    <div class="acct-row"><span class="label">💜 ความทรงจำ Epic</span><span class="value" id="acctMemoryEpic">0</span></div>
-    <div class="acct-row"><span class="label">💛 ความทรงจำ Legendary</span><span class="value" id="acctMemoryLegendary">0</span></div>
-    <div class="acct-row"><span class="label">🩷 ความทรงจำ Mythical</span><span class="value" id="acctMemoryMythical">0</span></div>
-    <div class="acct-row"><span class="label">🌌 ความทรงจำ Cosmic</span><span class="value" id="acctMemoryCosmic">0</span></div>
-    <div class="acct-row"><span class="label">⚪ ชาร์ดเทา</span><span class="value" id="acctShardGray">0</span></div>
-    <div class="acct-row"><span class="label">🔵 ชาร์ดน้ำเงิน</span><span class="value" id="acctShardBlue">0</span></div>
-    <div class="acct-row"><span class="label">🟣 ชาร์ดม่วง</span><span class="value" id="acctShardPurple">0</span></div>
-    <div class="acct-row"><span class="label">🟡 ชาร์ดทอง</span><span class="value" id="acctShardGold">0</span></div>
-    <div class="acct-row"><span class="label">🔴 ชาร์ดแดง</span><span class="value" id="acctShardRed">0</span></div>
-    <div class="acct-row"><span class="label">🌌 ชาร์ดฟ้า</span><span class="value" id="acctShardSky">0</span></div>
+    <div class="acct-row"><span class="label"><span class="item-icon" style="--icon-color:var(--c-rare)" aria-hidden="true"></span>ความทรงจำ Rare</span><span class="value" id="acctMemoryRare">0</span></div>
+    <div class="acct-row"><span class="label"><span class="item-icon" style="--icon-color:var(--c-epic)" aria-hidden="true"></span>ความทรงจำ Epic</span><span class="value" id="acctMemoryEpic">0</span></div>
+    <div class="acct-row"><span class="label"><span class="item-icon item-icon--glow" style="--icon-color:var(--c-legend)" aria-hidden="true"></span>ความทรงจำ Legendary</span><span class="value" id="acctMemoryLegendary">0</span></div>
+    <div class="acct-row"><span class="label"><span class="item-icon item-icon--glow" style="--icon-color:var(--c-mythical)" aria-hidden="true"></span>ความทรงจำ Mythical</span><span class="value" id="acctMemoryMythical">0</span></div>
+    <div class="acct-row"><span class="label"><span class="item-icon item-icon--glow" style="--icon-color:var(--c-cosmic)" aria-hidden="true"></span>ความทรงจำ Cosmic</span><span class="value" id="acctMemoryCosmic">0</span></div>
+    <div class="acct-row"><span class="label"><span class="item-icon" style="--icon-color:var(--c-common)" aria-hidden="true"></span>ชาร์ดเทา</span><span class="value" id="acctShardGray">0</span></div>
+    <div class="acct-row"><span class="label"><span class="item-icon" style="--icon-color:var(--c-rare)" aria-hidden="true"></span>ชาร์ดน้ำเงิน</span><span class="value" id="acctShardBlue">0</span></div>
+    <div class="acct-row"><span class="label"><span class="item-icon" style="--icon-color:var(--c-epic)" aria-hidden="true"></span>ชาร์ดม่วง</span><span class="value" id="acctShardPurple">0</span></div>
+    <div class="acct-row"><span class="label"><span class="item-icon item-icon--glow" style="--icon-color:var(--c-legend)" aria-hidden="true"></span>ชาร์ดทอง</span><span class="value" id="acctShardGold">0</span></div>
+    <div class="acct-row"><span class="label"><span class="item-icon" style="--icon-color:var(--bad)" aria-hidden="true"></span>ชาร์ดแดง</span><span class="value" id="acctShardRed">0</span></div>
+    <div class="acct-row"><span class="label"><span class="item-icon" style="--icon-color:var(--accent-2)" aria-hidden="true"></span>ชาร์ดฟ้า</span><span class="value" id="acctShardSky">0</span></div>
   </div>
 </section>
 
 <script src="../js/core/api.js"></script>
 <script src="../js/core/auth-ui.js"></script>
+<script src="../js/core/bag.js"></script>
 <script>
   // หน้านี้ดึงข้อมูลสดจากเซิร์ฟเวอร์เสมอ (money/bag/deck/equip_bag) — ไม่พึ่ง localStorage
   // เพราะเซิร์ฟเวอร์คือ source of truth ตัวจริง ไม่ใช่ค่าที่ client จำไว้เอง
@@ -244,10 +245,10 @@
   // Mailbox popup
   // ---------------------------------------------------------------------
   const BAG_LABELS = {
-    memoryRare: "💙 ความทรงจำ Rare", memoryEpic: "💜 ความทรงจำ Epic",
-    memoryLegendary: "💛 ความทรงจำ Legendary", memoryMythical: "🩷 ความทรงจำ Mythical",
-    memoryCosmic: "🌌 ความทรงจำ Cosmic", shardGray: "⚪ ชาร์ดเทา", shardBlue: "🔵 ชาร์ดน้ำเงิน",
-    shardPurple: "🟣 ชาร์ดม่วง", shardGold: "🟡 ชาร์ดทอง", shardRed: "🔴 ชาร์ดแดง", shardSky: "🌌 ชาร์ดฟ้า",
+    memoryRare: "ความทรงจำ Rare", memoryEpic: "ความทรงจำ Epic",
+    memoryLegendary: "ความทรงจำ Legendary", memoryMythical: "ความทรงจำ Mythical",
+    memoryCosmic: "ความทรงจำ Cosmic", shardGray: "ชาร์ดเทา", shardBlue: "ชาร์ดน้ำเงิน",
+    shardPurple: "ชาร์ดม่วง", shardGold: "ชาร์ดทอง", shardRed: "ชาร์ดแดง", shardSky: "ชาร์ดฟ้า",
   };
 
   function fmtMailDate(iso) {
@@ -313,7 +314,7 @@
     if (mail.reward) {
       const parts = [];
       if (mail.reward.money > 0) parts.push(`💰 ${mail.reward.money}`);
-      if (mail.reward.bagKey) parts.push(`${BAG_LABELS[mail.reward.bagKey] || mail.reward.bagKey} × ${mail.reward.bagQty}`);
+      if (mail.reward.bagKey) parts.push(`${typeof itemIconHTML === "function" ? itemIconHTML(mail.reward.bagKey) : ""}${BAG_LABELS[mail.reward.bagKey] || mail.reward.bagKey} × ${mail.reward.bagQty}`);
       if (mail.reward.card) parts.push(`🧑‍🤝‍🧑 ${escapeHtml(mail.reward.card.name)} (${escapeHtml(mail.reward.card.rarity)})`);
       if (mail.reward.equip) parts.push(`🗡️ ${escapeHtml(mail.reward.equip.name)} (${escapeHtml(mail.reward.equip.rarity)})`);
       rewardHtml = `
