@@ -1,8 +1,7 @@
 # UnitBattle — Server (anti-cheat leaderboard)
 
 ## แนวคิด
-ไม่ใช่เกม real-time PvP แต่เป็นการแข่งกัน "ผลลัพธ์" — ด่านสูงสุดที่ผ่าน (โหมดทั่วไป/INF), เวลาที่ใช้, คะแนนทีม
-ดังนั้น server ไม่ต้องรัน battle simulation เอง แค่เป็น **ผู้บันทึก/ตัดสินผล** แทน client เพื่อกันโกง
+อนาคตจะเป็นเกม real-time PvP ทำให้ต้องระบบป้องกันแน่นในทุกจุดเพื่อไม่ให้ผู้เล่นได้ประโยชน์จากช่องโหว่
 
 ## Run lifecycle (server-authoritative)
 1. `POST /api/runs/start` — client เริ่มเล่น → server บันทึกเวลาเริ่มเอง คืน `runId` + `token`
