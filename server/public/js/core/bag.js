@@ -125,18 +125,97 @@ function updateBagUI() {
 
 // รายการไอเทมในกระเป๋า เรียงตามลำดับที่จะแสดง (sep:true = ขึ้นบรรทัดใหม่ด้วย <hr> ก่อนอันนี้)
 const BAG_DISPLAY_ITEMS = [
-    { id: "memoryRare",      icon: "💙", label: "ความทรงจำ Rare" },
-    { id: "memoryEpic",      icon: "💜", label: "ความทรงจำ Epic" },
-    { id: "memoryLegendary", icon: "💛", label: "ความทรงจำ Legendary" },
-    { id: "memoryMythical",  icon: "🩷", label: "ความทรงจำ Mythical" },
-    { id: "memoryCosmic",    icon: "🌌", label: "ความทรงจำ Cosmic" },
-    { id: "shardGray",       icon: "⚪", label: "ชาร์ดเทา",     sep: true },
-    { id: "shardBlue",       icon: "🔵", label: "ชาร์ดน้ำเงิน" },
-    { id: "shardPurple",     icon: "🟣", label: "ชาร์ดม่วง" },
-    { id: "shardGold",       icon: "🟡", label: "ชาร์ดทอง" },
-    { id: "shardRed",        icon: "🔴", label: "ชาร์ดแดง" },
-    { id: "shardSky",        icon: "🌌", label: "ชาร์ดฟ้า" },
+    { id: "memoryRare",      label: "ความทรงจำ Rare" },
+    { id: "memoryEpic",      label: "ความทรงจำ Epic" },
+    { id: "memoryLegendary", label: "ความทรงจำ Legendary" },
+    { id: "memoryMythical",  label: "ความทรงจำ Mythical" },
+    { id: "memoryCosmic",    label: "ความทรงจำ Cosmic" },
+    { id: "shardGray",       label: "ชาร์ดเทา",     sep: true },
+    { id: "shardBlue",       label: "ชาร์ดน้ำเงิน" },
+    { id: "shardPurple",     label: "ชาร์ดม่วง" },
+    { id: "shardGold",       label: "ชาร์ดทอง" },
+    { id: "shardRed",        label: "ชาร์ดแดง" },
+    { id: "shardSky",        label: "ชาร์ดฟ้า" },
 ];
+
+/* ============================================================
+   ไอคอนไอเทม — วาดเองด้วย CSS ล้วนๆ เป็นรูปชิ้นส่วนจิ๊กซอ (ปุ่มนูน 1 จุด
+   + รอยเว้า 1 จุด) แทนอิโมจิ ใช้สีจาก theme.css (--c-rare/--c-epic/...)
+   เพื่อให้เฉดสีตรงกับระบบ rarity เดิม ไฟล์ไหน include bag.js อยู่แล้ว
+   (game/boss/inf/shop/gacha/upgrade/upgradeskills/account) เรียก
+   itemIconHTML(key) ได้เลยที่เดียว ไม่ต้องแก้ CSS ซ้ำในแต่ละหน้า
+   ============================================================ */
+const ITEM_ICON_META = {
+    memoryRare:      { color: "var(--c-rare)" },
+    memoryEpic:      { color: "var(--c-epic)" },
+    memoryLegendary: { color: "var(--c-legend)",    glow: true },
+    memoryMythical:  { color: "var(--c-mythical)",  glow: true },
+    memoryCosmic:    { color: "var(--c-cosmic)",    glow: true },
+    shardGray:       { color: "var(--c-common)" },
+    shardBlue:       { color: "var(--c-rare)" },
+    shardPurple:     { color: "var(--c-epic)" },
+    shardGold:       { color: "var(--c-legend)",    glow: true },
+    shardRed:        { color: "var(--bad)" },
+    shardSky:        { color: "var(--accent-2)" },
+};
+
+function itemIconHTML(key) {
+    const meta = ITEM_ICON_META[key];
+    if (!meta) return "";
+    const cls = "item-icon" + (meta.glow ? " item-icon--glow" : "");
+    return '<span class="' + cls + '" style="--icon-color:' + meta.color + '" aria-hidden="true"></span>';
+}
+
+function injectItemIconStyles() {
+    if (document.getElementById("itemIconStyles")) return;
+    const style = document.createElement("style");
+    style.id = "itemIconStyles";
+    style.textContent = `
+.item-icon{
+  --icon-color:#9aa5b1;
+  position:relative;
+  display:inline-block;
+  width:15px; height:15px;
+  margin-right:6px;
+  vertical-align:-3px;
+  border-radius:4px;
+  background:var(--icon-color);
+  box-shadow:
+    inset -2px -3px 4px rgba(0,0,0,.35),
+    inset 2px 2px 3px rgba(255,255,255,.28),
+    0 1px 2px rgba(0,0,0,.4);
+}
+.item-icon::before{
+  content:"";
+  position:absolute;
+  top:-4px; left:50%;
+  width:6px; height:6px;
+  margin-left:-3px;
+  border-radius:50%;
+  background:var(--icon-color);
+  box-shadow:
+    inset -1px -1px 2px rgba(0,0,0,.35),
+    inset 1px 1px 1px rgba(255,255,255,.3);
+}
+.item-icon::after{
+  content:"";
+  position:absolute;
+  bottom:-2px; right:-2px;
+  width:6px; height:6px;
+  border-radius:50%;
+  background:var(--bg-1,#0c121b);
+  box-shadow:inset 1px 1px 2px rgba(0,0,0,.55);
+}
+.item-icon--glow{
+  box-shadow:
+    inset -2px -3px 4px rgba(0,0,0,.35),
+    inset 2px 2px 3px rgba(255,255,255,.28),
+    0 0 6px 1px var(--icon-color),
+    0 1px 2px rgba(0,0,0,.4);
+}
+`;
+    document.head.appendChild(style);
+}
 
 const BAG_COLLAPSE_KEY = "bagPanelCollapsed"; // จำสถานะเปิด/ปิดไว้ข้ามหน้า (เหมือนกันทุกหน้าที่มีกระเป๋า)
 
@@ -235,7 +314,7 @@ function renderBagPanel() {
     BAG_DISPLAY_ITEMS.forEach((item) => {
         if (item.sep) bagGrid.appendChild(document.createElement("hr"));
         const row = document.createElement("div");
-        row.innerHTML = item.icon + " " + item.label + ': <span id="' + item.id + '">0</span>';
+        row.innerHTML = itemIconHTML(item.id) + item.label + ': <span id="' + item.id + '">0</span>';
         bagGrid.appendChild(row);
     });
 
@@ -262,5 +341,7 @@ function renderBagPanel() {
 }
 
 // ----------------- เริ่มต้น -----------------
+injectItemIconStyles(); // สไตล์จิ๊กซอไอคอนต้องมีทุกหน้าที่ include ไฟล์นี้ ไม่ใช่แค่หน้าที่มี #bagMount
+                         // (account.html เรียกใช้ itemIconHTML() เองโดยไม่มีแผงกระเป๋า)
 renderBagPanel();
 updateBagUI();
