@@ -1,0 +1,19 @@
+{
+  "name": "Unit Battle",
+  "short_name": "Unit Battle",
+  "description": "เกมต่อสู้การ์ดผู้เล่นหลายคน สุ่มตัวละคร สุ่มอุปกรณ์ อัพเกรด และปีนแรงค์",
+  "start_url": "/pages/game.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070a10",
+  "theme_color": "#0c121b",
+  "lang": "th",
+  "dir": "ltr",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
