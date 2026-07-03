@@ -167,3 +167,20 @@ CREATE TABLE IF NOT EXISTS mailbox (
   claimed_at    TIMESTAMPTZ
 );
 CREATE INDEX IF NOT EXISTS idx_mailbox_player ON mailbox (player_id, created_at DESC);
+
+-- ============================================================================
+-- INF checkpoint starts: pick "start at stage 25/50/..." only if that stage was
+-- already cleared in some past run. Mirrors normal_progress but for INF mode.
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS inf_progress (
+  player_id     UUID PRIMARY KEY REFERENCES players(id),
+  max_stage     INT NOT NULL DEFAULT 0,
+  updated_at    TIMESTAMPTZ DEFAULT now()
+);
+
+-- Baseline max_stage the run began at (0 for a normal from-stage-1 run, or
+-- checkpoint-1 when starting mid-way). Needed so the anti-cheat "elapsed time"
+-- check only counts stages actually fought in THIS run, not stages skipped by
+-- starting at a checkpoint.
+ALTER TABLE runs ADD COLUMN IF NOT EXISTS start_stage INT NOT NULL DEFAULT 0;
