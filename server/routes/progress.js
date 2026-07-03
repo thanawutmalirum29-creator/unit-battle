@@ -68,6 +68,17 @@ router.post('/normal-clear', asyncHandler(async (req, res) => {
   res.json({ ok: true, maxStage: rows[0].max_stage });
 }));
 
+// GET /api/progress/normal/:playerId
+// Best-ever validated NORMAL stage for this player — used to restore which stages
+// are unlocked when the game is opened (was previously only kept in localStorage,
+// so progress was lost on a new device/browser/PWA install even though the server
+// already had it recorded via /normal-clear).
+router.get('/normal/:playerId', asyncHandler(async (req, res) => {
+  const { playerId } = req.params;
+  const { rows } = await pool.query(`SELECT max_stage FROM normal_progress WHERE player_id = $1`, [playerId]);
+  res.json({ maxStage: rows[0]?.max_stage ?? 0 });
+}));
+
 // GET /api/progress/inf/:playerId
 // Best-ever validated INF stage for this player — used to render the
 // checkpoint-start buttons (every 25 stages) in inf.html.
