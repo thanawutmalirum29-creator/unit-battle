@@ -3,6 +3,22 @@
 // (แค่ตัวเลขที่โชว์ผิดชั่วคราวจนกว่าจะ sync ใหม่จากเซิร์ฟเวอร์)
 const BAG_HASH_SALT = 135792468; // ยังใช้ hash กันข้อมูล localStorage เพี้ยน/พังโดยไม่ตั้งใจ (ไม่ใช่กันโกง)
 
+// ค่าเริ่มต้นของกระเป๋า ใช้ร่วมกันทั้งตอน merge จาก localStorage (ensureBagDefaults)
+// และตอน merge จากเซิร์ฟเวอร์ (applyServerBag) เพื่อให้ชุด key ที่ถูกเซฟ+แฮชตรงกันเป๊ะทุกจุด
+const BAG_DEFAULTS = {
+    memoryRare: 0,
+    memoryEpic: 0,
+    memoryLegendary: 0,
+    memoryMythical: 0,
+    memoryCosmic: 0,
+    shardGray: 0,
+    shardBlue: 0,
+    shardPurple: 0,
+    shardGold: 0,
+    shardRed: 0,
+    shardSky: 0
+};
+
 // ----------------- ฟังก์ชันเข้ารหัส bag (คงชื่อเดิมไว้ ไม่ต้องแก้จุดที่เรียกใช้) -----------------
 function encryptBag(bag) {
     return JSON.stringify(bag);
@@ -20,8 +36,14 @@ function decryptBag(enc) {
 }
 
 // ----------------- hash ตรวจสอบ -----------------
+// สำคัญ: ต้อง stringify ด้วยลำดับ key ที่แน่นอน (เรียง key ก่อนเสมอ) ไม่งั้น object
+// เดียวกันแต่ key คนละลำดับ (เช่น bag จากเซิร์ฟเวอร์ที่ JSON key order มาจาก DB
+// ไม่ตรงกับลำดับใน defaults ของฝั่ง client) จะได้ hash ไม่ตรงกัน ทั้งที่ข้อมูลเหมือนกันทุกอย่าง
+// แล้วโดน "ตรวจจับ" ว่า corrupted แล้วรีเซ็ตเป็น 0 ทันทีหลัง sync จากเซิฟเวอร์
 function hashBag(bag) {
-    let str = JSON.stringify(bag);
+    const sorted = {};
+    for (const key of Object.keys(bag).sort()) sorted[key] = bag[key];
+    let str = JSON.stringify(sorted);
     let hash = 0;
     for(let i=0;i<str.length;i++) {
         hash = ((hash << 5) - hash) + str.charCodeAt(i);
@@ -36,7 +58,10 @@ function hashBag(bag) {
 // stale local values for keys the server considers gone/reset.
 function applyServerBag(serverBag) {
     if (!serverBag || typeof serverBag !== "object") return;
-    saveBag(serverBag);
+    // เติม default keys ให้ครบก่อนเซฟ+แฮช เผื่อ bag จากเซิฟเวอร์ขาดคีย์ไหนไป (เช่น
+    // player เก่าที่ยังไม่มีไอเทมชนิดใหม่) จะได้ไม่ไปเจอ key เพิ่มทีหลังตอน
+    // ensureBagDefaults() merge แล้ว hash ไม่ตรงจนโดนรีเซ็ตเป็น 0
+    saveBag({ ...BAG_DEFAULTS, ...serverBag });
 }
 
 async function syncBagFromServer() {
@@ -50,26 +75,12 @@ function ensureBagDefaults() {
     const enc = localStorage.getItem("bag");
     const hash = parseInt(localStorage.getItem("bag_hash") || "0",10);
     let bag = decryptBag(enc);
-
-    const defaults = {
-        memoryRare: 0,
-        memoryEpic: 0,
-        memoryLegendary: 0,
-        memoryMythical: 0,
-        memoryCosmic: 0,
-        shardGray: 0,
-        shardBlue: 0,
-        shardPurple: 0,
-        shardGold: 0,
-        shardRed: 0,
-        shardSky: 0
-    };
-    bag = { ...defaults, ...bag };
+    bag = { ...BAG_DEFAULTS, ...bag };
 
     // ตรวจสอบ hash
     if(hash !== hashBag(bag)) {
         console.warn("Bag corrupted! Reset to default.");
-        bag = { ...defaults };
+        bag = { ...BAG_DEFAULTS };
         saveBag(bag);
     }
 
