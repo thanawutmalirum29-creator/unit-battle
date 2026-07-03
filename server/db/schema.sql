@@ -98,6 +98,13 @@ CREATE TABLE IF NOT EXISTS player_economy (
 -- so equip/unequip only ever needs to move an item between `equip_bag` and `deck[i].equips`.
 ALTER TABLE player_economy ADD COLUMN IF NOT EXISTS equip_bag JSONB NOT NULL DEFAULT '[]';
 
+-- Equip-gacha "auto-discard" blacklist (list of item names). Used to live only in
+-- localStorage["equip_gacha_blacklist"] on whichever browser/device set it, which
+-- meant it silently didn't apply on a different device or after clearing site data —
+-- items the player thought were blacklisted could still land in equip_bag. Now
+-- server-persisted like everything else in this table.
+ALTER TABLE player_economy ADD COLUMN IF NOT EXISTS equip_blacklist JSONB NOT NULL DEFAULT '[]';
+
 -- One row per reward payout. Prevents an INF/boss stage from being paid out twice
 -- (e.g. client retries the claim call after a slow/dropped response).
 CREATE TABLE IF NOT EXISTS reward_claims (
