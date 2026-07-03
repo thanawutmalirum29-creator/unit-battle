@@ -106,8 +106,7 @@ async function startBattle(){
     for (let actor of turnOrder){
       if (actor.hp <= 0) continue;
       let allies = actor.isEnemy ? enemyTeam : playerTeam;
-      let enemies = actor.isEnemy ? playerTeam : playerTeam;
-      enemies = actor.isEnemy ? playerTeam : enemyTeam;
+      let enemies = actor.isEnemy ? playerTeam : enemyTeam;
       applyStatusEffects(actor);
 
       if (actor.skipTurn) {
