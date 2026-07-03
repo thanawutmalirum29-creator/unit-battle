@@ -300,6 +300,11 @@ async function showPulledCards(cards) {
     wrap.style.alignItems = "center";
     wrap.style.gap = "20px";
     wrap.style.marginTop = "30px";
+    // #gachaOverlay เป็น flex row → wrap เป็น flex item ที่ default จะ "หุบตามเนื้อหา"
+    // (ไม่ยึดความกว้างจริงของจอ) ต้องบังคับ width:100% ไว้ ไม่งั้น grid ข้างในจะคำนวณ
+    // ความกว้างแบบ max-content (พยายามยัดให้ครบคอลัมน์สุดตาม max-width) แล้วล้นจอมือถือ
+    wrap.style.width = "100%";
+    wrap.style.boxSizing = "border-box";
 
     // === จัดลำดับความหายาก ===
     const rarityRank = { Cosmic: 6, Mythical: 5, Legendary: 4, Epic: 3, Rare: 2, Common: 1 };
@@ -347,7 +352,9 @@ async function showPulledCards(cards) {
       container.style.gridTemplateColumns = "repeat(auto-fit, minmax(160px, 1fr))";
       container.style.gap = "12px";
       container.style.justifyContent = "center";
+      container.style.width = "100%";
       container.style.maxWidth = "500px";
+      container.style.boxSizing = "border-box";
 
       cards.forEach(card => {
         const def = card.def ?? "?";
