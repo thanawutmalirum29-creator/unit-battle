@@ -937,7 +937,21 @@ router.post('/upgrade/duplicate', requireAuth, asyncHandler(async (req, res) => 
     const consumedIds = new Set(validDupes.slice(0, need).map(c => c.id));
     card.stars += 1;
     card.level = 1;
-    if (!card.maxed) applyLevelGrowth(card);
+    // BUG FIX: the guaranteed (line ~660) and paid (line ~869) upgrade paths both set
+    // card.maxed = true + card.level = 'MAX' the moment stars hits 8, but this path
+    // — the ONLY one that actually takes a card from 7★ to 8★ under normal play, since
+    // guaranteed/paid star-ups only fire once you're already at UPGRADE_MAX_LEVEL —
+    // never did. Result: an 8★ card upgraded via duplicates stayed level:1, non-maxed.
+    // /upgrade/guaranteed would then accept it again ("card.level < UPGRADE_MAX_LEVEL"
+    // is true at level 1), silently burn 10 shards, and do nothing else useful because
+    // its own star-up branch requires stars < 8. The card was never reachable as truly
+    // "done" from the UI's perspective either (nothing ever set maxed/'MAX' for it).
+    if (card.stars >= 8) {
+      card.maxed = true;
+      card.level = 'MAX';
+    } else if (!card.maxed) {
+      applyLevelGrowth(card);
+    }
 
     const newDeck = deck.filter(c => !consumedIds.has(c.id)).map(c => (c.id === cardId ? card : c));
 
