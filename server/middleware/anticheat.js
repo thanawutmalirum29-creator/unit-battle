@@ -17,8 +17,13 @@ function validateStageClear(run, stage, now) {
     return { ok: false, reason: `stage out of order: expected ${expectedStage}, got ${stage}` };
   }
 
+  // Stages actually fought in THIS run — when a run begins at a checkpoint
+  // (run.start_stage > 0), the skipped stages must not count toward the
+  // "minimum possible elapsed time" check below.
+  const stagesIntoRun = stage - (run.start_stage || 0);
+
   const elapsedSinceStart = now - new Date(run.started_at).getTime();
-  const minPossibleElapsed = stage * MIN_MS_PER_STAGE;
+  const minPossibleElapsed = stagesIntoRun * MIN_MS_PER_STAGE;
   if (elapsedSinceStart < minPossibleElapsed) {
     return { ok: false, reason: 'stage cleared faster than physically possible' };
   }
