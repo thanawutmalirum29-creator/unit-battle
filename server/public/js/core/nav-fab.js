@@ -255,6 +255,28 @@
     let rafId = null;
     let startTime = 0;
 
+    // กัน "ghost click" ทะลุไปโดนปุ่ม/การ์ดที่อยู่ใต้ลูกบอลพอดี
+    // เบราว์เซอร์บางตัว (โดยเฉพาะ mobile webview) จะยิง compatibility "click"
+    // เล็งไปที่ตำแหน่ง (x,y) ตอนปล่อยนิ้ว โดยไม่สนใจ setPointerCapture ที่ผูกไว้กับลูกบอล
+    // ผลคือ กดลูกบอลแล้วดันไปกดโดนสิ่งที่อยู่ตรงนั้นด้วย (เช่น ปุ่มในเกม → เปลี่ยนหน้าเอง)
+    // แก้โดยดักจับ click รอบถัดไปแบบ capture phase แล้วบล็อกทิ้งทุกครั้งที่มีการกด/ลากลูกบอล
+    let ghostClickTimer = null;
+    function suppressGhostClick(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      cleanupGhostGuard();
+    }
+    function cleanupGhostGuard() {
+      document.removeEventListener("click", suppressGhostClick, true);
+      if (ghostClickTimer != null) { clearTimeout(ghostClickTimer); ghostClickTimer = null; }
+    }
+    function armGhostClickGuard() {
+      cleanupGhostGuard();
+      document.addEventListener("click", suppressGhostClick, true);
+      // เผื่อบางเบราว์เซอร์ไม่ยิง click ตามมาเลย ก็เอา guard ออกเองหลังจากรอสักครู่
+      ghostClickTimer = setTimeout(cleanupGhostGuard, 500);
+    }
+
     function clamp(x, y) {
       const half = BALL_SIZE / 2;
       const bottomSafe = EDGE_MARGIN + Math.max(bottomSafeInset(), BOTTOM_SAFE_FALLBACK);
@@ -339,6 +361,7 @@
       originX = c.x; originY = c.y;
       startX = e.clientX; startY = e.clientY;
       ball.classList.add("dragging");
+      armGhostClickGuard();
       e.preventDefault();
     }
 
