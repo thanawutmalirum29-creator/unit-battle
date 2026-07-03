@@ -2,7 +2,6 @@
 // Tune these to match real game balance (min time a stage can possibly be cleared in).
 
 const MIN_MS_PER_STAGE = 3000;     // fastest humanly/mechanically possible stage clear
-const MAX_STAGE_JUMP = 1;          // stages must be cleared in order, one at a time
 const MAX_RUNS_PER_MINUTE = 10;    // basic spam guard, also see rate-limit middleware
 
 /**
@@ -31,4 +30,4 @@ function validateStageClear(run, stage, now) {
   return { ok: true };
 }
 
-module.exports = { validateStageClear, MIN_MS_PER_STAGE, MAX_STAGE_JUMP, MAX_RUNS_PER_MINUTE };
+module.exports = { validateStageClear, MIN_MS_PER_STAGE, MAX_RUNS_PER_MINUTE };
