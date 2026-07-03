@@ -27,6 +27,7 @@ async function refreshShopByDeck(){
   }
   window.SHOP_CARDS = data.cards; // แต่ละใบมี slotIndex + price จริงจากเซิฟ
   window.SHOP_NEXT_REFRESH_AT = data.nextRefreshAt;
+  window.SHOP_REFRESH_INTERVAL_MS = data.refreshMs; // ค่าจริงจาก SHOP_REFRESH_INTERVAL_MS ฝั่งเซิฟ (economy-data.js) — ห้าม hardcode ซ้ำที่ฝั่ง client
   if (typeof applyFilters === "function") applyFilters();
 }
 

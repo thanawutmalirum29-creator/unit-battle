@@ -83,3 +83,15 @@ function buildCard(entry) {
   if (!stats) return null;
   return { ...stats, ...entry };
 }
+
+// ============================================================
+// ทำให้ไฟล์นี้โหลดได้ทั้ง 2 ทาง:
+//  - ฝั่ง client: โหลดผ่าน <script> ตามปกติ (ตัวแปร/ฟังก์ชันข้างบนกลาย
+//    เป็น global ให้ไฟล์อื่นที่โหลดทีหลังใช้ได้เลย เหมือนเดิมทุกประการ)
+//  - ฝั่ง server: require('.../public/js/data/character-data') ได้ตรงๆ
+// เงื่อนไข `typeof module !== "undefined"` เป็น false เสมอในเบราว์เซอร์
+// (ไม่มี `module` ในสคริปต์ปกติ) จึงไม่กระทบพฤติกรรมฝั่ง client เลย
+// ============================================================
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { CHARACTER_DB, getCharacterStats, buildCard, RARITY_ICON };
+}

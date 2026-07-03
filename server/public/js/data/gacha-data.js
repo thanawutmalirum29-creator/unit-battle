@@ -2,8 +2,18 @@
 // สเตตัสตัวละครทั้งหมด (rarity, hp, atk, def, skill, class) มาจาก
 // CHARACTER_DB ในไฟล์ character-data.js ที่เดียว — ที่นี่เก็บแค่
 // "อัตราออก (rate)" และ "ตู้กาชาไหนมีตัวไหนบ้าง" เท่านั้น
-// ต้องโหลด character-data.js ก่อนไฟล์นี้เสมอ
+// ต้องโหลด character-data.js ก่อนไฟล์นี้เสมอ (ฝั่ง client: ผ่าน <script>
+// ตามลำดับในหน้า HTML — ฝั่ง server: บรรทัดข้างล่างนี้ทำหน้าที่แทน)
 // ============================================================
+if (typeof module !== "undefined" && module.exports) {
+  // เฉพาะฝั่ง server เท่านั้นที่รันถึงตรงนี้ (เบราว์เซอร์ไม่มี `module`
+  // เลย if นี้จะเป็น false เสมอ) — เติม buildCard/RARITY_ICON เข้า
+  // global ของ Node ให้โค้ดข้างล่าง (เขียนไว้แบบใช้ global ตรงๆ
+  // เหมือนฝั่ง client) หาเจอโดยไม่ต้องแก้โค้ดส่วนที่เหลือของไฟล์เลย
+  const { buildCard, RARITY_ICON } = require("./character-data");
+  global.buildCard = buildCard;
+  global.RARITY_ICON = RARITY_ICON;
+}
 
 // สร้างการ์ดเด่นของแบนเนอร์ โดยดึงสเตตัสจาก CHARACTER_DB และไอคอนตาม rarity
 function buildFeaturedCard(name, bannerName) {
@@ -289,3 +299,11 @@ GACHA30013: {
   ]
 }
 };
+
+// ============================================================
+// โหลดได้ทั้ง client (<script>, กลายเป็น global ตามเดิม) และ server
+// (require('.../public/js/data/gacha-data'))
+// ============================================================
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { GACHA_POOLS, buildFeaturedCard };
+}
