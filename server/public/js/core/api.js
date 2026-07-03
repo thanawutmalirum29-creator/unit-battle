@@ -221,9 +221,16 @@ const GameAPI = (() => {
     return post("/api/economy/skills/upgrade", { cardId }, true);
   }
 
-  async function gachaRoll(poolId, times) {
+  async function gachaRoll(poolId, times, blacklist) {
     if (!isLoggedIn()) return { error: "not logged in" };
-    return post("/api/economy/gacha/roll", { poolId, times }, true);
+    return post("/api/economy/gacha/roll", { poolId, times, blacklist }, true);
+  }
+
+  // Persists the character-gacha "auto-discard" blacklist server-side — see
+  // saveEquipBlacklist above for the same pattern.
+  async function saveGachaBlacklist(blacklist) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/gacha/blacklist", { blacklist }, true);
   }
 
   async function upgradeGuaranteed(cardId) {
@@ -350,7 +357,7 @@ return {
     getPublicId, refreshMe, fetchMailbox, fetchMailDetail, claimMail,
     fetchEconomyState, claimNormalReward, claimInfReward,
     bossRunStart, bossClaimTier, bossRunFinish,
-    shopGetCurrent, shopMyStatus, shopBuy, shopBuyWithShard, skillUpgrade, gachaRoll, upgradeGuaranteed,
+    shopGetCurrent, shopMyStatus, shopBuy, shopBuyWithShard, skillUpgrade, gachaRoll, saveGachaBlacklist, upgradeGuaranteed,
     upgradePaid, upgradeDuplicate, sellCard, sellAllCards,
     equipGachaRoll, equipItemOnCard, unequipItemFromCard, deleteEquip, deleteEquipByRarityServer, saveEquipBlacklist,
   };
