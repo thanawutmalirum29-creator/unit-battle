@@ -7,21 +7,46 @@ const { validateStageClear } = require('../middleware/anticheat');
 
 const router = express.Router();
 
-// POST /api/runs/start { playerId, mode: 'normal' | 'inf' }
+// INF checkpoints only exist every 25 stages (25, 50, 75, ...), same rule the
+// client uses to render the checkpoint buttons.
+const INF_CHECKPOINT_INTERVAL = 25;
+
+// POST /api/runs/start { playerId, mode: 'normal' | 'inf', startStage? }
+// startStage is only meaningful for mode 'inf' — lets a run begin at a
+// previously-cleared checkpoint instead of stage 1. Validated against
+// inf_progress so a player can't jump to a checkpoint they never reached.
 router.post('/start', asyncHandler(async (req, res) => {
   const { playerId, mode } = req.body || {};
+  let startStage = Number(req.body?.startStage) || 1;
   if (!playerId || !['normal', 'inf'].includes(mode)) {
     return res.status(400).json({ error: 'invalid playerId or mode' });
   }
 
+  let baseline = 0; // run.max_stage / run.start_stage the run begins with
+
+  if (mode === 'inf' && startStage !== 1) {
+    if (startStage < 1 || startStage % INF_CHECKPOINT_INTERVAL !== 0) {
+      return res.status(400).json({ error: 'invalid checkpoint stage' });
+    }
+    const { rows: progressRows } = await pool.query(
+      `SELECT max_stage FROM inf_progress WHERE player_id = $1`,
+      [playerId]
+    );
+    const bestStage = progressRows[0]?.max_stage ?? 0;
+    if (startStage > bestStage) {
+      return res.status(400).json({ error: `checkpoint ${startStage} not unlocked yet (best: ${bestStage})` });
+    }
+    baseline = startStage - 1;
+  }
+
   const token = uuid();
   const { rows } = await pool.query(
-    `INSERT INTO runs (player_id, mode, token) VALUES ($1, $2, $3)
+    `INSERT INTO runs (player_id, mode, token, max_stage, start_stage) VALUES ($1, $2, $3, $4, $4)
      RETURNING id, started_at`,
-    [playerId, mode, token]
+    [playerId, mode, token, baseline]
   );
 
-  res.json({ runId: rows[0].id, token, startedAt: rows[0].started_at });
+  res.json({ runId: rows[0].id, token, startedAt: rows[0].started_at, startStage: baseline + 1 });
 }));
 
 // POST /api/runs/:runId/stage-clear { token, stage, clientElapsedMs }
@@ -64,6 +89,16 @@ router.post('/:runId/stage-clear', asyncHandler(async (req, res) => {
       [runId, stageNum, clientElapsedMs ?? null]
     );
     await client.query(`UPDATE runs SET max_stage = $2 WHERE id = $1`, [runId, stageNum]);
+
+    // INF checkpoints: record the player's best-ever validated INF stage so
+    // the checkpoint-start buttons (every 25 stages) know what's unlocked.
+    if (run.mode === 'inf') {
+      await client.query(
+        `INSERT INTO inf_progress (player_id, max_stage) VALUES ($1, $2)
+         ON CONFLICT (player_id) DO UPDATE SET max_stage = GREATEST(inf_progress.max_stage, $2), updated_at = now()`,
+        [run.player_id, stageNum]
+      );
+    }
 
     await client.query('COMMIT');
     res.json({ ok: true, maxStage: stageNum });

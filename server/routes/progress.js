@@ -47,6 +47,15 @@ router.post('/normal-clear', asyncHandler(async (req, res) => {
   res.json({ ok: true, maxStage: rows[0].max_stage });
 }));
 
+// GET /api/progress/inf/:playerId
+// Best-ever validated INF stage for this player — used to render the
+// checkpoint-start buttons (every 25 stages) in inf.html.
+router.get('/inf/:playerId', asyncHandler(async (req, res) => {
+  const { playerId } = req.params;
+  const { rows } = await pool.query(`SELECT max_stage FROM inf_progress WHERE player_id = $1`, [playerId]);
+  res.json({ maxStage: rows[0]?.max_stage ?? 0 });
+}));
+
 // GET /api/progress/normal-leaderboard
 router.get('/normal-leaderboard', asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
