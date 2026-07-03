@@ -320,11 +320,16 @@ input[type="text"], select{
 input[type="text"]{ flex:1 1 200px; }
 
 /* ---------------- CARD GRID (shop / gacha) ---------------- */
+/* 🟢 เดิมบังคับ 2 คอลัมน์เสมอแม้บนจอมือถือแคบๆ ทำให้การ์ด (ชื่อ+ATK/HP/DEF+สกิล+ราคา+ปุ่ม 2 ปุ่ม)
+   ถูกบีบจนเบียดกัน — ตอนนี้จอแคบกว่า 480px ใช้ 1 คอลัมน์ก่อน แล้วค่อยขยับเป็น 2/3/4 ตามความกว้าง */
 .grid{
   display:grid !important;
-  grid-template-columns:repeat(2,1fr) !important;
+  grid-template-columns:repeat(1,1fr) !important;
   gap:10px !important;
   width:100%;
+}
+@media (min-width:480px){
+  .grid{ grid-template-columns:repeat(2,1fr) !important; }
 }
 @media (min-width:600px){
   .grid{ grid-template-columns:repeat(3,1fr) !important; }
