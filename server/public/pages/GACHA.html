@@ -147,6 +147,9 @@ async function gachaPull(poolKey, count) {
   }
   applyServerMoney(result.money);
   if (typeof applyServerDeck === "function") applyServerDeck(result.deck);
+  // การ์ดที่ติดแบล็คลิสถูกเซิฟขายอัตโนมัติ + ตัวซ้ำได้ชิ้นส่วนความทรงจำเพิ่ม (ดู routes/economy.js
+  // gacha/roll) เงินที่ได้รวมอยู่ใน result.money แล้ว ส่วนชิ้นส่วนความทรงจำต้องอัพเดต bag เอง
+  if (typeof applyServerBag === "function" && result.bag) applyServerBag(result.bag);
   showPulledCards(result.results);
 }
 
@@ -250,6 +253,18 @@ async function syncGachaBlacklistFromServer() {
 }
 document.addEventListener("DOMContentLoaded", syncGachaBlacklistFromServer);
 
+// ป้ายบอกผลตอบแทนพิเศษ: การ์ดแบล็คลิส = ขายอัตโนมัติ, การ์ดซ้ำ = ได้ชิ้นส่วนความทรงจำแถม
+function cardRewardBadge(card) {
+  if (card._blacklisted) {
+    const bits = ["❌"];
+    if (card._autoSoldFor) bits.push(`💰+${card._autoSoldFor}`);
+    if (card._memoryGained) bits.push(`🔹+${card._memoryGained}`);
+    return bits.join(" ");
+  }
+  if (card._memoryGained) return `🔹+${card._memoryGained}`;
+  return "";
+}
+
 async function showPulledCards(cards) {
   const overlay = document.getElementById("gachaOverlay");
   const skipBtn = document.getElementById("skipButton");
@@ -298,7 +313,7 @@ async function showPulledCards(cards) {
       bestEl.className = `gacha-static-card rarity-${best.rarity}`;
       bestEl.style.margin = "0 auto"; // ตรงกลาง
       bestEl.innerHTML = `
-        <div style="font-size:18px">${best.name} ${best._blacklisted ? "❌" : ""}</div>
+        <div style="font-size:18px">${best.name} ${cardRewardBadge(best)}</div>
         <div>⭐ ${best.rarity}</div>
         <div style="font-size:12px">HP:${best.hp} ATK:${best.atk} DEF:${def}</div>
         <div style="font-size:12px">Skill: ${best.skill}</div>
@@ -316,7 +331,7 @@ async function showPulledCards(cards) {
         const el = document.createElement("div");
         el.className = `gacha-static-card rarity-${card.rarity}`;
         el.innerHTML = `
-          <div style="font-size:16px">${card.name} ${card._blacklisted ? "❌" : ""}</div>
+          <div style="font-size:16px">${card.name} ${cardRewardBadge(card)}</div>
           <div>⭐ ${card.rarity}</div>
           <div style="font-size:12px">HP:${card.hp} ATK:${card.atk} DEF:${def}</div>
           <div style="font-size:12px">Skill: ${card.skill}</div>
@@ -339,7 +354,7 @@ async function showPulledCards(cards) {
         const el = document.createElement("div");
         el.className = `gacha-static-card rarity-${card.rarity}`;
         el.innerHTML = `
-          <div style="font-size:16px">${card.name} ${card._blacklisted ? "❌" : ""}</div>
+          <div style="font-size:16px">${card.name} ${cardRewardBadge(card)}</div>
           <div>⭐ ${card.rarity}</div>
           <div style="font-size:12px">HP:${card.hp} ATK:${card.atk} DEF:${def}</div>
           <div style="font-size:12px">Skill: ${card.skill}</div>
@@ -385,7 +400,7 @@ async function showPulledCards(cards) {
     const el = document.createElement("div");
     el.className = `gacha-fly-card rarity-${card.rarity}`;
     el.innerHTML = `
-      <div style="font-size:18px">${card.name} ${card._blacklisted ? "❌" : ""}</div>
+      <div style="font-size:18px">${card.name} ${cardRewardBadge(card)}</div>
       <div>⭐ ${card.rarity}</div>
       <div style="font-size:12px">HP:${card.hp} ATK:${card.atk} DEF:${def}</div>
       <div style="font-size:12px">Skill: ${card.skill}</div>
