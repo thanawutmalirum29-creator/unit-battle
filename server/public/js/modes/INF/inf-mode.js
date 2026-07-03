@@ -403,20 +403,6 @@ async function startInfBattle() {
   }
 }
 
-function endRound() {
-  roundCount++;
-
-  [...playerTeam, ...enemyTeam].forEach(actor => {
-    if (actor.cooldown > 0) {
-      actor.cooldown--;
-    }
-    if (actor.statusEffects) {
-      actor.statusEffects.forEach(eff => eff.turns--);
-      actor.statusEffects = actor.statusEffects.filter(eff => eff.turns > 0);
-    }
-  });
-}
-
 /* ============================
    END BATTLE
    ============================ */
@@ -489,10 +475,20 @@ async function renderInfCheckpoints() {
   const wrap = document.getElementById("infCheckpointList");
   if (!wrap) return;
 
-  infBestStage = await GameAPI.fetchInfProgress();
+  wrap.innerHTML = '<span style="opacity:.6;font-size:13px">กำลังโหลดจุดเช็คพอยต์...</span>';
+
+  const { maxStage, ok } = await GameAPI.fetchInfProgress();
+  infBestStage = maxStage;
   const unlockedCount = Math.floor(infBestStage / 25);
 
   wrap.innerHTML = "";
+
+  // เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ หรือยังไม่ได้ล็อกอิน — บอกผู้เล่นตรงๆ แทนที่จะโชว์เหมือน
+  // ยังไม่เคยผ่านด่าน 25 (ซึ่งอาจทำให้ผู้เล่นที่เคยปลดล็อกไว้แล้วงงว่าความคืบหน้าหาย)
+  if (!ok) {
+    wrap.innerHTML = '<span style="opacity:.6;font-size:13px">⚠️ โหลดจุดเช็คพอยต์ไม่ได้ (ออฟไลน์ หรือยังไม่ได้ล็อกอิน) — เล่นได้ตั้งแต่ด่าน 1 ปกติ</span>';
+    return;
+  }
 
   if (unlockedCount === 0) {
     wrap.innerHTML = '<span style="opacity:.6;font-size:13px">ผ่านด่าน 25 เพื่อปลดล็อกจุดเริ่มต้น</span>';
