@@ -89,7 +89,227 @@ function renderBossButtons(){
   });
 }
 
+/* =======================
+   Boss Info Popup (❗ ปุ่มข้างๆ ปุ่มเลือกบอส)
+   แสดงสเตตัส/สกิล/ของดรอปแต่ละสเตจของบอสทุกตัว อ่านตรงจาก BOSSES
+   (bossmap.js) เลย เพิ่ม/แก้บอสหรือของดรอปที่ไฟล์นั้นไฟล์เดียว
+   popup นี้จะอัปเดตตามอัตโนมัติไม่ต้องมาแก้ที่นี่อีก
+   ======================= */
+
+// ใช้ชื่อ/ไอคอนไอเทมจาก bag.js (BAG_DISPLAY_ITEMS) ให้ตรงกับที่โชว์ในกระเป๋า
+// ไม่ต้องมี mapping ชื่อไอเทมซ้ำอีกชุด — ถ้า bag.js โหลดไม่ทันหรือไม่มีไอดีนี้ ก็ fallback เป็นไอดีดิบ
+function bossItemLabel(id){
+  const item = (typeof BAG_DISPLAY_ITEMS !== "undefined" ? BAG_DISPLAY_ITEMS : [])
+    .find(it => it.id === id);
+  return item ? `${item.icon} ${item.label}` : id;
+}
+
+function injectBossInfoStyles(){
+  if (document.getElementById("bossInfoStyles")) return;
+  const style = document.createElement("style");
+  style.id = "bossInfoStyles";
+  style.textContent = `
+.boss-section-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin:0 0 8px;
+}
+.boss-section-header h3{ margin:0; }
+.boss-info-btn{
+  flex:0 0 auto;
+  width:32px; height:32px;
+  border-radius:50%;
+  border:1px solid var(--border, rgba(255,255,255,.08));
+  background:var(--panel, #141d2b);
+  color:var(--gold,#ffd54f);
+  font-size:16px;
+  font-weight:800;
+  line-height:1;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:background .15s ease, color .15s ease;
+}
+.boss-info-btn:hover{
+  background:linear-gradient(135deg,var(--accent,#5c8bff),#3f63d6);
+  border-color:transparent;
+  color:#fff;
+}
+
+.boss-info-overlay{
+  position:fixed;
+  inset:0;
+  z-index:10050;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  background:rgba(4,6,12,.6);
+  backdrop-filter:blur(3px);
+  -webkit-backdrop-filter:blur(3px);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .15s ease;
+}
+.boss-info-overlay.open{ opacity:1; pointer-events:auto; }
+
+.boss-info-panel{
+  width:100%;
+  max-width:520px;
+  max-height:82vh;
+  overflow-y:auto;
+  background:linear-gradient(180deg, var(--panel,#141d2b), var(--bg-2,#121a26));
+  border:1px solid var(--border, rgba(255,255,255,.08));
+  border-radius:var(--radius,14px);
+  box-shadow:var(--shadow,0 8px 24px rgba(0,0,0,.45));
+  padding:18px 16px 16px;
+  transform:translateY(10px) scale(.97);
+  transition:transform .18s ease;
+}
+.boss-info-overlay.open .boss-info-panel{ transform:translateY(0) scale(1); }
+
+.boss-info-title{
+  font-weight:800;
+  font-size:16px;
+  color:var(--text,#e8edf5);
+  margin:0 0 12px;
+  text-align:center;
+}
+
+.boss-info-entry{
+  border:1px solid var(--border, rgba(255,255,255,.08));
+  border-radius:var(--radius-sm,9px);
+  background:var(--panel-soft,rgba(255,255,255,.04));
+  padding:10px 12px;
+  margin:0 0 10px;
+}
+.boss-info-entry h4{
+  margin:0 0 4px;
+  font-size:15px;
+  color:var(--accent-2,#7bd6ff);
+}
+.boss-info-stats{
+  font-size:12px;
+  color:var(--muted,#93a1b5);
+  margin:0 0 8px;
+}
+.boss-info-stage{
+  font-size:12.5px;
+  line-height:1.6;
+  padding:5px 0;
+  border-top:1px dashed var(--border, rgba(255,255,255,.08));
+}
+.boss-info-stage:first-of-type{ border-top:none; }
+.boss-info-stage b{ color:var(--gold,#ffd54f); }
+.boss-info-drops{ color:var(--text,#e8edf5); opacity:.9; }
+
+.boss-info-close{
+  width:100%;
+  margin-top:6px;
+  padding:10px;
+  border-radius:999px;
+  border:1px solid var(--border, rgba(255,255,255,.08));
+  background:var(--panel-soft,rgba(255,255,255,.04));
+  color:var(--muted,#93a1b5);
+  font-weight:700;
+  cursor:pointer;
+}
+.boss-info-close:hover{ color:var(--text,#e8edf5); }
+`;
+  document.head.appendChild(style);
+}
+
+function buildBossInfoOverlay(){
+  const overlay = document.createElement("div");
+  overlay.id = "bossInfoOverlay";
+  overlay.className = "boss-info-overlay";
+
+  const panel = document.createElement("div");
+  panel.className = "boss-info-panel";
+
+  const title = document.createElement("div");
+  title.className = "boss-info-title";
+  title.textContent = "📖 รายละเอียดบอส & ของดรอป";
+  panel.appendChild(title);
+
+  Object.values(BOSSES || {}).forEach((boss) => {
+    const entry = document.createElement("div");
+    entry.className = "boss-info-entry";
+
+    const h4 = document.createElement("h4");
+    h4.textContent = `🐉 ${boss.name}`;
+    entry.appendChild(h4);
+
+    const stats = document.createElement("div");
+    stats.className = "boss-info-stats";
+    const hp = boss.hp !== undefined ? boss.hp : 100000; // ค่า default เดียวกับตอนสร้างบอสจริง (prepareBossBattle)
+    stats.textContent =
+      `❤️ HP ${hp.toLocaleString()}  ⚔️ ATK ${boss.atk ?? "-"}  🛡️ DEF ${boss.def ?? "-"}` +
+      (boss.skill ? `  ✨ สกิล: ${boss.skill}` : "");
+    entry.appendChild(stats);
+
+    (boss.stages || []).forEach((stage, idx) => {
+      const row = document.createElement("div");
+      row.className = "boss-info-stage";
+
+      const moneyText = Array.isArray(stage.reward?.money)
+        ? `${stage.reward.money[0].toLocaleString()}-${stage.reward.money[1].toLocaleString()}`
+        : "-";
+
+      const dropsText = Object.entries(stage.reward?.items || {})
+        .map(([id, range]) => `${bossItemLabel(id)} x${range[0]}-${range[1]}`)
+        .join(", ") || "—";
+
+      row.innerHTML =
+        `<b>Stage ${idx + 1}</b> (ดาเมจสะสม ${stage.dmg.toLocaleString()}+) ` +
+        `→ 💰 ${moneyText} <br>` +
+        `<span class="boss-info-drops">🎁 ${dropsText}</span>`;
+      entry.appendChild(row);
+    });
+
+    panel.appendChild(entry);
+  });
+
+  const closeBtn = document.createElement("button");
+  closeBtn.type = "button";
+  closeBtn.className = "boss-info-close";
+  closeBtn.textContent = "ปิด";
+  closeBtn.addEventListener("click", () => closeBossInfo());
+  panel.appendChild(closeBtn);
+
+  overlay.appendChild(panel);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeBossInfo();
+  });
+
+  function openBossInfo(){ overlay.classList.add("open"); }
+  function closeBossInfo(){ overlay.classList.remove("open"); }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeBossInfo();
+  });
+
+  overlay._open = openBossInfo;
+  return overlay;
+}
+
+function setupBossInfoButton(){
+  const btn = document.getElementById("bossInfoBtn");
+  if (!btn || btn.dataset.bound === "1") return;
+  btn.dataset.bound = "1";
+
+  injectBossInfoStyles();
+  const overlay = buildBossInfoOverlay();
+  document.body.appendChild(overlay);
+
+  btn.addEventListener("click", () => overlay._open());
+}
+
 async function setBoss(key){
+
   if (battleRunning){ alert("กำลังสู้บอสอยู่"); return; }
   currentBossKey = key;
   currentBoss = BOSSES[key];
@@ -512,5 +732,6 @@ async function tryFoxBossPassive(user, allies, enemies) {
    Init
    ======================= */
 renderBossButtons();
+setupBossInfoButton();
 updateBagUI();
 updateMoneyUI();

@@ -69,7 +69,7 @@ const BOSSES = {
        { dmg: 300000, reward: { money:[1000000,1400000], items:{ shardBlue:[3,6],shardPurple:[3,6],shardGold:[3,6], shardRed:[1,3] } } },
        { dmg: 350000, reward: { money:[1400000,1800000], items:{ shardBlue:[3,6],shardPurple:[3,6],shardGold:[3,6], shardRed:[1,4] } } },
        { dmg: 400000, reward: { money:[1800000,2200000], items:{ shardBlue:[3,6],shardPurple:[3,6],shardGold:[3,6], shardRed:[2,4] } } },
-       { dmg: 4500000, reward: { money:[2200000,2500000], items:{ shardBlue:[3,6],shardPurple:[3,6],shardGold:[3,6], shardRed:[2,5] } } },
+       { dmg: 450000, reward: { money:[2200000,2500000], items:{ shardBlue:[3,6],shardPurple:[3,6],shardGold:[3,6], shardRed:[2,5] } } },
        { dmg: 500000, reward: { money:[2500000,3000000], items:{ shardBlue:[3,6],shardPurple:[3,6],shardGold:[3,6], shardRed:[2,6] } } },
      
     ]
@@ -97,3 +97,23 @@ const BOSSES = {
     ]
   }
 };
+
+// ============================================================
+// โหลดได้ทั้ง client (<script>, กลายเป็น global ตามเดิม) และ server
+// (require('.../public/js/modes/BOSS/bossmap')) — server ต้องการแค่
+// dmg/reward ต่อบอส (ไม่สนใจ hp/atk/def/skill ที่ใช้แสดงผลอย่างเดียว)
+// จึงดึงเฉพาะ .stages ออกมาเป็น BOSS_REWARD_TIERS ให้ตรงรูปแบบเดิม
+// ที่ game-data/economy-data.js เคยประกาศเองแบบก็อปมา
+// ============================================================
+if (typeof module !== "undefined" && module.exports) {
+  const BOSS_REWARD_TIERS = {};
+  for (const key of Object.keys(BOSSES)) {
+    // client shape is { dmg, reward: { money, items } } — flatten to
+    // { dmg, money, items } to match what routes/economy.js expects
+    // (tier.money / tier.items directly, no nested .reward).
+    BOSS_REWARD_TIERS[key] = BOSSES[key].stages.map(s => ({
+      dmg: s.dmg, money: s.reward.money, items: s.reward.items,
+    }));
+  }
+  module.exports = { BOSSES, BOSS_REWARD_TIERS };
+}
