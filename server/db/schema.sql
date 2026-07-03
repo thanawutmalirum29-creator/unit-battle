@@ -188,6 +188,14 @@ CREATE TABLE IF NOT EXISTS mailbox (
 );
 CREATE INDEX IF NOT EXISTS idx_mailbox_player ON mailbox (player_id, created_at DESC);
 
+-- Character/equipment gifting from the admin console. Stores just the *template*
+-- (character name from CHARACTER_DB, or the equip pool template fields) — the
+-- actual deck/equip_bag entry (with its own id/level/stars) is only minted at
+-- claim time in routes/mailbox.js, same pattern as every other reward path that
+-- mints ids on grant rather than on admin-send.
+ALTER TABLE mailbox ADD COLUMN IF NOT EXISTS reward_card JSONB;
+ALTER TABLE mailbox ADD COLUMN IF NOT EXISTS reward_equip JSONB;
+
 -- ============================================================================
 -- INF checkpoint starts: pick "start at stage 25/50/..." only if that stage was
 -- already cleared in some past run. Mirrors normal_progress but for INF mode.
