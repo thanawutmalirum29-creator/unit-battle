@@ -132,8 +132,22 @@ function formatMoney(num) {
 }
 
 // (EquipBag read/write lives in core/equipbag.js + data/equip.js now — the bag is
-// server-authoritative, this file only reads localStorage["equip_gacha_blacklist"],
-// a purely cosmetic client-side UI preference.)
+// server-authoritative. The blacklist below now is too: localStorage["equip_gacha_blacklist"]
+// is kept only as an instant-feedback local cache; equip_blacklist on the server
+// (player_economy) is the source of truth used when rolling, and syncEquipBlacklistFromServer()
+// below keeps the local cache in sync so it's consistent across devices/browsers instead
+// of only applying wherever it was last ticked.)
+
+async function syncEquipBlacklistFromServer() {
+  if (!window.GameAPI || !GameAPI.isLoggedIn || !GameAPI.isLoggedIn()) return;
+  const state = await GameAPI.fetchEconomyState();
+  if (state && Array.isArray(state.equip_blacklist)) {
+    localStorage.setItem("equip_gacha_blacklist", JSON.stringify(state.equip_blacklist));
+    if (_currentEquipRatePool) showEquipRates(_currentEquipRatePool);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", syncEquipBlacklistFromServer);
 
 // =========================
 // Render ตู้กาชา (เหมือน GACHA.html)
@@ -238,6 +252,9 @@ function toggleEquipBlacklist(name) {
     blacklist.push(name);
   }
   localStorage.setItem("equip_gacha_blacklist", JSON.stringify(blacklist));
+
+  // เซฟขึ้นเซิร์ฟเวอร์ด้วย ไม่ใช่แค่ localStorage — กันเบราว์เซอร์/เครื่องอื่นไม่เห็นรายการที่ติ๊กไว้
+  if (window.GameAPI && GameAPI.saveEquipBlacklist) GameAPI.saveEquipBlacklist(blacklist);
 
   if (_currentEquipRatePool) {
     showEquipRates(_currentEquipRatePool);
