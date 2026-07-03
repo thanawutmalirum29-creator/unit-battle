@@ -17,36 +17,13 @@
   </div>
 </header>
 
-<div class="mode-buttons">
-  <a href="game.html"><button class="mode-button">🎴 NORMAL</button></a>
-  <a href="inf.html"><button class="mode-button">🌀 INF_MODE</button></a>
-  <button class="mode-button active" aria-current="page" disabled>👹 BOSS</button>
-  <a href="shop.html"><button class="mode-button">🏪 SHOP</button></a>
-  <a href="upgrade.html"><button class="mode-button">🌟 UPGRADE</button></a>
-  <a href="upgradeskills.html"><button class="mode-button">💪 SKILLS</button></a>
-  <a href="GACHA.html"><button class="mode-button">🔮 GACHA</button></a>
-  <a href="GACHAE.html"><button class="mode-button">🎰 กาชาอุปกรณ์</button></a>
-  <a href="equip.html"><button class="mode-button">🛡️ สวมอุปกรณ์</button></a>
-  <a href="account.html"><button class="mode-button">👤 บัญชี</button></a>
-</div>
+<div id="bagMount"></div>
 
-<h3>🎒 กระเป๋า</h3>
-<div id="bag">
-  <div>💙 ความทรงจำ Rare: <span id="memoryRare">0</span></div>
-  <div>💜 ความทรงจำ Epic: <span id="memoryEpic">0</span></div>
-  <div>💛 ความทรงจำ Legendary: <span id="memoryLegendary">0</span></div>
-  <div>🩷 ความทรงจำ Mythical: <span id="memoryMythical">0</span></div>
-  <div>🌌 ความทรงจำ Cosmic: <span id="memoryCosmic">0</span></div>
-  <hr>
-  <div>⚪ ชาร์ดเทา: <span id="shardGray">0</span></div>
-  <div>🔵 ชาร์ดน้ำเงิน: <span id="shardBlue">0</span></div>
-  <div>🟣 ชาร์ดม่วง: <span id="shardPurple">0</span></div>
-  <div>🟡 ชาร์ดทอง: <span id="shardGold">0</span></div>
-  <div>🔴 ชาร์ดแดง: <span id="shardRed">0</span></div>
-  <div>🌌 ชาร์ดฟ้า: <span id="shardSky">0</span></div>
-</div>
 <section>
-  <h3>เลือก Boss</h3>
+  <div class="boss-section-header">
+    <h3>เลือก Boss</h3>
+    <button id="bossInfoBtn" type="button" class="boss-info-btn" aria-label="รายละเอียดบอสและของดรอป">❗</button>
+  </div>
   <div id="bossList"></div>
 </section>
 
@@ -99,5 +76,6 @@
 <script src="../js/core/log.js"></script>
 <script src="../js/core/endroud.js"></script>
 <script src="../js/modes/BOSS/boss.js"></script>
+<script src="../js/core/nav-fab.js"></script>
 </body>
 </html>

@@ -15,18 +15,6 @@
       <div class="money-box" id="moneyWindow">💰 0</div>
     </div>
   </header>
-  <div class="mode-buttons">
-  <a href="game.html"><button class="mode-button">🎴 NORMAL</button></a>
-  <a href="inf.html"><button class="mode-button">🌀 INF_MODE</button></a>
-  <a href="boss.html"><button class="mode-button">👹 BOSS</button></a>
-  <button class="mode-button active" aria-current="page" disabled>🏪 SHOP</button>
-  <a href="upgrade.html"><button class="mode-button">🌟 UPGRADE</button></a>
-  <a href="upgradeskills.html"><button class="mode-button">💪 SKILLS</button></a>
-  <a href="GACHA.html"><button class="mode-button">🔮 GACHA</button></a>
-  <a href="GACHAE.html"><button class="mode-button">🎰 กาชาอุปกรณ์</button></a>
-  <a href="equip.html"><button class="mode-button">🛡️ สวมอุปกรณ์</button></a>
-  <a href="account.html"><button class="mode-button">👤 บัญชี</button></a>
-</div>
 <div id="refresh-timer" class="footer-note"></div>
   <div class="panel">
     <div class="searchbar">
@@ -211,7 +199,12 @@ async function handleBuyShard(item){
 // by shop-data.js watching window.SHOP_NEXT_REFRESH_AT.
 function updateTimer(){
   const now = Date.now();
-  const nextRefresh = window.SHOP_NEXT_REFRESH_AT || (now + 300000);
+  // Fallback interval before the first server response arrives — pulled from
+  // window.SHOP_REFRESH_INTERVAL_MS (set by shop-data.js from the server's
+  // SHOP_REFRESH_INTERVAL_MS), not hand-copied here. Only falls back to a
+  // literal if even that hasn't loaded yet.
+  const fallbackIntervalMs = window.SHOP_REFRESH_INTERVAL_MS || 300000;
+  const nextRefresh = window.SHOP_NEXT_REFRESH_AT || (now + fallbackIntervalMs);
   let remain = nextRefresh - now;
   if (remain < 0) remain = 0;
   const sec = Math.floor(remain / 1000) % 60;
@@ -232,5 +225,6 @@ async function boot(){
 }
 document.addEventListener("DOMContentLoaded", boot);
   </script>
+<script src="../js/core/nav-fab.js"></script>
 </body>
 </html>
