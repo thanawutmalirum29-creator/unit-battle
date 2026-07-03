@@ -362,6 +362,13 @@ router.post('/shop/buy', requireAuth, asyncHandler(async (req, res) => {
   try {
     await client.query('BEGIN');
 
+    // Lock this player's economy row FIRST so a second concurrent /shop/buy
+    // request (double-click, two tabs) has to wait for this one to commit —
+    // otherwise both requests could read "not locked yet" from
+    // getLockedRaritiesThisCycle() before either has inserted its
+    // shop_purchases row, letting two cards of the same rarity through.
+    const econ = await getOrCreateEconomy(client, req.playerId);
+
     const locked = await getLockedRaritiesThisCycle(client, req.playerId, cycle, cards);
     if (locked.has(card.rarity)) {
       await client.query('ROLLBACK');
@@ -383,7 +390,6 @@ router.post('/shop/buy', requireAuth, asyncHandler(async (req, res) => {
       throw e;
     }
 
-    const econ = await getOrCreateEconomy(client, req.playerId);
     if (Number(econ.money) < card.price) {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'not enough money' });
@@ -429,6 +435,10 @@ router.post('/shop/buy-with-shard', requireAuth, asyncHandler(async (req, res) =
   try {
     await client.query('BEGIN');
 
+    // Same fix as /shop/buy: lock the economy row first so this can't race
+    // against a concurrent purchase of the same rarity (by money or by shard).
+    const econ = await getOrCreateEconomy(client, req.playerId);
+
     const locked = await getLockedRaritiesThisCycle(client, req.playerId, cycle, cards);
     if (locked.has(card.rarity)) {
       await client.query('ROLLBACK');
@@ -450,7 +460,6 @@ router.post('/shop/buy-with-shard', requireAuth, asyncHandler(async (req, res) =
       throw e;
     }
 
-    const econ = await getOrCreateEconomy(client, req.playerId);
     const have = Number(econ.bag[memoryKey] || 0);
     if (have < SHOP_SHARD_EXCHANGE_COST) {
       await client.query('ROLLBACK');
@@ -565,12 +574,13 @@ router.post('/upgrade/guaranteed', requireAuth, asyncHandler(async (req, res) =>
     // doesn't require duplicate cards, unlike the paid path), maxed at 8 stars.
     if (card.level < UPGRADE_MAX_LEVEL) {
       card.level += 1;
-    } else if (card.stars < 5) {
+    } else if (card.stars < 8) {
       card.stars += 1;
       card.level = 1;
-    } else if (card.stars >= 8) {
-      card.maxed = true;
-      card.level = 'MAX';
+      if (card.stars >= 8) {
+        card.maxed = true;
+        card.level = 'MAX';
+      }
     }
     if (!card.maxed && card.level !== 'MAX') applyLevelGrowth(card);
 

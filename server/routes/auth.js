@@ -2,6 +2,7 @@
 // identify flow for anything that touches money/bag/deck.
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const rateLimit = require('express-rate-limit');
 const { v4: uuid } = require('uuid');
 const { OAuth2Client } = require('google-auth-library');
 const pool = require('../db/pool');
@@ -11,8 +12,24 @@ const { generateUniquePublicId } = require('../utils/publicId');
 
 const router = express.Router();
 
+// The general /api/auth rate limit (60 req/min/IP) is far too loose to stop a PIN
+// brute-force (4-digit PIN = 10,000 combinations). This applies specifically to
+// /login, on top of the general limiter — doesn't affect register/google/username.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'too many login attempts, try again later' },
+});
+
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
+
+// Sessions used to never expire once issued. 30 days is a reasonable default for
+// a game session token; see middleware/auth.js for the enforcement side.
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+function sessionExpiry() { return new Date(Date.now() + SESSION_TTL_MS); }
 
 function validateUsername(u) {
   return typeof u === 'string' && u.trim().length >= 2 && u.trim().length <= 32;
@@ -53,9 +70,9 @@ router.post('/register', asyncHandler(async (req, res) => {
   const publicId = await generateUniquePublicId(pool);
 
   const { rows } = await pool.query(
-    `INSERT INTO players (username, pin_hash, session_token, public_id) VALUES ($1, $2, $3, $4)
+    `INSERT INTO players (username, pin_hash, session_token, session_expires_at, public_id) VALUES ($1, $2, $3, $4, $5)
      RETURNING id, username, public_id, status`,
-    [username, pinHash, token, publicId]
+    [username, pinHash, token, sessionExpiry(), publicId]
   );
 
   await pool.query(
@@ -67,7 +84,7 @@ router.post('/register', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/auth/login { username, pin }
-router.post('/login', asyncHandler(async (req, res) => {
+router.post('/login', loginLimiter, asyncHandler(async (req, res) => {
   const username = (req.body?.username || '').trim();
   const pin = req.body?.pin;
   if (!validateUsername(username) || !validatePin(pin)) {
@@ -92,7 +109,7 @@ router.post('/login', asyncHandler(async (req, res) => {
     publicId = await generateUniquePublicId(pool);
     await pool.query(`UPDATE players SET public_id = $1 WHERE id = $2`, [publicId, rows[0].id]);
   }
-  await pool.query(`UPDATE players SET session_token = $2 WHERE id = $1`, [rows[0].id, token]);
+  await pool.query(`UPDATE players SET session_token = $2, session_expires_at = $3 WHERE id = $1`, [rows[0].id, token, sessionExpiry()]);
 
   await pool.query(
     `INSERT INTO player_economy (player_id) VALUES ($1) ON CONFLICT DO NOTHING`,
@@ -143,7 +160,7 @@ router.post('/google', asyncHandler(async (req, res) => {
       publicId = await generateUniquePublicId(pool);
       await pool.query(`UPDATE players SET public_id = $1 WHERE id = $2`, [publicId, existing.rows[0].id]);
     }
-    await pool.query(`UPDATE players SET session_token = $2 WHERE id = $1`, [existing.rows[0].id, token]);
+    await pool.query(`UPDATE players SET session_token = $2, session_expires_at = $3 WHERE id = $1`, [existing.rows[0].id, token, sessionExpiry()]);
     return res.json({
       playerId: existing.rows[0].id,
       username: existing.rows[0].username,
@@ -157,9 +174,9 @@ router.post('/google', asyncHandler(async (req, res) => {
   const username = await generateRandomUsername();
   const publicId = await generateUniquePublicId(pool);
   const { rows } = await pool.query(
-    `INSERT INTO players (username, google_id, session_token, public_id) VALUES ($1, $2, $3, $4)
+    `INSERT INTO players (username, google_id, session_token, session_expires_at, public_id) VALUES ($1, $2, $3, $4, $5)
      RETURNING id, username, public_id`,
-    [username, googleId, token, publicId]
+    [username, googleId, token, sessionExpiry(), publicId]
   );
 
   await pool.query(
@@ -184,6 +201,13 @@ router.patch('/username', requireAuth, asyncHandler(async (req, res) => {
 
   await pool.query(`UPDATE players SET username = $1 WHERE id = $2`, [username, req.playerId]);
   res.json({ username });
+}));
+
+// POST /api/auth/logout — invalidate the current session token immediately
+// (previously the only way to end a session was to log in again elsewhere).
+router.post('/logout', requireAuth, asyncHandler(async (req, res) => {
+  await pool.query(`UPDATE players SET session_token = NULL, session_expires_at = NULL WHERE id = $1`, [req.playerId]);
+  res.json({ ok: true });
 }));
 
 // GET /api/auth/me — current session's public_id + status, for the account page.
