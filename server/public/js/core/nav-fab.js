@@ -34,6 +34,25 @@
   const TAP_MOVE_THRESHOLD = 6;    // px — ขยับไม่เกินนี้ถือว่าเป็นการ "กด" ไม่ใช่ "ลาก"
   const TAP_TIME_THRESHOLD = 500;  // ms
 
+  // ระยะกันชนพิเศษเฉพาะขอบล่าง: มือถือส่วนใหญ่ (iOS home indicator, แถบเจสเจอร์ Android)
+  // มีโซนล่างสุดที่ระบบปฏิบัติการ "ดักจับ" การแตะไว้เอง (เช่น ปัดขึ้นเพื่อกลับหน้าโฮม)
+  // ก่อนที่จะส่งอีเวนต์ให้หน้าเว็บเลย — ต่อให้ลูกบอลอยู่ตรงนั้นพอดี กด "ติด" แค่ในทางสายตา
+  // แต่ pointerup ไม่มาถึงจริง จึงเปิดเมนูไม่ได้ ต้องกันไม่ให้ลูกบอลถูกลากเข้าไปโซนนี้
+  const BOTTOM_SAFE_FALLBACK = 28; // px ใช้ตอนอ่าน safe-area-inset ไม่ได้
+  let _cachedBottomInset = null;
+  function bottomSafeInset() {
+    if (_cachedBottomInset != null) return _cachedBottomInset;
+    try {
+      const probe = document.createElement("div");
+      probe.style.cssText = "position:fixed;bottom:0;height:0;padding-bottom:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none;";
+      document.body.appendChild(probe);
+      const inset = parseFloat(getComputedStyle(probe).paddingBottom) || 0;
+      probe.remove();
+      _cachedBottomInset = Math.max(inset, 0);
+    } catch (e) { _cachedBottomInset = 0; }
+    return _cachedBottomInset;
+  }
+
   function currentFile() {
     const path = location.pathname.split("/").pop() || "";
     return path.toLowerCase();
@@ -224,10 +243,11 @@
 
     function clamp(x, y) {
       const half = BALL_SIZE / 2;
+      const bottomSafe = EDGE_MARGIN + Math.max(bottomSafeInset(), BOTTOM_SAFE_FALLBACK);
       const minX = half + EDGE_MARGIN;
       const maxX = window.innerWidth - half - EDGE_MARGIN;
       const minY = half + EDGE_MARGIN;
-      const maxY = window.innerHeight - half - EDGE_MARGIN;
+      const maxY = window.innerHeight - half - bottomSafe;
       return {
         x: Math.min(Math.max(x, minX), Math.max(minX, maxX)),
         y: Math.min(Math.max(y, minY), Math.max(minY, maxY)),
@@ -341,7 +361,10 @@
     ball.addEventListener("pointercancel", onPointerUp);
 
     window.addEventListener("resize", reclamp);
-    window.addEventListener("orientationchange", () => setTimeout(reclamp, 120));
+    window.addEventListener("orientationchange", () => {
+      _cachedBottomInset = null;
+      setTimeout(reclamp, 120);
+    });
 
     initialPlace();
   }

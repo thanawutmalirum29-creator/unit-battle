@@ -257,6 +257,14 @@ const GameAPI = (() => {
     return post("/api/economy/equip-gacha/roll", { poolId, times, blacklist }, true);
   }
 
+  // Persists the equip-gacha "auto-discard" blacklist server-side (see
+  // equip_blacklist column) so it's the same across every device/browser instead
+  // of only whichever one had it in localStorage.
+  async function saveEquipBlacklist(blacklist) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/equip-gacha/blacklist", { blacklist }, true);
+  }
+
   async function equipItemOnCard(cardId, equipId) {
     if (!isLoggedIn()) return { error: "not logged in" };
     return post("/api/economy/equip/equip", { cardId, equipId }, true);
@@ -344,7 +352,7 @@ return {
     bossRunStart, bossClaimTier, bossRunFinish,
     shopGetCurrent, shopMyStatus, shopBuy, shopBuyWithShard, skillUpgrade, gachaRoll, upgradeGuaranteed,
     upgradePaid, upgradeDuplicate, sellCard, sellAllCards,
-    equipGachaRoll, equipItemOnCard, unequipItemFromCard, deleteEquip, deleteEquipByRarityServer,
+    equipGachaRoll, equipItemOnCard, unequipItemFromCard, deleteEquip, deleteEquipByRarityServer, saveEquipBlacklist,
   };
 })();
 
