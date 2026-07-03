@@ -15,8 +15,24 @@ const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const pool = require('../db/pool');
 const asyncHandler = require('../middleware/asyncHandler');
+const { CHARACTER_DB } = require('../public/js/data/character-data.js');
+const { EQUIP_GACHA_POOLS } = require('../game-data/economy-data.js');
 
 const router = express.Router();
+
+// Flat, de-duplicated list of every equip template across both gacha pools —
+// used only to populate the admin "send equipment" dropdown, keyed by name
+// since that's unique within EQUIP_GACHA_POOLS.
+function buildEquipCatalog() {
+  const seen = new Map();
+  for (const pool of Object.values(EQUIP_GACHA_POOLS)) {
+    for (const item of pool.pool) {
+      if (!seen.has(item.name)) seen.set(item.name, item);
+    }
+  }
+  return [...seen.values()];
+}
+const EQUIP_CATALOG = buildEquipCatalog();
 
 // Separate, much stricter limiter just for login attempts — this is the one
 // endpoint an attacker could try to brute-force the code against.
@@ -135,8 +151,8 @@ router.get('/players/:id', requireAdmin, asyncHandler(async (req, res) => {
     createdAt: r.created_at,
     money: Number(r.money || 0),
     bag: r.bag || {},
-    deckCount: Array.isArray(r.deck) ? r.deck.length : 0,
-    equipCount: Array.isArray(r.equip_bag) ? r.equip_bag.length : 0,
+    deck: Array.isArray(r.deck) ? r.deck : [],
+    equipBag: Array.isArray(r.equip_bag) ? r.equip_bag : [],
   });
 }));
 
@@ -213,7 +229,7 @@ router.delete('/players/:id', requireAdmin, asyncHandler(async (req, res) => {
 // Writes one mailbox row. Reward is optional (subject/body-only announcement mail
 // is valid too).
 router.post('/players/:id/mail', requireAdmin, asyncHandler(async (req, res) => {
-  const { subject, body, money, bagKey, bagQty } = req.body || {};
+  const { subject, body, money, bagKey, bagQty, cardName, equipName } = req.body || {};
   const trimmedSubject = String(subject || '').trim();
   if (!trimmedSubject) return res.status(400).json({ error: 'subject is required' });
 
@@ -229,18 +245,49 @@ router.post('/players/:id/mail', requireAdmin, asyncHandler(async (req, res) => 
     resolvedBagKey = bagKey;
   }
 
+  // Character gift — store the CHARACTER_DB template as-is; routes/mailbox.js mints
+  // the actual deck entry (id/level/stars) only when the player claims it.
+  let rewardCard = null;
+  if (cardName) {
+    const stats = CHARACTER_DB[cardName];
+    if (!stats) return res.status(400).json({ error: 'unknown character name' });
+    rewardCard = { name: cardName, ...stats };
+  }
+
+  // Equipment gift — same idea, template comes from EQUIP_CATALOG.
+  let rewardEquip = null;
+  if (equipName) {
+    const template = EQUIP_CATALOG.find((e) => e.name === equipName);
+    if (!template) return res.status(400).json({ error: 'unknown equip name' });
+    rewardEquip = {
+      name: template.name, type: template.type, stat: template.stat,
+      rarity: template.rarity, mode: template.mode || 'flat', bonus: template.base,
+    };
+  }
+
   const playerCheck = await pool.query(`SELECT id FROM players WHERE id = $1`, [req.params.id]);
   if (playerCheck.rows.length === 0) return res.status(404).json({ error: 'player not found' });
 
   const { rows } = await pool.query(
-    `INSERT INTO mailbox (player_id, subject, body, reward_money, reward_bag_key, reward_bag_qty)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_at`,
-    [req.params.id, trimmedSubject, String(body || '').trim(), moneyAmount, resolvedBagKey, resolvedBagQty]
+    `INSERT INTO mailbox (player_id, subject, body, reward_money, reward_bag_key, reward_bag_qty, reward_card, reward_equip)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at`,
+    [
+      req.params.id, trimmedSubject, String(body || '').trim(), moneyAmount, resolvedBagKey, resolvedBagQty,
+      rewardCard ? JSON.stringify(rewardCard) : null, rewardEquip ? JSON.stringify(rewardEquip) : null,
+    ]
   );
   res.json({ ok: true, mailId: rows[0].id, createdAt: rows[0].created_at });
 }));
 
 // GET /api/admin/bag-keys — lets the console render a dropdown without hardcoding it twice.
 router.get('/bag-keys', requireAdmin, (req, res) => res.json(BAG_KEYS));
+
+// GET /api/admin/catalog — character + equipment templates for the "send character
+// / send equipment" pickers in the admin console. Read-only, sourced from the same
+// data files the game itself uses, so the list never drifts out of sync.
+router.get('/catalog', requireAdmin, (req, res) => {
+  const characters = Object.entries(CHARACTER_DB).map(([name, stats]) => ({ name, ...stats }));
+  res.json({ characters, equips: EQUIP_CATALOG });
+});
 
 module.exports = router;

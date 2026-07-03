@@ -6,18 +6,22 @@ const express = require('express');
 const pool = require('../db/pool');
 const asyncHandler = require('../middleware/asyncHandler');
 const { requireAuth } = require('../middleware/auth');
+const { v4: uuid } = require('uuid');
 
 const router = express.Router();
 
 function hasReward(row) {
-  return Number(row.reward_money) > 0 || (row.reward_bag_key && Number(row.reward_bag_qty) > 0);
+  return Number(row.reward_money) > 0
+    || (row.reward_bag_key && Number(row.reward_bag_qty) > 0)
+    || !!row.reward_card
+    || !!row.reward_equip;
 }
 
 // GET /api/mailbox — list, newest first. Lightweight: no body text, just enough
 // to render the inbox list and an unread badge.
 router.get('/', requireAuth, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT id, subject, reward_money, reward_bag_key, reward_bag_qty, created_at, read_at, claimed_at
+    `SELECT id, subject, reward_money, reward_bag_key, reward_bag_qty, reward_card, reward_equip, created_at, read_at, claimed_at
      FROM mailbox WHERE player_id = $1 ORDER BY created_at DESC LIMIT 200`,
     [req.playerId]
   );
@@ -51,7 +55,10 @@ router.get('/:id', requireAuth, asyncHandler(async (req, res) => {
     id: r.id,
     subject: r.subject,
     body: r.body,
-    reward: hasReward(r) ? { money: Number(r.reward_money), bagKey: r.reward_bag_key, bagQty: Number(r.reward_bag_qty) } : null,
+    reward: hasReward(r) ? {
+      money: Number(r.reward_money), bagKey: r.reward_bag_key, bagQty: Number(r.reward_bag_qty),
+      card: r.reward_card || null, equip: r.reward_equip || null,
+    } : null,
     createdAt: r.created_at,
     claimed: !!r.claimed_at,
   });
@@ -85,7 +92,7 @@ router.post('/:id/claim', requireAuth, asyncHandler(async (req, res) => {
       [req.playerId]
     );
     const econRes = await client.query(
-      `SELECT money, bag FROM player_economy WHERE player_id = $1 FOR UPDATE`,
+      `SELECT money, bag, deck, equip_bag FROM player_economy WHERE player_id = $1 FOR UPDATE`,
       [req.playerId]
     );
     const econ = econRes.rows[0];
@@ -96,9 +103,21 @@ router.post('/:id/claim', requireAuth, asyncHandler(async (req, res) => {
       newBag[mail.reward_bag_key] = (newBag[mail.reward_bag_key] || 0) + Number(mail.reward_bag_qty);
     }
 
+    // Character/equipment gifts are only turned into real deck/equip_bag entries
+    // here, at claim time — same as every other reward path mints its own id
+    // (see routes/economy.js), so an item never exists with a re-used/shared id.
+    const newDeck = Array.isArray(econ.deck) ? [...econ.deck] : [];
+    if (mail.reward_card) {
+      newDeck.push({ ...mail.reward_card, id: uuid(), level: 1, stars: 1 });
+    }
+    const newEquipBag = Array.isArray(econ.equip_bag) ? [...econ.equip_bag] : [];
+    if (mail.reward_equip) {
+      newEquipBag.push({ ...mail.reward_equip, id: 'equip-' + uuid() });
+    }
+
     await client.query(
-      `UPDATE player_economy SET money = $2, bag = $3, updated_at = now() WHERE player_id = $1`,
-      [req.playerId, newMoney, JSON.stringify(newBag)]
+      `UPDATE player_economy SET money = $2, bag = $3, deck = $4, equip_bag = $5, updated_at = now() WHERE player_id = $1`,
+      [req.playerId, newMoney, JSON.stringify(newBag), JSON.stringify(newDeck), JSON.stringify(newEquipBag)]
     );
     await client.query(
       `UPDATE mailbox SET claimed_at = now(), read_at = COALESCE(read_at, now()) WHERE id = $1`,
@@ -106,7 +125,7 @@ router.post('/:id/claim', requireAuth, asyncHandler(async (req, res) => {
     );
 
     await client.query('COMMIT');
-    res.json({ ok: true, money: newMoney, bag: newBag });
+    res.json({ ok: true, money: newMoney, bag: newBag, deck: newDeck, equipBag: newEquipBag });
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
