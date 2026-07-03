@@ -96,12 +96,14 @@ function renderBossButtons(){
    popup นี้จะอัปเดตตามอัตโนมัติไม่ต้องมาแก้ที่นี่อีก
    ======================= */
 
-// ใช้ชื่อ/ไอคอนไอเทมจาก bag.js (BAG_DISPLAY_ITEMS) ให้ตรงกับที่โชว์ในกระเป๋า
+// ใช้ชื่อ/ไอคอนไอเทมจาก bag.js (BAG_DISPLAY_ITEMS + itemIconHTML) ให้ตรงกับที่โชว์ในกระเป๋า
 // ไม่ต้องมี mapping ชื่อไอเทมซ้ำอีกชุด — ถ้า bag.js โหลดไม่ทันหรือไม่มีไอดีนี้ ก็ fallback เป็นไอดีดิบ
 function bossItemLabel(id){
   const item = (typeof BAG_DISPLAY_ITEMS !== "undefined" ? BAG_DISPLAY_ITEMS : [])
     .find(it => it.id === id);
-  return item ? `${item.icon} ${item.label}` : id;
+  if (!item) return id;
+  const icon = typeof itemIconHTML === "function" ? itemIconHTML(id) : "";
+  return `${icon}${item.label}`;
 }
 
 function injectBossInfoStyles(){
