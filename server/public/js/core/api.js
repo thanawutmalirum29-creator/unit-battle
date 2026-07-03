@@ -132,6 +132,7 @@ const GameAPI = (() => {
   }
 
   function logout() {
+    if (isLoggedIn()) post("/api/auth/logout", {}, true); // fire-and-forget: invalidate server-side session
     playerId = null; authToken = null;
     localStorage.removeItem("playerId");
     localStorage.removeItem("authToken");
@@ -310,11 +311,15 @@ const GameAPI = (() => {
   }
 
   // Best-ever validated INF stage for this player, used to unlock checkpoint buttons.
+  // Returns { maxStage, ok }. ok=false means we couldn't reach the server / no player yet
+  // (offline or not logged in) — the caller should tell the user that, instead of silently
+  // showing "0 progress" which looks identical to "you just haven't cleared stage 25 yet".
   async function fetchInfProgress() {
     await ensurePlayer();
-    if (!playerId) return 0;
+    if (!playerId) return { maxStage: 0, ok: false };
     const data = await get(`/api/progress/inf/${playerId}`, false);
-    return data?.maxStage ?? 0;
+    if (!data) return { maxStage: 0, ok: false };
+    return { maxStage: data.maxStage ?? 0, ok: true };
   }
 
   async function infStageClear(stage) {

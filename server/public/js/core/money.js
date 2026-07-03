@@ -1,30 +1,22 @@
-// 🔐 Config Key
-const KEY1 = [17, 31, 73, 53, 91, 29]; // ชั้นแรก XOR
-const KEY2 = [11, 47, 23, 89, 67];     // ชั้นสอง XOR + shift
+// หมายเหตุ: ค่าเงินฝั่ง client เก็บเป็นตัวเลขตรงๆ ไม่เข้ารหัสแล้ว
+// เพราะเซิร์ฟเวอร์เป็น source of truth อยู่แล้ว ต่อให้แก้ localStorage ตรงๆ ก็ไม่มีผลจริง
+// (แค่ตัวเลขที่โชว์ผิดชั่วคราวจนกว่าจะ sync ใหม่จากเซิร์ฟเวอร์)
 
-// ----------------- ฟังก์ชันเข้ารหัส -----------------
+// ----------------- ฟังก์ชันเข้ารหัส (คงชื่อเดิมไว้ ไม่ต้องแก้จุดที่เรียกใช้) -----------------
 function encryptMoney(num) {
-    let str = num.toString().split('');
-    let step1 = str.map((c,i) => c.charCodeAt(0) ^ KEY1[i % KEY1.length]);
-    let step2 = step1.map((v,i) => ((v ^ KEY2[i % KEY2.length]) + 13) % 256);
-    return step2.join(',');
+    const n = Number(num);
+    return Number.isFinite(n) ? String(n) : "400";
 }
 
 // ----------------- ฟังก์ชันถอดรหัส -----------------
 function decryptMoney(enc) {
-    if(!enc) return 400; // ค่าเริ่มต้น 400
-    try {
-        let arr = enc.split(',').map(Number);
-        if (arr.some(Number.isNaN)) throw new Error('corrupt segment');
-        let step1 = arr.map((v,i) => ((v - 13 + 256) % 256) ^ KEY2[i % KEY2.length]);
-        let step2 = step1.map((v,i) => String.fromCharCode(v ^ KEY1[i % KEY1.length]));
-        const result = parseInt(step2.join(''), 10);
-        if (!Number.isFinite(result) || result < 0) throw new Error('invalid decrypted value');
-        return result;
-    } catch (e) {
+    if (enc === null || enc === undefined || enc === "") return 400; // ค่าเริ่มต้น 400
+    const result = parseInt(enc, 10);
+    if (!Number.isFinite(result) || result < 0) {
         console.warn("Money data corrupted! Reset to default.");
         return 400;
     }
+    return result;
 }
 
 // ----------------- ซิงค์จากเซิฟเวอร์ (source of truth) -----------------

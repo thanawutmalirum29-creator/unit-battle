@@ -147,6 +147,7 @@ const STAGE_DROPS = {
   144:{ shardGray: 10 },
   145:{ shardBlue: 10, shardGray:14 },
 };
+// (STAGE_REWARDS อยู่ด้านล่าง — export ทั้งคู่รวมกันไว้ท้ายไฟล์)
 
 const STAGE_REWARDS = {
   1: 25,
@@ -297,3 +298,12 @@ const STAGE_REWARDS = {
   144: 12600,
   145: 12700,
 };
+
+// ============================================================
+// โหลดได้ทั้ง client (<script>, กลายเป็น global ตามเดิม) และ server
+// (require('.../public/js/core/drops')) — ดู character-data.js สำหรับ
+// คำอธิบายว่าทำไม pattern นี้ไม่กระทบพฤติกรรมฝั่งเบราว์เซอร์
+// ============================================================
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { STAGE_DROPS, STAGE_REWARDS };
+}
