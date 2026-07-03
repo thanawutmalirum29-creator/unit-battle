@@ -33,7 +33,9 @@ app.use('/api/mailbox', apiLimiter, mailboxRoute);
 app.use('/api/admin', adminRoute);
 
 // serve the cleaned-up game client
-app.use(express.static(path.join(__dirname, 'public')));
+// dotfiles: 'allow' is required so /.well-known/assetlinks.json (TWA verification)
+// actually gets served — Express ignores dotfiles/dot-folders by default.
+app.use(express.static(path.join(__dirname, 'public'), { dotfiles: 'allow' }));
 
 app.get('/health', (req, res) => res.json({ ok: true }));
 
