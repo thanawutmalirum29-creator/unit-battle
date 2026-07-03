@@ -337,7 +337,12 @@ async function showEquipResults(results) {
 
     const wrap = document.createElement("div");
     wrap.className = "result-wrap";
-    wrap.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:20px;margin-top:30px;";
+    // #gachaOverlay เป็น flex row → wrap เป็น flex item ที่ default จะ "หุบตามเนื้อหา"
+    // (ไม่ยึดความกว้างจริงของจอ) ต้องบังคับ width:100% ไว้ ไม่งั้น grid ข้างในจะคำนวณ
+    // ความกว้างแบบ max-content (พยายามยัดให้ครบคอลัมน์สุดตาม max-width) แล้วล้นจอมือถือ —
+    // นี่คือสาเหตุที่อนิเมชั่นสุ่มอุปกรณ์ล้นจอ (max-width 600px ยัดได้ 3 คอลัมน์ = 504px
+    // ล้นจอมือถือ 375px) ในขณะที่หน้าสุ่มตัวละครบังเอิญรอดเพราะ max-width 500px ยัดได้แค่ 2 คอลัมน์
+    wrap.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:20px;margin-top:30px;width:100%;box-sizing:border-box;";
 
     const sorted = [...results].sort((a, b) => (rarityRank[b.rarity] || 0) - (rarityRank[a.rarity] || 0));
 
@@ -360,7 +365,7 @@ async function showEquipResults(results) {
       wrap.appendChild(bottomRow);
     } else {
       const container = document.createElement("div");
-      container.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;justify-content:center;max-width:600px;";
+      container.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;justify-content:center;width:100%;max-width:600px;box-sizing:border-box;";
       sorted.forEach(eq => {
         const el = document.createElement("div");
         el.className = `gacha-static-card rarity-${eq.rarity}`;
