@@ -23,6 +23,7 @@ function applyServerDeck(serverDeck) {
   if (!Array.isArray(serverDeck)) return;
   localStorage.setItem("deck", JSON.stringify(serverDeck));
   if (typeof renderDeck === "function") renderDeck();
+  if (typeof renderDeckList === "function") renderDeckList(); // equip.html's card grid uses this name instead
   if (typeof updateBagUI === "function") updateBagUI();
 }
 
