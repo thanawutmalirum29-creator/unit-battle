@@ -2,6 +2,27 @@
    UNIFIED GAME THEME — ใช้ร่วมกันทุกหน้า (game/shop/upgrade/gacha/boss/inf)
    ============================================================ */
 
+/* กันกดค้างแล้วเด้งเมนู "คัดลอก/แชร์" ของเบราว์เซอร์ + กันลากเลือกข้อความในเกมโดยไม่ตั้งใจ
+   (viewport meta ในแต่ละหน้าใส่ maximum-scale=1,user-scalable=no กันซูมด้วยนิ้วบีบไปแล้ว
+   ส่วน touch-action:manipulation ตรงนี้กันซูมจากการแตะรัวๆ/double-tap ซ้ำอีกชั้น) */
+html, body{
+  -webkit-touch-callout:none;
+  -webkit-user-select:none;
+  -khtml-user-select:none;
+  -moz-user-select:none;
+  -ms-user-select:none;
+  user-select:none;
+  touch-action:manipulation;
+}
+/* ยกเว้นช่องกรอกข้อมูล (ชื่อผู้เล่น/PIN ฯลฯ) ต้องพิมพ์/เลือก/วางได้ตามปกติ */
+input, textarea{
+  -webkit-touch-callout:default;
+  -webkit-user-select:text;
+  -moz-user-select:text;
+  -ms-user-select:text;
+  user-select:text;
+}
+
 :root{
   --bg-0:#070a10;
   --bg-1:#0c121b;
