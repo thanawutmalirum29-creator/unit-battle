@@ -520,7 +520,7 @@
       leaderPanel.style.display = "none";
     }
 
-    document.getElementById("leaveGuildBtn").textContent = myGuildState.myRole === 'leader' && myGuildState.memberCount > 1
+    document.getElementById("leaveGuildBtn").innerHTML = myGuildState.myRole === 'leader' && myGuildState.memberCount > 1
       ? "<span class=gicon-door></span> ออกจากกิลด์ (ต้องโอนตำแหน่งก่อน)"
       : myGuildState.myRole === 'leader' ? "<span class=gicon-warning></span> ยุบกิลด์ (คุณเป็นสมาชิกคนเดียว)" : "<span class=gicon-door></span> ออกจากกิลด์";
 
@@ -807,5 +807,6 @@
   setInterval(() => Presence.refreshMounts(), 30000);
 </script>
 <script src="../js/core/nav-fab.js"></script>
+<script src="../js/core/mail-fab.js"></script>
 </body>
 </html>
