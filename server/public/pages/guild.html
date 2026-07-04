@@ -2,21 +2,30 @@
 <html lang="th">
 <head>
   <meta charset="utf-8" />
-  <title>🛡️ กิลด์</title>
+  <title><span class=gicon-shield></span> กิลด์</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#0c121b" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <script src="../js/core/ui-scale.js"></script>
   <script src="../js/core/pwa-register.js" defer></script>
   <link rel="stylesheet" href="../css/game.css" />
   <link rel="stylesheet" href="../css/skills.css" />
   <link rel="stylesheet" href="../css/theme.css" />
+  <link rel="stylesheet" href="../css/icons.css" />
   <script src="../js/core/ui-popup.js"></script>
   <style>
     .guild-tabs{ display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; margin-bottom:12px; }
-    .guild-tabs button{ flex:0 0 auto; font-size:13px; padding:8px 12px; white-space:nowrap; }
+    .guild-tabs button{ flex:0 0 auto; width:auto; font-size:13px; padding:8px 12px; white-space:nowrap; }
     .guild-tab-panel{ display:none; }
     .guild-tab-panel.active{ display:block; }
+
+    .presence-pill{ font-size:11px; padding:2px 7px; border-radius:999px; font-weight:700; white-space:nowrap; }
+    .presence-online{ background:rgba(74,222,128,.18); color:#4ade80; }
+    .presence-offline{ background:rgba(255,255,255,.08); color:var(--muted); }
+    .presence-banned{ background:rgba(239,68,68,.18); color:#f87171; }
+    .presence-suspended{ background:rgba(244,185,66,.18); color:#f4b942; }
+    .row-name-line{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 
     .guild-card{
       display:flex; gap:12px; align-items:flex-start; padding:12px; border-radius:12px;
@@ -29,7 +38,6 @@
     .guild-card-meta{ color:var(--muted); font-size:12.5px; margin-top:3px; line-height:1.6; }
     .guild-card-desc{ color:var(--muted); font-size:13px; margin-top:6px; white-space:pre-wrap; }
     .guild-card-actions{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
-    .guild-card-actions button{ width:auto !important; min-width:92px; max-width:140px; padding:6px 10px; font-size:12px; flex:0 0 auto; }
 
     .row{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 6px; border-bottom:1px solid var(--border); font-size:14px; }
     .row:last-child{ border-bottom:none; }
@@ -85,9 +93,9 @@
 </head>
 <body>
 <header class="topbar">
-  <h1>🛡️ กิลด์</h1>
+  <h1><span class=gicon-shield></span> กิลด์</h1>
   <div class="right-group">
-    <div id="moneyWindow">💰 0</div>
+    <div id="moneyWindow"><span class=gicon-coin></span> 0</div>
   </div>
 </header>
 
@@ -100,17 +108,17 @@
 <!-- ============================= ไม่มีกิลด์ ============================= -->
 <div id="guildNoneView" style="display:none">
   <section class="panel" id="myInvitesPanel" style="display:none">
-    <h3>📨 คำเชิญเข้ากิลด์</h3>
+    <h3><span class=gicon-mail></span> คำเชิญเข้ากิลด์</h3>
     <div id="myInvitesList"></div>
   </section>
 
   <section class="panel" id="myAppsPanel" style="display:none">
-    <h3>📝 คำขอที่ส่งไป</h3>
+    <h3><span class=gicon-note></span> คำขอที่ส่งไป</h3>
     <div id="myAppsList"></div>
   </section>
 
   <section class="panel">
-    <h3>🔍 ค้นหา / จัดอันดับกิลด์</h3>
+    <h3><span class=gicon-search></span> ค้นหา / จัดอันดับกิลด์</h3>
     <div class="searchbar">
       <input id="guildSearchInput" type="text" placeholder="ค้นหาชื่อหรือแท็กกิลด์..." />
       <button id="guildSearchBtn">ค้นหา</button>
@@ -120,7 +128,7 @@
   </section>
 
   <section class="panel">
-    <h3>➕ สร้างกิลด์ใหม่</h3>
+    <h3><span class=gicon-plus></span> สร้างกิลด์ใหม่</h3>
     <p class="empty-hint">ค่าใช้จ่ายในการสร้าง: <b id="createCostLabel">-</b> เงิน</p>
     <div class="form-field">
       <label>ชื่อกิลด์</label>
@@ -165,21 +173,23 @@
       <div id="guildExpMount"></div>
     </section>
     <section class="panel" id="expandCapacityPanel" style="display:none">
-      <h3>📈 ขยายจำนวนสมาชิกสูงสุด</h3>
+      <h3><span class=gicon-chart-up></span> ขยายจำนวนสมาชิกสูงสุด</h3>
       <p class="empty-hint">กิลด์ถึงเลเวลสูงสุดของโบนัสจำนวนสมาชิกแล้ว (35 คน) ซื้อขยายเพิ่มอีก <b id="expandBonusLabel">5</b> คน (รวมสูงสุด 40 คน) โดยใช้เงินจากคลังกิลด์ <b id="expandCostLabel">-</b></p>
       <button id="expandCapacityBtn" style="width:100%">ขยายจำนวนสมาชิก</button>
     </section>
     <section class="panel">
-      <h3>💰 บริจาคเข้ากิลด์</h3>
-      <p class="empty-hint">ทุก 100 เงิน = 1 แต้มบริจาค (ใช้ซื้อของในร้านค้ากิลด์ได้) บริจาคได้สูงสุด <span id="donationLimitLabel">10</span> ครั้ง/วัน</p>
+      <h3><span class=gicon-coin></span> บริจาคเข้ากิลด์</h3>
+      <p class="empty-hint">ทุก 100 เงิน = 1 แต้มบริจาค (ใช้ซื้อของในร้านค้ากิลด์ได้) · บริจาคได้สูงสุด <span id="donationLimitLabel">10</span> ครั้ง/วัน และไม่เกิน <b id="donationMoneyCapLabel">1,000,000</b> เงิน/วัน</p>
+      <p class="empty-hint">ได้รับแต้มบริจาคสูงสุด <b id="donationContribCapLabel">500</b> แต้ม/วัน และ EXP กิลด์สูงสุด <b id="donationExpCapLabel">500</b>/วัน (รีเซ็ตทุกวันตอนตี 4)</p>
       <div class="searchbar">
         <input id="donateAmountInput" type="number" min="100" step="100" placeholder="จำนวนเงิน" />
         <button id="donateBtn">บริจาค</button>
       </div>
+      <p class="empty-hint">วันนี้บริจาคไปแล้ว <b id="donationMoneyTodayLabel">0</b>/<span id="donationMoneyCapLabel2">1,000,000</span> เงิน · ได้แต้ม <b id="donationContribTodayLabel">0</b>/<span id="donationContribCapLabel2">500</span> · ได้ EXP กิลด์ <b id="donationExpTodayLabel">0</b>/<span id="donationExpCapLabel2">500</span></p>
       <p class="empty-hint">แต้มบริจาคของฉัน: <b id="myContribBalance">0</b> (สะสมทั้งหมด <b id="myContribLifetime">0</b>)</p>
     </section>
     <section class="panel" id="leaderSettingsPanel" style="display:none">
-      <h3>⚙️ ตั้งค่ากิลด์ (หัวหน้าเท่านั้น)</h3>
+      <h3><span class=gicon-gear></span> ตั้งค่ากิลด์ (หัวหน้าเท่านั้น)</h3>
       <div class="form-field">
         <label>คำอธิบาย</label>
         <input id="editDescInput" type="text" maxlength="200" />
@@ -191,18 +201,18 @@
       <button id="saveSettingsBtn">บันทึกการตั้งค่า</button>
     </section>
     <section class="panel">
-      <button id="leaveGuildBtn" class="danger-btn" style="width:100%">🚪 ออกจากกิลด์</button>
+      <button id="leaveGuildBtn" class="danger-btn" style="width:100%"><span class=gicon-door></span> ออกจากกิลด์</button>
     </section>
   </div>
 
   <!-- ---- สมาชิก ---- -->
   <div class="guild-tab-panel" data-panel="members">
     <section class="panel">
-      <h3>👥 สมาชิกกิลด์ (<span id="memberCountLabel">0</span>/<span id="memberMaxLabel">20</span>)</h3>
+      <h3><span class=gicon-users></span> สมาชิกกิลด์ (<span id="memberCountLabel">0</span>/<span id="memberMaxLabel">20</span>)</h3>
       <div id="membersListMount"></div>
     </section>
     <section class="panel" id="invitePanel" style="display:none">
-      <h3>✉️ เชิญเพื่อนเข้ากิลด์</h3>
+      <h3><span class=gicon-mail></span> เชิญเพื่อนเข้ากิลด์</h3>
       <div class="searchbar">
         <input id="inviteIdInput" type="text" placeholder="ใส่ ID ผู้เล่น (15 ตัวอักษร)" />
         <button id="inviteBtn">ส่งคำเชิญ</button>
@@ -213,7 +223,7 @@
   <!-- ---- คำร้อง (หัวหน้า/รองหัวหน้า) ---- -->
   <div class="guild-tab-panel" data-panel="requests">
     <section class="panel">
-      <h3>📝 คำขอเข้าร่วม</h3>
+      <h3><span class=gicon-note></span> คำขอเข้าร่วม</h3>
       <div id="incomingRequestsMount"></div>
     </section>
   </div>
@@ -221,7 +231,7 @@
   <!-- ---- แชท ---- -->
   <div class="guild-tab-panel" data-panel="chat">
     <section class="panel">
-      <h3>💬 แชทกิลด์</h3>
+      <h3><span class=gicon-chat></span> แชทกิลด์</h3>
       <div class="chat-box" id="chatBox"></div>
       <div class="chat-input-row">
         <input id="chatInput" type="text" maxlength="300" placeholder="พิมพ์ข้อความ..." />
@@ -233,7 +243,7 @@
   <!-- ---- ร้านค้ากิลด์ ---- -->
   <div class="guild-tab-panel" data-panel="shop">
     <section class="panel">
-      <h3>🏪 ร้านค้ากิลด์</h3>
+      <h3><span class=gicon-store></span> ร้านค้ากิลด์</h3>
       <p class="empty-hint">แต้มบริจาคของฉัน: <b id="shopMyBalance">0</b> · กิลด์เลเวล <b id="shopGuildLevel">1</b> · โควตารีเซ็ตทุกสัปดาห์ (<span id="shopCycleEnds">-</span>)</p>
       <div class="shop-grid" id="shopGrid"></div>
     </section>
@@ -242,15 +252,15 @@
   <!-- ---- บอสกิลด์ ---- -->
   <div class="guild-tab-panel" data-panel="boss">
     <section class="panel">
-      <h3 id="bossNameLabel">⚔️ บอสกิลด์</h3>
+      <h3 id="bossNameLabel"><span class=gicon-battle></span> บอสกิลด์</h3>
       <div class="hp-bar-outer"><div class="hp-bar-inner" id="bossHpBar" style="width:100%"></div></div>
       <div class="hp-label"><span id="bossHpText">0 / 0</span><span id="bossDefeatedLabel"></span></div>
       <p class="empty-hint">รอบนี้สิ้นสุด: <span id="bossCycleEnds">-</span></p>
       <p class="empty-hint">ดาเมจของฉันรอบนี้: <b id="myBossDamage">0</b> · โจมตีได้อีก <b id="bossAttacksLeft">0</b>/<span id="bossAttacksMax">3</span> ครั้งวันนี้</p>
-      <button id="bossAttackBtn" style="width:100%">⚔️ โจมตี</button>
+      <button id="bossAttackBtn" style="width:100%"><span class=gicon-battle></span> โจมตี</button>
     </section>
     <section class="panel">
-      <h3>🏆 ดาเมจสูงสุดในกิลด์ (รอบนี้)</h3>
+      <h3><span class=gicon-trophy></span> ดาเมจสูงสุดในกิลด์ (รอบนี้)</h3>
       <div id="bossTopMount"></div>
     </section>
   </div>
@@ -258,7 +268,7 @@
   <!-- ---- อันดับกิลด์ ---- -->
   <div class="guild-tab-panel" data-panel="ranking">
     <section class="panel">
-      <h3>🏆 จัดอันดับกิลด์ (ยอดบริจาครวม)</h3>
+      <h3><span class=gicon-trophy></span> จัดอันดับกิลด์ (ยอดบริจาครวม)</h3>
       <div id="rankingMount"></div>
     </section>
   </div>
@@ -267,8 +277,9 @@
 <script src="../js/core/api.js"></script>
 <script src="../js/core/auth-ui.js"></script>
 <script src="../js/core/money.js"></script>
+<script src="../js/core/presence.js"></script>
 <script>
-  const GUILD_EMBLEMS = ['🛡️','⚔️','🐉','🔥','❄️','⭐','🌙','👑','💀','🦅','🐺','⚡'];
+  const GUILD_EMBLEMS = ['<span class=gicon-shield></span>','<span class=gicon-battle></span>','<span class=gicon-dragon></span>','🔥','<span class=gicon-snowflake></span>','<span class=gicon-star></span>','🌙','<span class=gicon-crown></span>','<span class=gicon-skull></span>','<span class=gicon-eagle></span>','<span class=gicon-wolf></span>','<span class=gicon-bolt></span>'];
   const GUILD_CREATE_COST = 20000;
   const GUILD_CAPACITY_EXPANSION_COST = 300000;
   let myGuildState = null; // last result of GameAPI.guildMine()
@@ -352,7 +363,7 @@
       invList.innerHTML = invites.map((i) => `
         <div class="row">
           <div>
-            <div class="row-name">${i.emblem || "🛡️"} ${escapeHtml(i.guildName)} <span class="guild-card-tag">[${escapeHtml(i.guildTag)}]</span></div>
+            <div class="row-name">${i.emblem || "<span class=gicon-shield></span>"} ${escapeHtml(i.guildName)} <span class="guild-card-tag">[${escapeHtml(i.guildTag)}]</span></div>
             <div class="row-sub">เชิญโดย ${escapeHtml(i.inviterUsername)} · ${fmtDate(i.createdAt)}</div>
           </div>
           <div class="row-actions">
@@ -477,6 +488,20 @@
     document.getElementById("myContribBalance").textContent = fmtNum(myGuildState.myContributionBalance);
     document.getElementById("myContribLifetime").textContent = fmtNum(myGuildState.myContributionLifetime);
 
+    const dt = myGuildState.myDonationToday;
+    if (dt) {
+      document.getElementById("donationLimitLabel").textContent = dt.donationsCountCap;
+      document.getElementById("donationMoneyCapLabel").textContent = fmtNum(dt.moneyCap);
+      document.getElementById("donationContribCapLabel").textContent = fmtNum(dt.contributionCap);
+      document.getElementById("donationExpCapLabel").textContent = fmtNum(dt.guildExpCap);
+      document.getElementById("donationMoneyTodayLabel").textContent = fmtNum(dt.money);
+      document.getElementById("donationMoneyCapLabel2").textContent = fmtNum(dt.moneyCap);
+      document.getElementById("donationContribTodayLabel").textContent = fmtNum(dt.contribution);
+      document.getElementById("donationContribCapLabel2").textContent = fmtNum(dt.contributionCap);
+      document.getElementById("donationExpTodayLabel").textContent = fmtNum(dt.guildExp);
+      document.getElementById("donationExpCapLabel2").textContent = fmtNum(dt.guildExpCap);
+    }
+
     const expandPanel = document.getElementById("expandCapacityPanel");
     if (myGuildState.myRole === 'leader' && g.capacityExpansionAvailable) {
       expandPanel.style.display = "";
@@ -496,8 +521,8 @@
     }
 
     document.getElementById("leaveGuildBtn").textContent = myGuildState.myRole === 'leader' && myGuildState.memberCount > 1
-      ? "🚪 ออกจากกิลด์ (ต้องโอนตำแหน่งก่อน)"
-      : myGuildState.myRole === 'leader' ? "💥 ยุบกิลด์ (คุณเป็นสมาชิกคนเดียว)" : "🚪 ออกจากกิลด์";
+      ? "<span class=gicon-door></span> ออกจากกิลด์ (ต้องโอนตำแหน่งก่อน)"
+      : myGuildState.myRole === 'leader' ? "<span class=gicon-warning></span> ยุบกิลด์ (คุณเป็นสมาชิกคนเดียว)" : "<span class=gicon-door></span> ออกจากกิลด์";
 
     document.getElementById("tabRequestsBtn").style.display =
       (myGuildState.myRole === 'leader' || myGuildState.myRole === 'officer') ? "" : "none";
@@ -521,7 +546,10 @@
     document.getElementById("donateAmountInput").value = "";
     await syncMoneyFromServer();
     await loadGuildState();
-    alert(`บริจาคสำเร็จ ได้รับ ${r.contribution} แต้มบริจาค` + (r.leveledUp ? `\n🎉 กิลด์เลื่อนเป็นเลเวล ${r.guildLevel}!` : ""));
+    let msg = `บริจาคสำเร็จ ได้รับ ${r.contribution} แต้มบริจาค`;
+    if (r.contributionCapped) msg += `\n(ได้แต้ม/EXP กิลด์ครบโควตาวันนี้แล้ว เงินที่เกินเข้าคลังกิลด์ตามปกติ)`;
+    if (r.leveledUp) msg += `\n<span class=gicon-party></span> กิลด์เลื่อนเป็นเลเวล ${r.guildLevel}!`;
+    alert(msg);
   });
 
   document.getElementById("saveSettingsBtn").addEventListener("click", async () => {
@@ -565,13 +593,17 @@
       return `
         <div class="row">
           <div>
-            <div class="row-name">${escapeHtml(m.username)} ${roleLabel(m.role)}</div>
+            <div class="row-name-line">
+              <span class="row-name">${escapeHtml(m.username)}</span> ${roleLabel(m.role)}
+              ${Presence.presenceMountHtml({ accountStatus: m.accountStatus, suspendedUntil: m.suspendedUntil, lastSeenAt: m.lastSeenAt })}
+            </div>
             <div class="row-sub">แต้มบริจาค ${fmtNum(m.contributionLifetime)} · ดาเมจบอสสัปดาห์นี้ ${fmtNum(m.bossDamageCycle)} · เข้าร่วม ${fmtDate(m.joinedAt)}</div>
           </div>
           <div class="row-actions">${actions}</div>
         </div>
       `;
     }).join("") || '<p class="empty-hint">ไม่มีสมาชิก</p>';
+    Presence.refreshMounts(mount);
   }
   async function promoteMember(id) { const r = await GameAPI.guildPromote(id); if (r?.error) return alert(r.error); renderMembers(); }
   async function demoteMember(id) { const r = await GameAPI.guildDemote(id); if (r?.error) return alert(r.error); renderMembers(); }
@@ -661,12 +693,16 @@
     document.getElementById("shopCycleEnds").textContent = fmtDate(data.cycleEndsAt);
     grid.innerHTML = data.catalog.map((item) => `
       <div class="shop-item">
-        <div class="shop-item-name">${escapeHtml(item.name)}</div>
-        <div class="shop-item-cost">💠 ${item.cost}</div>
-        ${item.locked
-          ? `<div class="shop-item-lock">🔒 ต้องเลเวลกิลด์ ${item.minLevel}</div>`
+        <div class="shop-item-name">${item.rewardFrameKey ? "<span class=gicon-frame></span> " : ""}${escapeHtml(item.name)}</div>
+        <div class="shop-item-cost"><span class=gicon-gem></span> ${item.cost}</div>
+        ${item.owned
+          ? `<div class="shop-item-left"><span class=gicon-check-circle></span> มีแล้ว (ครอบครองถาวร)</div>`
+          : item.locked
+          ? `<div class="shop-item-lock"><span class=gicon-lock></span> ต้องเลเวลกิลด์ ${item.minLevel}</div>`
+          : item.rewardFrameKey
+          ? `<div class="shop-item-left">กรอบปกถาวร — ซื้อได้ครั้งเดียว</div>`
           : `<div class="shop-item-left">เหลือ ${item.remaining}/${item.limit} สัปดาห์นี้</div>`}
-        <button ${item.locked || item.remaining <= 0 || data.myBalance < item.cost ? "disabled" : ""} onclick="buyShopItem('${item.key}')">แลก</button>
+        <button ${item.owned || item.locked || item.remaining <= 0 || data.myBalance < item.cost ? "disabled" : ""} onclick="buyShopItem('${item.key}')">${item.owned ? "มีแล้ว" : "แลก"}</button>
       </div>
     `).join("");
   }
@@ -676,18 +712,18 @@
     await syncMoneyFromServer();
     await loadGuildState();
     await renderShop();
-    alert("แลกไอเทมสำเร็จ!");
+    alert(r.frame ? "ได้กรอบปกใหม่แล้ว! ไปเลือกใส่ได้ที่หน้าบัญชีของฉัน <span class=gicon-frame></span>" : "แลกไอเทมสำเร็จ!");
   }
 
   // ================= บอสกิลด์ =================
   async function renderBoss() {
     const data = await GameAPI.guildBossStatus();
     if (!data) return;
-    document.getElementById("bossNameLabel").textContent = `⚔️ ${data.bossName}`;
+    document.getElementById("bossNameLabel").innerHTML = `<span class=gicon-battle></span> ${data.bossName}`;
     const pct = data.maxHp > 0 ? Math.max(0, Math.min(100, (data.currentHp / data.maxHp) * 100)) : 0;
     document.getElementById("bossHpBar").style.width = pct + "%";
     document.getElementById("bossHpText").textContent = `${fmtNum(data.currentHp)} / ${fmtNum(data.maxHp)}`;
-    document.getElementById("bossDefeatedLabel").textContent = data.defeated ? "💀 ถูกปราบแล้ว" : "";
+    document.getElementById("bossDefeatedLabel").innerHTML = data.defeated ? "<span class=gicon-skull></span> ถูกปราบแล้ว" : "";
     document.getElementById("bossCycleEnds").textContent = fmtDate(data.cycleEndsAt);
     document.getElementById("myBossDamage").textContent = fmtNum(data.myDamageCycle);
     document.getElementById("bossAttacksLeft").textContent = data.attacksLeftToday;
@@ -695,7 +731,7 @@
 
     const btn = document.getElementById("bossAttackBtn");
     btn.disabled = data.defeated || data.attacksLeftToday <= 0;
-    btn.textContent = data.defeated ? "บอสถูกปราบแล้ว รอสัปดาห์หน้า" : data.attacksLeftToday <= 0 ? "โจมตีครบวันนี้แล้ว" : "⚔️ โจมตี";
+    btn.innerHTML = data.defeated ? "บอสถูกปราบแล้ว รอสัปดาห์หน้า" : data.attacksLeftToday <= 0 ? "โจมตีครบวันนี้แล้ว" : "<span class=gicon-battle></span> โจมตี";
 
     const topMount = document.getElementById("bossTopMount");
     topMount.innerHTML = data.topDamage.length === 0
@@ -707,7 +743,7 @@
   document.getElementById("bossAttackBtn").addEventListener("click", async () => {
     const r = await GameAPI.guildBossAttack();
     if (r?.error) return alert(r.error);
-    alert(`สร้างดาเมจ ${fmtNum(r.damage)}!` + (r.defeated ? " 🎉 บอสถูกปราบแล้ว!" : "") + (r.leveledUp ? `\n📈 กิลด์เลื่อนเป็นเลเวล ${r.guildLevel}!` : ""));
+    alert(`สร้างดาเมจ ${fmtNum(r.damage)}!` + (r.defeated ? " <span class=gicon-party></span> บอสถูกปราบแล้ว!" : "") + (r.leveledUp ? `\n<span class=gicon-chart-up></span> กิลด์เลื่อนเป็นเลเวล ${r.guildLevel}!` : ""));
     await renderBoss();
   });
 
@@ -729,8 +765,11 @@
 
   // ================= โหลดสถานะหลัก =================
   async function loadGuildState() {
-    if (!GameAPI.isLoggedIn()) {
+    if (!GameAPI.isLoggedIn() || GameAPI.isGuest()) {
       document.getElementById("guildLoading").style.display = "none";
+      document.getElementById("guildLoggedOutMsg").textContent = GameAPI.isGuest()
+        ? "บัญชีชั่วคราวใช้งานระบบกิลด์ไม่ได้ — ตั้งชื่อผู้เล่นและ PIN ที่หน้าบัญชีก่อน"
+        : "ต้องเข้าสู่ระบบก่อนถึงจะใช้ระบบกิลด์ได้";
       document.getElementById("guildLoggedOutPanel").style.display = "";
       return;
     }
@@ -753,7 +792,6 @@
     myGuildState = data;
     myGuildState.myPlayerId = GameAPI.isLoggedIn() ? localStorage.getItem("playerId") : null;
     document.getElementById("guildMainView").style.display = "";
-    document.getElementById("donationLimitLabel").textContent = 10;
     renderOverview();
     switchTab(document.querySelector(".guild-tab-btn.active")?.dataset.tab || "overview");
   }
@@ -766,6 +804,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     if (GameAPI.isLoggedIn()) loadGuildState();
   });
+  setInterval(() => Presence.refreshMounts(), 30000);
 </script>
 <script src="../js/core/nav-fab.js"></script>
 </body>

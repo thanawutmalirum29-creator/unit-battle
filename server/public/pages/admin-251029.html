@@ -27,6 +27,7 @@
   .adm-badge.active{ background:rgba(16,185,129,.15); color:var(--good); }
   .adm-badge.suspended{ background:rgba(255,213,79,.15); color:var(--gold); }
   .adm-badge.banned{ background:rgba(239,68,68,.15); color:var(--bad); }
+  .adm-badge.guest{ background:rgba(147,161,181,.18); color:var(--muted); border:1px solid rgba(147,161,181,.35); margin-left:6px; }
   .adm-toolbar{ display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center; }
   .adm-toolbar input[type="text"]{ flex:1 1 220px; }
 
@@ -311,7 +312,7 @@
     }
     body.innerHTML = players.map((p) => `
       <tr data-id="${p.id}">
-        <td><strong>${escapeHtml(p.username)}</strong></td>
+        <td><strong>${escapeHtml(p.username)}</strong>${p.isGuest ? '<span class="adm-badge guest">ชั่วคราว</span>' : ''}</td>
         <td class="adm-id">${p.publicId || "-"}</td>
         <td class="adm-id">${p.id}</td>
         <td class="adm-money${p.money < 0 ? " negative" : ""}">${Number(p.money).toLocaleString()}</td>
@@ -442,6 +443,7 @@
 
     return `
       <div class="adm-overview-row"><span class="label">สถานะ</span><span class="adm-badge ${p.status}">${statusLabel(p.status)}</span></div>
+      <div class="adm-overview-row"><span class="label">ประเภทบัญชี</span><span>${p.isGuest ? '<span class="adm-badge guest">ชั่วคราว (ไม่มี PIN)</span>' : 'ปกติ'}</span></div>
       ${statusDetailRows.join("")}
       <div class="adm-overview-row"><span class="label">สมัครเมื่อ</span><span>${created}</span></div>
       <div class="adm-overview-row"><span class="label">💰 เงิน</span><span class="${moneyNeg ? "adm-money negative" : ""}">${Number(d.money).toLocaleString()}${moneyNeg ? " (ติดลบ/เป็นหนี้)" : ""}</span></div>

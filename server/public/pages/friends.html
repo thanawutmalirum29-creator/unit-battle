@@ -2,17 +2,34 @@
 <html lang="th">
 <head>
   <meta charset="utf-8" />
-  <title>👥 เพื่อน</title>
+  <title><span class=gicon-users></span> เพื่อน</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#0c121b" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <script src="../js/core/ui-scale.js"></script>
   <script src="../js/core/pwa-register.js" defer></script>
   <link rel="stylesheet" href="../css/game.css" />
   <link rel="stylesheet" href="../css/skills.css" />
   <link rel="stylesheet" href="../css/theme.css" />
+  <link rel="stylesheet" href="../css/icons.css" />
   <script src="../js/core/ui-popup.js"></script>
   <style>
+    .friends-tabs{ display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; margin-bottom:12px; }
+    .friends-tabs button{ flex:0 0 auto; width:auto; font-size:13px; padding:8px 12px; white-space:nowrap; position:relative; }
+    .friends-tab-panel{ display:none; }
+    .friends-tab-panel.active{ display:block; }
+    .friends-tab-badge{
+      display:inline-flex; align-items:center; justify-content:center;
+      min-width:16px; height:16px; padding:0 4px; margin-left:5px;
+      border-radius:999px; background:#e53e3e; color:#fff; font-size:10.5px; font-weight:800;
+    }
+    .presence-pill{ font-size:11px; padding:2px 7px; border-radius:999px; font-weight:700; white-space:nowrap; }
+    .presence-online{ background:rgba(74,222,128,.18); color:#4ade80; }
+    .presence-offline{ background:rgba(255,255,255,.08); color:var(--muted); }
+    .presence-banned{ background:rgba(239,68,68,.18); color:#f87171; }
+    .presence-suspended{ background:rgba(244,185,66,.18); color:#f4b942; }
+    .friend-name-row{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
     .friend-row{
       display:flex; justify-content:space-between; align-items:center; gap:10px;
       padding:10px 6px; border-bottom:1px solid var(--border);
@@ -57,10 +74,6 @@
     .friend-helper-row:last-child{ border-bottom:none; }
     .friend-helper-info{ flex:1; min-width:0; }
     .friend-helper-preview{ color:var(--muted); font-size:12px; margin-top:3px; line-height:1.5; }
-    .friends-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:14px 0; }
-    .friends-tab-btn{ flex:1; min-width:140px; }
-    .friends-tab-btn.active{ outline:2px solid var(--accent,#6ea8fe); }
-
     .cooldown-pill{ font-size:12px; color:var(--muted); }
     .helper-picker-overlay{
       position:fixed; inset:0; background:rgba(0,0,0,.6); display:none;
@@ -83,9 +96,9 @@
 </head>
 <body>
 <header class="topbar">
-  <h1>👥 เพื่อน</h1>
+  <h1><span class=gicon-users></span> เพื่อน</h1>
   <div class="right-group">
-    <div id="moneyWindow">💰 0</div>
+    <div id="moneyWindow"><span class=gicon-coin></span> 0</div>
   </div>
 </header>
 
@@ -93,55 +106,68 @@
   <p id="friendsLoggedOutMsg">ต้องเข้าสู่ระบบก่อนถึงจะใช้ระบบเพื่อนได้</p>
 </section>
 
-<section class="panel" id="myHelperPanel" style="display:none">
-  <h3>🤝 ตัวช่วยเหลือของฉัน</h3>
-  <p class="friend-hint">ตั้งตัวละคร 1 ตัวให้เพื่อนขอยืมไปใช้ในเด็คได้ชั่วคราว (12 ชม.) — การ์ดของคุณไม่หายไปไหน เพื่อนแค่ได้สำเนาไปใช้</p>
-  <div id="myHelperMount"><div class="helper-none">กำลังโหลด…</div></div>
-</section>
-
-<section class="panel" id="friendsHelpersPanel" style="display:none">
-  <h3>🆘 ขอความช่วยเหลือจากเพื่อน</h3>
-  <p class="friend-hint">ขอได้ 1 ครั้งต่อเพื่อน 1 คน ทุก 24 ชม. — ตัวละครที่ได้จะอยู่ในเด็ค 12 ชม. แล้วหายไปเอง</p>
-  <div id="friendsHelpersMount"><div class="helper-none">กำลังโหลด…</div></div>
-</section>
-
-<section class="panel" id="guildmatesHelpersPanel" style="display:none">
-  <h3>🏰 ขอความช่วยเหลือจากคนในกิลด์</h3>
-  <p class="friend-hint">ทำงานแบบเดียวกับเพื่อน — ขอได้ 1 ครั้งต่อคน ทุก 24 ชม. (คนที่เป็นเพื่อนกันอยู่แล้วจะแสดงในลิสต์เพื่อนด้านบนแทน)</p>
-  <div id="guildmatesHelpersMount"><div class="helper-none">กำลังโหลด…</div></div>
-</section>
-
-
-<div class="friends-tabs" id="friendsTabs" style="display:none">
-  <button class="friends-tab-btn active" data-target="friendsListPanel">👥 รายชื่อเพื่อน</button>
-  <button class="friends-tab-btn" data-target="friendsIncomingPanel">📩 คำขอที่ส่งมาหาเรา</button>
-  <button class="friends-tab-btn" data-target="friendsSentPanel">📤 คำขอที่เราส่งไป</button>
-  <button class="friends-tab-btn" data-target="friendsSearchPanel">🔎 ค้นหาผู้เล่น</button>
-</div>
-<section class="panel" id="friendsIncomingPanel" style="display:none">
-  <h3>คำขอเป็นเพื่อน <span id="friendRequestBadge" style="display:none">0</span></h3>
-  <div id="friendsIncomingList"></div>
-</section>
-
-<section class="panel" id="friendsSearchPanel" style="display:none">
-  <h3>ค้นหาผู้เล่น</h3>
-  <div class="searchbar">
-    <input id="friendSearchInput" type="text" placeholder="ค้นหาด้วย ID หรือชื่อผู้เล่น..." />
-    <button id="friendSearchBtn">ค้นหา</button>
+<div id="friendsTabsWrap" style="display:none">
+  <div class="friends-tabs">
+    <button class="mode-button friends-tab-btn active" data-tab="list"><span class=gicon-users></span> เพื่อน</button>
+    <button class="mode-button friends-tab-btn" data-tab="requests"><span class=gicon-mail></span> คำขอ<span id="friendRequestBadge" class="friends-tab-badge" style="display:none">0</span></button>
+    <button class="mode-button friends-tab-btn" data-tab="search"><span class=gicon-search></span> ค้นหา</button>
+    <button class="mode-button friends-tab-btn" data-tab="helpers"><span class=gicon-handshake></span> ตัวช่วยเหลือ</button>
   </div>
-  <p class="friend-hint">พิมพ์ ID (15 ตัวอักษร) แบบเต็ม หรือชื่อผู้เล่นบางส่วนก็ได้</p>
-  <div id="friendSearchResults"></div>
-</section>
 
-<section class="panel" id="friendsSentPanel" style="display:none">
-  <h3>คำขอที่ส่งไป</h3>
-  <div id="friendsSentList"></div>
-</section>
+  <!-- ---- รายชื่อเพื่อน ---- -->
+  <div class="friends-tab-panel active" data-panel="list">
+    <section class="panel" id="friendsListPanel">
+      <h3>รายชื่อเพื่อน (<span id="friendCount">0</span>)</h3>
+      <div id="friendsList"></div>
+    </section>
+  </div>
 
-<section class="panel" id="friendsListPanel" style="display:none">
-  <h3>รายชื่อเพื่อน (<span id="friendCount">0</span>)</h3>
-  <div id="friendsList"></div>
-</section>
+  <!-- ---- คำขอเป็นเพื่อน (เข้ามา + ส่งไป) ---- -->
+  <div class="friends-tab-panel" data-panel="requests">
+    <section class="panel" id="friendsIncomingPanel">
+      <h3>คำขอที่ส่งมา</h3>
+      <div id="friendsIncomingList"></div>
+    </section>
+    <section class="panel" id="friendsSentPanel">
+      <h3>คำขอที่ส่งไป</h3>
+      <div id="friendsSentList"></div>
+    </section>
+  </div>
+
+  <!-- ---- ค้นหาผู้เล่น ---- -->
+  <div class="friends-tab-panel" data-panel="search">
+    <section class="panel" id="friendsSearchPanel">
+      <h3>ค้นหาผู้เล่น</h3>
+      <div class="searchbar">
+        <input id="friendSearchInput" type="text" placeholder="ค้นหาด้วย ID หรือชื่อผู้เล่น..." />
+        <button id="friendSearchBtn">ค้นหา</button>
+      </div>
+      <p class="friend-hint">พิมพ์ ID (15 ตัวอักษร) แบบเต็ม หรือชื่อผู้เล่นบางส่วนก็ได้</p>
+      <div id="friendSearchResults"></div>
+    </section>
+  </div>
+
+  <!-- ---- ตัวช่วยเหลือ (ของฉัน + ขอจากเพื่อน/กิลด์) ---- -->
+  <div class="friends-tab-panel" data-panel="helpers">
+    <section class="panel" id="myHelperPanel">
+      <h3><span class=gicon-handshake></span> ตัวช่วยเหลือของฉัน</h3>
+      <p class="friend-hint">ตั้งตัวละคร 1 ตัวให้เพื่อนขอยืมไปใช้ในเด็คได้ชั่วคราว (12 ชม.) — การ์ดของคุณไม่หายไปไหน เพื่อนแค่ได้สำเนาไปใช้</p>
+      <div id="myHelperMount"><div class="helper-none">กำลังโหลด…</div></div>
+    </section>
+
+    <section class="panel" id="friendsHelpersPanel">
+      <h3><span class=gicon-help></span> ขอความช่วยเหลือจากเพื่อน</h3>
+      <p class="friend-hint">ขอได้ 1 ครั้งต่อเพื่อน 1 คน ทุก 24 ชม. — ตัวละครที่ได้จะอยู่ในเด็ค 12 ชม. แล้วหายไปเอง</p>
+      <div id="friendsHelpersMount"><div class="helper-none">กำลังโหลด…</div></div>
+    </section>
+
+    <section class="panel" id="guildmatesHelpersPanel">
+      <h3><span class=gicon-castle></span> ขอความช่วยเหลือจากคนในกิลด์</h3>
+      <p class="friend-hint">ทำงานแบบเดียวกับเพื่อน — ขอได้ 1 ครั้งต่อคน ทุก 24 ชม. (คนที่เป็นเพื่อนกันอยู่แล้วจะแสดงในลิสต์เพื่อนด้านบนแทน)</p>
+      <div id="guildmatesHelpersMount"><div class="helper-none">กำลังโหลด…</div></div>
+    </section>
+  </div>
+</div>
 
 <div class="helper-picker-overlay" id="helperPickerOverlay">
   <div class="helper-picker-sheet">
@@ -156,6 +182,7 @@
 <script src="../js/core/auth-ui.js"></script>
 <script src="../js/core/money.js"></script>
 <script src="../js/core/deck.js"></script>
+<script src="../js/core/presence.js"></script>
 <script>
   function escapeHtml(s) {
     const d = document.createElement("div");
@@ -164,8 +191,8 @@
   }
 
   function statusPill(status) {
-    if (status === "friends") return '<span class="friend-status-pill">✓ เพื่อนกันแล้ว</span>';
-    if (status === "request_sent") return '<span class="friend-status-pill">⏳ รอตอบรับ</span>';
+    if (status === "friends") return '<span class="friend-status-pill"><span class=gicon-check></span> เพื่อนกันแล้ว</span>';
+    if (status === "request_sent") return '<span class="friend-status-pill"><span class=gicon-hourglass></span> รอตอบรับ</span>';
     return "";
   }
 
@@ -184,7 +211,7 @@
 
   function helperPreviewHtml(card) {
     if (!card) return "";
-    const stars = "⭐".repeat(Math.min(card.stars || 1, 5)) + (card.stars > 5 ? "🌟".repeat(card.stars - 5) : "");
+    const stars = "<span class=gicon-star></span>".repeat(Math.min(card.stars || 1, 5)) + (card.stars > 5 ? "<span class=gicon-star></span>".repeat(card.stars - 5) : "");
     return `
       <div class="helper-name">${escapeHtml(card.name)} <span style="color:var(--muted);font-weight:400">(${escapeHtml(card.rarity || "")})</span></div>
       <div class="helper-stats">${stars} Lv.${escapeHtml(String(card.level ?? 1))} · HP ${card.hp} · ATK ${card.atk} · DEF ${card.def ?? "?"} · Skill: ${escapeHtml(card.skill || "None")}</div>
@@ -198,15 +225,15 @@
     if (!data || !data.card) {
       mount.innerHTML = `
         <div class="helper-none">ยังไม่ได้ตั้งตัวช่วยเหลือ</div>
-        <button type="button" class="set-helper-btn" id="openHelperPickerBtn">➕ ตั้งตัวช่วยเหลือ</button>
+        <button type="button" class="set-helper-btn" id="openHelperPickerBtn"><span class=gicon-plus></span> ตั้งตัวช่วยเหลือ</button>
       `;
     } else {
       mount.innerHTML = `
         <div class="helper-card">
           <div class="friend-helper-info">${helperPreviewHtml(data.card)}</div>
           <div class="friend-actions">
-            <button type="button" class="change-helper-btn" id="openHelperPickerBtn">🔄 เปลี่ยน</button>
-            <button type="button" class="remove-friend-btn" id="clearHelperBtn">✖ ยกเลิก</button>
+            <button type="button" class="change-helper-btn" id="openHelperPickerBtn"><span class=gicon-refresh></span> เปลี่ยน</button>
+            <button type="button" class="remove-friend-btn" id="clearHelperBtn"><span class=gicon-close></span> ยกเลิก</button>
           </div>
         </div>
       `;
@@ -281,22 +308,26 @@
       if (!f.helper) {
         actionHtml = `<span class="friend-status-pill">ยังไม่ได้ตั้งตัวช่วยเหลือ</span>`;
       } else if (f.activeLoan) {
-        actionHtml = `<span class="cooldown-pill" data-countdown="${escapeHtml(f.activeLoan.expiresAt)}" data-countdown-label="ใช้งานอยู่">⏳ ใช้งานอยู่ ${fmtRemaining(f.activeLoan.expiresAt) || ""}</span>`;
+        actionHtml = `<span class="cooldown-pill" data-countdown="${escapeHtml(f.activeLoan.expiresAt)}" data-countdown-label="ใช้งานอยู่"><span class=gicon-hourglass></span> ใช้งานอยู่ ${fmtRemaining(f.activeLoan.expiresAt) || ""}</span>`;
       } else if (f.cooldownEndsAt) {
-        actionHtml = `<span class="cooldown-pill" data-countdown="${escapeHtml(f.cooldownEndsAt)}" data-countdown-label="ขอได้อีกครั้งใน">🕒 ขอได้อีกครั้งใน ${fmtRemaining(f.cooldownEndsAt) || ""}</span>`;
+        actionHtml = `<span class="cooldown-pill" data-countdown="${escapeHtml(f.cooldownEndsAt)}" data-countdown-label="ขอได้อีกครั้งใน"><span class=gicon-clock></span> ขอได้อีกครั้งใน ${fmtRemaining(f.cooldownEndsAt) || ""}</span>`;
       } else {
-        actionHtml = `<button type="button" class="borrow-btn" data-lender-id="${escapeHtml(f.friendId)}">🆘 ขอความช่วยเหลือ</button>`;
+        actionHtml = `<button type="button" class="borrow-btn" data-lender-id="${escapeHtml(f.friendId)}"><span class=gicon-help></span> ขอความช่วยเหลือ</button>`;
       }
       return `
         <div class="friend-helper-row" data-friend-id="${escapeHtml(f.friendId)}">
           <div class="friend-helper-info">
-            <div class="friend-name">${escapeHtml(f.username)}</div>
+            <div class="friend-name-row">
+              <span class="friend-name">${escapeHtml(f.username)}</span>
+              ${Presence.presenceMountHtml({ accountStatus: f.accountStatus, suspendedUntil: f.suspendedUntil, lastSeenAt: f.lastSeenAt })}
+            </div>
             ${f.helper ? `<div class="friend-helper-preview">${helperPreviewHtml(f.helper)}</div>` : ""}
           </div>
           <div class="friend-actions">${actionHtml}</div>
         </div>
       `;
     }).join("");
+    Presence.refreshMounts(mount);
   }
 
   async function renderFriendsHelpers() {
@@ -319,7 +350,7 @@
         if (!remaining) {
           anyExpiredFriends = true;
         } else {
-          el.textContent = `${el.dataset.countdownLabel === "ใช้งานอยู่" ? "⏳" : "🕒"} ${el.dataset.countdownLabel} ${remaining}`;
+          el.innerHTML = `${el.dataset.countdownLabel === "ใช้งานอยู่" ? "<span class=gicon-hourglass></span>" : "<span class=gicon-clock></span>"} ${el.dataset.countdownLabel} ${remaining}`;
         }
       });
       document.querySelectorAll("#guildmatesHelpersMount .cooldown-pill[data-countdown]").forEach((el) => {
@@ -327,7 +358,7 @@
         if (!remaining) {
           anyExpiredGuildmates = true;
         } else {
-          el.textContent = `${el.dataset.countdownLabel === "ใช้งานอยู่" ? "⏳" : "🕒"} ${el.dataset.countdownLabel} ${remaining}`;
+          el.innerHTML = `${el.dataset.countdownLabel === "ใช้งานอยู่" ? "<span class=gicon-hourglass></span>" : "<span class=gicon-clock></span>"} ${el.dataset.countdownLabel} ${remaining}`;
         }
       });
       // refresh from server once a countdown hits zero, per panel
@@ -364,12 +395,12 @@
       return;
     }
     mount.innerHTML = results.map((r) => {
-      let actions = '<button type="button" class="send-request-btn">➕ ส่งคำขอ</button>';
+      let actions = '<button type="button" class="send-request-btn"><span class=gicon-plus></span> ส่งคำขอ</button>';
       if (r.status === "friends" || r.status === "request_sent") {
         actions = statusPill(r.status);
       } else if (r.status === "request_received") {
         actions = `<span class="friend-status-pill">ส่งคำขอมาแล้ว —</span>
-          <button type="button" class="accept-btn quick-accept-btn" data-request-id="${escapeHtml(r.requestId)}">✅ ตอบรับ</button>`;
+          <button type="button" class="accept-btn quick-accept-btn" data-request-id="${escapeHtml(r.requestId)}"><span class=gicon-check-circle></span> ตอบรับ</button>`;
       }
       return `
       <div class="friend-row" data-public-id="${escapeHtml(r.publicId)}">
@@ -404,8 +435,8 @@
           <div class="friend-id">${escapeHtml(r.publicId)}</div>
         </div>
         <div class="friend-actions">
-          <button type="button" class="accept-btn">✅ ตอบรับ</button>
-          <button type="button" class="reject-btn">❌ ปฏิเสธ</button>
+          <button type="button" class="accept-btn"><span class=gicon-check-circle></span> ตอบรับ</button>
+          <button type="button" class="reject-btn"><span class=gicon-close></span> ปฏิเสธ</button>
         </div>
       </div>
     `).join("");
@@ -426,7 +457,7 @@
           <div class="friend-id">${escapeHtml(r.publicId)}</div>
         </div>
         <div class="friend-actions">
-          <span class="friend-status-pill">⏳ รอตอบรับ</span>
+          <span class="friend-status-pill"><span class=gicon-hourglass></span> รอตอบรับ</span>
           <button type="button" class="cancel-request-btn">ยกเลิก</button>
         </div>
       </div>
@@ -445,14 +476,18 @@
     mount.innerHTML = friends.map((f) => `
       <div class="friend-row" data-player-id="${escapeHtml(f.playerId)}">
         <div>
-          <div class="friend-name">${escapeHtml(f.username)}</div>
+          <div class="friend-name-row">
+            <span class="friend-name">${escapeHtml(f.username)}</span>
+            ${Presence.presenceMountHtml({ accountStatus: f.accountStatus, suspendedUntil: f.suspendedUntil, lastSeenAt: f.lastSeenAt })}
+          </div>
           <div class="friend-id">${escapeHtml(f.publicId)}</div>
         </div>
         <div class="friend-actions">
-          <button type="button" class="remove-friend-btn">🗑 ลบเพื่อน</button>
+          <button type="button" class="remove-friend-btn"><span class=gicon-trash></span> ลบเพื่อน</button>
         </div>
       </div>
     `).join("");
+    Presence.refreshMounts(mount);
   }
 
   async function refreshAll() {
@@ -570,32 +605,38 @@
     }
   });
 
+  // ---- Tabs: only one group visible at a time so the page doesn't dump
+  // everything (my helper / friends' helpers / requests / search / list) on
+  // screen simultaneously. Switching tabs re-fetches that tab's data so it's
+  // always current (statuses, cooldowns, etc.) without a full page reload.
+  function switchFriendsTab(tab) {
+    document.querySelectorAll(".friends-tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+    document.querySelectorAll(".friends-tab-panel").forEach((p) => p.classList.toggle("active", p.dataset.panel === tab));
+    if (tab === "list") renderFriendsList();
+    else if (tab === "requests") { renderIncomingRequests(); renderSentRequests(); }
+    else if (tab === "helpers") { renderMyHelper(); renderFriendsHelpers(); renderGuildmatesHelpers(); }
+    // "search" tab: nothing to fetch until the person actually searches
+  }
+
+  document.querySelectorAll(".friends-tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => switchFriendsTab(btn.dataset.tab));
+  });
+
   async function init() {
     const loggedIn = window.GameAPI && GameAPI.isLoggedIn && GameAPI.isLoggedIn();
-    document.getElementById("friendsLoggedOutPanel").style.display = loggedIn ? "none" : "block";
-    document.getElementById("myHelperPanel").style.display = loggedIn ? "block" : "none";
-    document.getElementById("friendsHelpersPanel").style.display = loggedIn ? "block" : "none";
-    document.getElementById("guildmatesHelpersPanel").style.display = loggedIn ? "block" : "none";
-    document.getElementById("friendsTabs").style.display = loggedIn ? "flex" : "none";
-
-    const tabPanels = ["friendsListPanel","friendsIncomingPanel","friendsSentPanel","friendsSearchPanel"];
-    function showFriendsTab(panelId){
-      tabPanels.forEach(id=>{
-        document.getElementById(id).style.display = (loggedIn && id===panelId) ? "block" : "none";
-      });
-      document.querySelectorAll('.friends-tab-btn').forEach(btn=>{
-        btn.classList.toggle('active', btn.dataset.target === panelId);
-      });
-    }
-
-    document.querySelectorAll('.friends-tab-btn').forEach(btn=>{
-      btn.onclick = ()=> showFriendsTab(btn.dataset.target);
-    });
-
-    showFriendsTab("friendsListPanel");
-    if (!loggedIn) return;
+    const usable = loggedIn && !GameAPI.isGuest();
+    document.getElementById("friendsLoggedOutMsg").textContent = (loggedIn && GameAPI.isGuest())
+      ? "บัญชีชั่วคราวใช้งานระบบเพื่อนไม่ได้ — ตั้งชื่อผู้เล่นและ PIN ที่หน้าบัญชีก่อน"
+      : "ต้องเข้าสู่ระบบก่อนถึงจะใช้ระบบเพื่อนได้";
+    document.getElementById("friendsLoggedOutPanel").style.display = usable ? "none" : "block";
+    document.getElementById("friendsTabsWrap").style.display = usable ? "block" : "none";
+    if (!usable) return;
     syncMoneyFromServer();
-    await refreshAll();
+    // Fetch incoming requests up front (regardless of active tab) just so the
+    // request badge count is right from the moment the page loads.
+    await renderIncomingRequests();
+    switchFriendsTab("list");
+    setInterval(() => Presence.refreshMounts(), 30000);
   }
 
   document.addEventListener("DOMContentLoaded", init);
