@@ -218,6 +218,10 @@ const successRate = Math.max(1, (SUCCESS_RATE_TABLE[card.level] ?? 50) - (card.s
     }
     const def = card.def !== undefined ? card.def : "?";
 
+    if (card.borrowed) {
+      extraHTML = `<div class="meta" style="color:#7dd3fc;font-weight:bold;">🤝 ยืมจาก ${card.lenderName || "เพื่อน"} — ใช้ต่อสู้ได้ แต่อัพเกรด/ขายไม่ได้</div>`;
+    }
+
     const el = document.createElement("div");
     el.className = "card-box rarity-" + rarity;
     el.innerHTML = `
