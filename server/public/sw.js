@@ -2,7 +2,7 @@
 // แคชเฉพาะไฟล์หน้าตา (html/css/js/icons) เพื่อให้เปิดแอปได้เร็ว/ออฟไลน์ได้บางส่วน
 // ส่วน /api/* ปล่อยผ่านเน็ตเวิร์กเสมอ ห้ามแคชเด็ดขาด เพราะเป็นข้อมูลเกมสด (เงิน, กระเป๋า, ผลสุ่ม ฯลฯ)
 
-const CACHE_VERSION = "ub-shell-v1";
+const CACHE_VERSION = "ub-shell-v2";
 const APP_SHELL = [
   "/",
   "/pages/game.html",
