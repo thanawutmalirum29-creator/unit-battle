@@ -263,6 +263,60 @@
     ball.classList.add("nav-fab-ready");
   }
 
+  // แบนเนอร์เตือนบัญชีชั่วคราว — โผล่ทุกหน้า (โหลดพร้อมลูกบอลลอย) เพราะผู้เล่นอาจ
+  // ลืมว่ากำลังเล่นแบบไม่ล็อกอินอยู่ ถ้าไม่มีอะไรเตือนซ้ำ ข้อมูลอาจหายไปแบบไม่รู้ตัว
+  // ตอนลบแอป/ล้างข้อมูลเบราว์เซอร์ — ปุ่ม "ตั้งชื่อ+PIN" แปลงเป็นบัญชีถาวรได้ทันที
+  // โดยข้อมูล/เงิน/เด็คเดิมยังอยู่ครบ (ดู POST /api/auth/upgrade)
+  function injectGuestBanner() {
+    if (!window.GameAPI || !GameAPI.isLoggedIn() || !GameAPI.isGuest()) return;
+    if (document.getElementById("guestBanner")) return;
+
+    const style = document.createElement("style");
+    style.textContent = `
+      #guestBanner{
+        display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+        background:linear-gradient(135deg,#3a2c00,#241c00);
+        border:1px solid rgba(255,213,79,.4); color:var(--gold,#ffd54f);
+        border-radius:10px; padding:8px 12px; font-size:12.5px;
+        margin:0 0 12px;
+      }
+      #guestBanner span.msg{ flex:1 1 220px; }
+      #guestBanner button{
+        flex:0 0 auto; font-size:12px; padding:6px 12px; font-weight:700;
+        background:var(--gold,#ffd54f); color:#241c00; border:none; border-radius:999px; cursor:pointer;
+      }
+    `;
+    document.head.appendChild(style);
+
+    const banner = document.createElement("div");
+    banner.id = "guestBanner";
+    banner.innerHTML = `
+      <span class="msg">⚠️ บัญชีชั่วคราว — ข้อมูลจะหายถ้าลบแอป/ล้างข้อมูลเบราว์เซอร์ กู้คืนไม่ได้ และเข้ากิลด์/เพิ่มเพื่อนไม่ได้</span>
+      <button id="guestBannerUpgrade">🔒 ตั้งชื่อ+PIN เก็บข้อมูลไว้</button>
+    `;
+    const host = document.querySelector("header.topbar") || document.body;
+    host.insertAdjacentElement("afterend", banner);
+
+    banner.querySelector("#guestBannerUpgrade").addEventListener("click", async () => {
+      const username = window.uiPrompt
+        ? await uiPrompt("ตั้งชื่อผู้เล่น (2-32 ตัวอักษร):", "")
+        : window.prompt("ตั้งชื่อผู้เล่น (2-32 ตัวอักษร):", "");
+      if (!username) return;
+      const pin = window.uiPrompt
+        ? await uiPrompt("ตั้ง PIN (ตัวเลข 4-8 หลัก) — ใช้ล็อกอินครั้งต่อไป:", "")
+        : window.prompt("ตั้ง PIN (ตัวเลข 4-8 หลัก):", "");
+      if (!pin) return;
+
+      const result = await GameAPI.upgradeGuestAccount(username.trim(), pin.trim());
+      if (result && !result.error) {
+        await (window.uiAlert ? uiAlert("แปลงเป็นบัญชีถาวรสำเร็จ! จำชื่อ+PIN นี้ไว้ล็อกอินครั้งต่อไปด้วยนะ") : Promise.resolve(alert("แปลงเป็นบัญชีถาวรสำเร็จ!")));
+        location.reload();
+      } else {
+        await (window.uiAlert ? uiAlert(result?.error || "แปลงบัญชีไม่สำเร็จ ลองใหม่อีกครั้ง") : Promise.resolve(alert(result?.error || "แปลงบัญชีไม่สำเร็จ")));
+      }
+    });
+  }
+
   function init() {
     if (document.getElementById("navFabBall")) return; // กันโหลดซ้ำ
 
@@ -275,6 +329,7 @@
     document.body.appendChild(ball);
     document.body.appendChild(overlay);
     setupTap(ball, overlay);
+    injectGuestBanner();
   }
 
   if (document.readyState === "loading") {

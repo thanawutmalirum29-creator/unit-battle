@@ -18,6 +18,8 @@
         cursor: pointer; font-size: 14px; font-weight: bold; }
       #authui-submit { background: #4a7dff; color: white; }
       #authui-toggle { background: transparent; color: #9ab; text-decoration: underline; margin-top: 10px; }
+      #authui-guest { background: transparent; border: 1px solid #444; color: #b8c4d9; }
+      #authui-guest:hover { background: rgba(255,255,255,0.06); }
       #authui-error { color: #ff8080; font-size: 12px; min-height: 16px; margin-top: 6px; text-align: center; }
 
       #acctblock-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85);
@@ -108,6 +110,8 @@
         <button id="authui-submit">เข้าสู่ระบบ</button>
         <button id="authui-toggle">ยังไม่มีบัญชี? สมัครใหม่</button>
         <div id="authui-error"></div>
+        <div id="authui-guest-divider" style="text-align:center;color:#778;font-size:12px;margin:10px 0;">หรือ</div>
+        <button id="authui-guest">🎮 เล่นแบบไม่ล็อกอิน (ชั่วคราว)</button>
       </div>
     `;
     document.body.appendChild(overlay);
@@ -157,6 +161,31 @@
 
     submitBtn.addEventListener("click", submit);
     pinInput.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+
+    const guestBtn = overlay.querySelector("#authui-guest");
+    guestBtn.addEventListener("click", async () => {
+      const proceed = window.uiConfirm
+        ? await uiConfirm(
+            "บัญชีชั่วคราว: ข้อมูล (เงิน/การ์ด/ความคืบหน้า) จะหายทันทีถ้าลบแอป/ล้างข้อมูลเบราว์เซอร์ กู้คืนไม่ได้ และจะ เข้ากิลด์ไม่ได้ กับ เพิ่มเพื่อนไม่ได้ ต้องการเล่นแบบนี้ต่อไหม?",
+            { icon: "⚠️", okText: "เข้าใจแล้ว เล่นเลย", cancelText: "ยกเลิก" }
+          )
+        : window.confirm("บัญชีชั่วคราว: ข้อมูลจะหายถ้าลบแอป/ล้างข้อมูลเบราว์เซอร์ และเข้ากิลด์/เพิ่มเพื่อนไม่ได้ ยืนยันหรือไม่?");
+      if (!proceed) return;
+
+      guestBtn.disabled = true;
+      guestBtn.textContent = "กำลังสร้างบัญชีชั่วคราว...";
+      const result = await GameAPI.loginAsGuest();
+      guestBtn.disabled = false;
+      guestBtn.textContent = "🎮 เล่นแบบไม่ล็อกอิน (ชั่วคราว)";
+
+      if (result && result.token) {
+        overlay.remove();
+        if (typeof window.onAuthReady === "function") window.onAuthReady();
+        location.reload();
+      } else {
+        errorBox.textContent = result?.error || "สร้างบัญชีชั่วคราวไม่สำเร็จ ลองใหม่อีกครั้ง";
+      }
+    });
 
     setMode("login");
 

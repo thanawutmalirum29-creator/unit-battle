@@ -91,6 +91,7 @@ const GameAPI = (() => {
       localStorage.setItem("playerId", playerId);
       localStorage.setItem("authToken", authToken);
       localStorage.setItem("username", data.username);
+      localStorage.removeItem("isGuest");
       if (data.publicId) localStorage.setItem("publicId", data.publicId);
     }
     return data;
@@ -103,6 +104,7 @@ const GameAPI = (() => {
       localStorage.setItem("playerId", playerId);
       localStorage.setItem("authToken", authToken);
       localStorage.setItem("username", data.username);
+      localStorage.removeItem("isGuest");
       if (data.publicId) localStorage.setItem("publicId", data.publicId);
     }
     return data;
@@ -118,7 +120,34 @@ const GameAPI = (() => {
       localStorage.setItem("playerId", playerId);
       localStorage.setItem("authToken", authToken);
       localStorage.setItem("username", data.username);
+      localStorage.removeItem("isGuest");
       if (data.publicId) localStorage.setItem("publicId", data.publicId);
+    }
+    return data;
+  }
+
+  async function loginAsGuest() {
+    const data = await post("/api/auth/guest", {});
+    if (data?.token) {
+      playerId = data.playerId; authToken = data.token;
+      localStorage.setItem("playerId", playerId);
+      localStorage.setItem("authToken", authToken);
+      localStorage.setItem("username", data.username);
+      localStorage.setItem("isGuest", "1");
+      if (data.publicId) localStorage.setItem("publicId", data.publicId);
+    }
+    return data;
+  }
+
+  function isGuest() { return localStorage.getItem("isGuest") === "1"; }
+
+  // แปลงบัญชีชั่วคราวปัจจุบันเป็นบัญชีถาวร (ตั้งชื่อ+PIN) — เก็บเงิน/เด็ค/ความคืบหน้าเดิมไว้ทั้งหมด
+  async function upgradeGuestAccount(username, pin) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    const data = await post("/api/auth/upgrade", { username, pin }, true);
+    if (data && !data.error) {
+      localStorage.setItem("username", data.username);
+      localStorage.removeItem("isGuest");
     }
     return data;
   }
@@ -156,6 +185,10 @@ const GameAPI = (() => {
     const data = await get("/api/auth/me", true);
     if (data?.publicId) localStorage.setItem("publicId", data.publicId);
     if (data?.username) localStorage.setItem("username", data.username);
+    if (typeof data?.isGuest === "boolean") {
+      if (data.isGuest) localStorage.setItem("isGuest", "1");
+      else localStorage.removeItem("isGuest");
+    }
     return data;
   }
 
@@ -165,6 +198,7 @@ const GameAPI = (() => {
     localStorage.removeItem("playerId");
     localStorage.removeItem("authToken");
     localStorage.removeItem("publicId");
+    localStorage.removeItem("isGuest");
   }
 
   // ---- Mailbox ----
@@ -691,9 +725,55 @@ const GameAPI = (() => {
     return post("/api/guilds/expand-capacity", {}, true);
   }
 
+  // ---- Achievement badges (account page) ----
+  async function fetchBadges() {
+    if (!isLoggedIn()) return null;
+    return get("/api/players/badges", true);
+  }
+  async function setEquippedBadges(badgeKeys) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    const res = await fetch(BASE + "/api/players/badges/equipped", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + authToken },
+      body: JSON.stringify({ badges: badgeKeys }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) return { ...(data || {}), error: data?.error || `http ${res.status}` };
+    return data;
+  }
+
+  // ---- Profile cosmetics: avatar ("ปก") + frame ("กรอบปก") (account page) ----
+  async function fetchCosmetics() {
+    if (!isLoggedIn()) return null;
+    return get("/api/players/cosmetics", true);
+  }
+  async function setAvatar(avatarKey) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    const res = await fetch(BASE + "/api/players/avatar", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + authToken },
+      body: JSON.stringify({ avatar: avatarKey }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) return { ...(data || {}), error: data?.error || `http ${res.status}` };
+    return data;
+  }
+  async function setEquippedFrame(frameKey) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    const res = await fetch(BASE + "/api/players/frame", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + authToken },
+      body: JSON.stringify({ frame: frameKey }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) return { ...(data || {}), error: data?.error || `http ${res.status}` };
+    return data;
+  }
+
 return {
     ensurePlayer, reportNormalClear, fetchNormalProgress, infRunStart, infStageClear, infRunFinish, getInfRunId, fetchInfProgress,
     isLoggedIn, register, login, loginWithGoogle, logout, getAuthConfig, updateUsername, getUsername,
+    loginAsGuest, isGuest, upgradeGuestAccount,
     getPublicId, refreshMe, fetchMailbox, fetchMailDetail, claimMail, deleteMail,
     fetchEconomyState, claimNormalReward, claimInfReward, consumeHelperRound, checkAccountStatus,
     bossRunStart, bossClaimTier, bossRunFinish,
@@ -709,6 +789,8 @@ return {
     guildInvite, guildMyInvites, guildAcceptInvite, guildRejectInvite, guildCancelInvite,
     guildMembers, guildLeave, guildDisband, guildKick, guildPromote, guildDemote, guildTransferLeadership,
     guildChatFetch, guildChatSend, guildDonate, guildShopStatus, guildShopBuy, guildBossStatus, guildBossAttack, guildExpandCapacity,
+    fetchBadges, setEquippedBadges,
+    fetchCosmetics, setAvatar, setEquippedFrame,
   };
 })();
 
