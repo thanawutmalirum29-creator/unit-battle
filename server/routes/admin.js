@@ -16,7 +16,7 @@ const rateLimit = require('express-rate-limit');
 const pool = require('../db/pool');
 const asyncHandler = require('../middleware/asyncHandler');
 const { CHARACTER_DB } = require('../public/js/data/character-data.js');
-const { EQUIP_GACHA_POOLS } = require('../game-data/economy-data.js');
+const { EQUIP_GACHA_POOLS, SELL_PRICE_BY_RARITY } = require('../game-data/economy-data.js');
 
 const router = express.Router();
 
@@ -75,6 +75,15 @@ const BAG_KEYS = [
   'shardGray', 'shardBlue', 'shardPurple', 'shardGold', 'shardRed', 'shardSky',
 ];
 
+// Thai display labels for bag keys — used only in the reclaim mail body text below
+// (the admin console itself shows the raw key, same as the gift-mail tab already did).
+const BAG_LABELS = {
+  memoryRare: 'ความทรงจำ Rare', memoryEpic: 'ความทรงจำ Epic',
+  memoryLegendary: 'ความทรงจำ Legendary', memoryMythical: 'ความทรงจำ Mythical',
+  memoryCosmic: 'ความทรงจำ Cosmic', shardGray: 'ชาร์ดเทา', shardBlue: 'ชาร์ดน้ำเงิน',
+  shardPurple: 'ชาร์ดม่วง', shardGold: 'ชาร์ดทอง', shardRed: 'ชาร์ดแดง', shardSky: 'ชาร์ดฟ้า',
+};
+
 // POST /api/admin/login { code }
 router.post('/login', loginLimiter, asyncHandler(async (req, res) => {
   cleanupSessions();
@@ -108,7 +117,7 @@ router.get('/players', requireAdmin, asyncHandler(async (req, res) => {
     where = `WHERE p.username ILIKE $1 OR p.public_id ILIKE $1`;
   }
   const { rows } = await pool.query(
-    `SELECT p.id, p.public_id, p.username, p.status, p.created_at,
+    `SELECT p.id, p.public_id, p.username, p.status, p.status_reason, p.status_changed_at, p.suspended_until, p.created_at,
             COALESCE(e.money, 0) AS money,
             COALESCE(jsonb_array_length(e.deck), 0) AS deck_count,
             COALESCE(jsonb_array_length(e.equip_bag), 0) AS equip_count
@@ -124,6 +133,9 @@ router.get('/players', requireAdmin, asyncHandler(async (req, res) => {
     publicId: r.public_id,
     username: r.username,
     status: r.status,
+    statusReason: r.status_reason,
+    statusChangedAt: r.status_changed_at,
+    suspendedUntil: r.suspended_until,
     createdAt: r.created_at,
     money: Number(r.money),
     deckCount: r.deck_count,
@@ -134,7 +146,7 @@ router.get('/players', requireAdmin, asyncHandler(async (req, res) => {
 // GET /api/admin/players/:id — full detail (economy + bag) for one account.
 router.get('/players/:id', requireAdmin, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT p.id, p.public_id, p.username, p.status, p.created_at,
+    `SELECT p.id, p.public_id, p.username, p.status, p.status_reason, p.status_changed_at, p.suspended_until, p.created_at,
             e.money, e.bag, e.deck, e.equip_bag
      FROM players p
      LEFT JOIN player_economy e ON e.player_id = p.id
@@ -148,6 +160,9 @@ router.get('/players/:id', requireAdmin, asyncHandler(async (req, res) => {
     publicId: r.public_id,
     username: r.username,
     status: r.status,
+    statusReason: r.status_reason,
+    statusChangedAt: r.status_changed_at,
+    suspendedUntil: r.suspended_until,
     createdAt: r.created_at,
     money: Number(r.money || 0),
     bag: r.bag || {},
@@ -156,9 +171,17 @@ router.get('/players/:id', requireAdmin, asyncHandler(async (req, res) => {
   });
 }));
 
-// PATCH /api/admin/players/:id { username?, status? } — rename and/or change status.
+// PATCH /api/admin/players/:id { username?, status?, reason?, days? } — rename
+// and/or change status.
+//   status: 'suspended' — days (positive integer, required) sets how long the
+//           suspension lasts; reason (optional) is shown to the player. Lifted
+//           automatically once the duration elapses (see db/accountStatus.js).
+//   status: 'banned'    — reason (optional) shown to the player; permanent
+//           until an admin sets status back to 'active' by hand.
+//   status: 'active'    — reactivates the account and clears any previous
+//           suspension/ban reason + dates.
 router.patch('/players/:id', requireAdmin, asyncHandler(async (req, res) => {
-  const { username, status } = req.body || {};
+  const { username, status, reason, days } = req.body || {};
   const updates = [];
   const params = [req.params.id];
 
@@ -178,15 +201,50 @@ router.patch('/players/:id', requireAdmin, asyncHandler(async (req, res) => {
     }
     params.push(status);
     updates.push(`status = $${params.length}`);
+
+    const trimmedReason = reason ? String(reason).trim().slice(0, 500) : null;
+
+    if (status === 'suspended') {
+      const daysNum = Number(days);
+      if (!Number.isInteger(daysNum) || daysNum <= 0 || daysNum > 3650) {
+        return res.status(400).json({ error: 'days must be a positive whole number (how many days to suspend for)' });
+      }
+      params.push(trimmedReason);
+      updates.push(`status_reason = $${params.length}`);
+      params.push(new Date());
+      updates.push(`status_changed_at = $${params.length}`);
+      params.push(new Date(Date.now() + daysNum * 24 * 60 * 60 * 1000));
+      updates.push(`suspended_until = $${params.length}`);
+    } else if (status === 'banned') {
+      params.push(trimmedReason);
+      updates.push(`status_reason = $${params.length}`);
+      params.push(new Date());
+      updates.push(`status_changed_at = $${params.length}`);
+      updates.push(`suspended_until = NULL`);
+    } else {
+      // reactivating — clear out any previous suspension/ban detail
+      updates.push(`status_reason = NULL`);
+      updates.push(`status_changed_at = NULL`);
+      updates.push(`suspended_until = NULL`);
+    }
   }
   if (updates.length === 0) return res.status(400).json({ error: 'nothing to update' });
 
   const { rows } = await pool.query(
-    `UPDATE players SET ${updates.join(', ')} WHERE id = $1 RETURNING id, public_id, username, status`,
+    `UPDATE players SET ${updates.join(', ')} WHERE id = $1
+     RETURNING id, public_id, username, status, status_reason, status_changed_at, suspended_until`,
     params
   );
   if (rows.length === 0) return res.status(404).json({ error: 'player not found' });
-  res.json(rows[0]);
+  res.json({
+    id: rows[0].id,
+    publicId: rows[0].public_id,
+    username: rows[0].username,
+    status: rows[0].status,
+    statusReason: rows[0].status_reason,
+    statusChangedAt: rows[0].status_changed_at,
+    suspendedUntil: rows[0].suspended_until,
+  });
 }));
 
 // DELETE /api/admin/players/:id — permanently deletes the account and everything
@@ -203,6 +261,7 @@ router.delete('/players/:id', requireAdmin, asyncHandler(async (req, res) => {
     }
 
     await client.query(`DELETE FROM mailbox WHERE player_id = $1`, [playerId]);
+    await client.query(`DELETE FROM admin_reclaims WHERE player_id = $1`, [playerId]);
     await client.query(`DELETE FROM shop_purchases WHERE player_id = $1`, [playerId]);
     await client.query(`DELETE FROM reward_claims WHERE player_id = $1`, [playerId]);
     await client.query(`DELETE FROM leaderboard_entries WHERE player_id = $1`, [playerId]);
@@ -289,5 +348,248 @@ router.get('/catalog', requireAdmin, (req, res) => {
   const characters = Object.entries(CHARACTER_DB).map(([name, stats]) => ({ name, ...stats }));
   res.json({ characters, equips: EQUIP_CATALOG });
 });
+
+// GET /api/admin/players/:id/history — unified "รับของ" timeline: stage/boss/inf
+// reward payouts, claimed mailbox rewards, and shop purchases, newest first. Each
+// source table already exists for its own reason (anti-double-claim, shop lock,
+// mailbox) — this just merges them into one read-only view for the console.
+router.get('/players/:id/history', requireAdmin, asyncHandler(async (req, res) => {
+  const playerId = req.params.id;
+  const [rewardsRes, mailRes, shopRes] = await Promise.all([
+    pool.query(
+      `SELECT mode, stage, money_awarded, items_awarded, claimed_at
+       FROM reward_claims WHERE player_id = $1 ORDER BY claimed_at DESC LIMIT 200`,
+      [playerId]
+    ),
+    pool.query(
+      `SELECT id, subject, reward_money, reward_bag_key, reward_bag_qty, reward_card, reward_equip, claimed_at
+       FROM mailbox WHERE player_id = $1 AND claimed_at IS NOT NULL ORDER BY claimed_at DESC LIMIT 200`,
+      [playerId]
+    ),
+    pool.query(
+      `SELECT cycle, slot_index, price_paid, paid_with, shard_key, shard_qty, purchased_at
+       FROM shop_purchases WHERE player_id = $1 ORDER BY purchased_at DESC LIMIT 200`,
+      [playerId]
+    ),
+  ]);
+
+  const events = [];
+  for (const r of rewardsRes.rows) {
+    events.push({
+      type: 'reward', at: r.claimed_at,
+      label: `ผ่านด่าน ${r.mode.toUpperCase()} สเตจ ${r.stage}`,
+      money: Number(r.money_awarded), items: r.items_awarded || null,
+    });
+  }
+  for (const r of mailRes.rows) {
+    events.push({
+      type: 'mail', at: r.claimed_at, mailId: r.id,
+      label: `รับเมล: ${r.subject}`,
+      money: Number(r.reward_money || 0),
+      bagKey: r.reward_bag_key, bagQty: Number(r.reward_bag_qty || 0),
+      card: r.reward_card || null, equip: r.reward_equip || null,
+    });
+  }
+  for (const r of shopRes.rows) {
+    events.push({
+      type: 'shop', at: r.purchased_at,
+      label: `ซื้อการ์ดจากร้าน (รอบ #${r.cycle} ช่อง ${r.slot_index + 1})`,
+      pricePaid: Number(r.price_paid), paidWith: r.paid_with,
+      shardKey: r.shard_key, shardQty: Number(r.shard_qty || 0),
+    });
+  }
+  events.sort((a, b) => new Date(b.at) - new Date(a.at));
+  res.json(events.slice(0, 300));
+}));
+
+// GET /api/admin/players/:id/reclaims — admin_reclaims audit log for one player,
+// newest first. Lets the console show "สิ่งไหนโดนดึงกลับไปแล้ว" for that account.
+router.get('/players/:id/reclaims', requireAdmin, asyncHandler(async (req, res) => {
+  const { rows } = await pool.query(
+    `SELECT id, kind, label, qty_requested, qty_taken, went_negative, converted_to_money,
+            money_deducted, note, mail_id, created_at
+     FROM admin_reclaims WHERE player_id = $1 ORDER BY created_at DESC LIMIT 200`,
+    [req.params.id]
+  );
+  res.json(rows.map((r) => ({
+    id: r.id, kind: r.kind, label: r.label,
+    qtyRequested: Number(r.qty_requested), qtyTaken: Number(r.qty_taken),
+    wentNegative: r.went_negative, convertedToMoney: r.converted_to_money,
+    moneyDeducted: Number(r.money_deducted), note: r.note, mailId: r.mail_id,
+    createdAt: r.created_at,
+  })));
+}));
+
+// POST /api/admin/players/:id/reclaim { kind, ... , note? }
+// Claws money / a bag currency / a character / a piece of equipment back off a
+// player — e.g. to undo a cheat or a mail sent by mistake.
+//
+//   kind: 'money'  { amount }
+//   kind: 'bag'    { bagKey, amount }
+//   kind: 'card'   { cardName, qty? }   — matched by name against the player's
+//                                          CURRENT deck; anything short of qty
+//                                          (already sold/used) is billed as money
+//   kind: 'equip'  { equipName, qty? }  — same idea against equip_bag. Equipment
+//                                          currently equipped onto a card is left
+//                                          alone (unequip first) and is treated
+//                                          as "not available" for this purpose.
+//
+// money/bag reclaims are allowed to push the balance negative (a "debt") rather
+// than silently reclaiming less than asked; see schema.sql for why that's safe.
+router.post('/players/:id/reclaim', requireAdmin, asyncHandler(async (req, res) => {
+  const playerId = req.params.id;
+  const { kind, note } = req.body || {};
+  if (!['money', 'bag', 'card', 'equip'].includes(kind)) {
+    return res.status(400).json({ error: 'invalid kind' });
+  }
+  const trimmedNote = note ? String(note).trim().slice(0, 500) : null;
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const playerRes = await client.query(`SELECT id FROM players WHERE id = $1 FOR UPDATE`, [playerId]);
+    if (playerRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'player not found' });
+    }
+
+    await client.query(`INSERT INTO player_economy (player_id) VALUES ($1) ON CONFLICT DO NOTHING`, [playerId]);
+    const econRes = await client.query(
+      `SELECT money, bag, deck, equip_bag FROM player_economy WHERE player_id = $1 FOR UPDATE`,
+      [playerId]
+    );
+    const econ = econRes.rows[0];
+
+    let label, qtyRequested = 1, qtyTaken = 0, wentNegative = false, convertedToMoney = false, moneyDeducted = 0;
+    let newMoney = Number(econ.money);
+    const newBag = { ...(econ.bag || {}) };
+    let newDeck = Array.isArray(econ.deck) ? [...econ.deck] : [];
+    let newEquipBag = Array.isArray(econ.equip_bag) ? [...econ.equip_bag] : [];
+    let mailBody;
+
+    if (kind === 'money') {
+      const amount = Number(req.body?.amount);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'amount must be a positive number' });
+      }
+      qtyRequested = amount;
+      newMoney = Number(econ.money) - amount;
+      wentNegative = newMoney < 0;
+      label = `เงิน ${amount.toLocaleString()}`;
+      mailBody = `บัญชีของคุณถูกเรียกคืนเงินจำนวน ${amount.toLocaleString()} โดยแอดมิน`
+        + (wentNegative ? ` ยอดเงินตอนนี้ติดลบอยู่ ${Math.abs(newMoney).toLocaleString()} — ต้องเล่นหาเงินเพิ่มเพื่อให้ยอดกลับมาเป็นบวกก่อนถึงจะใช้จ่ายต่อได้` : '');
+
+    } else if (kind === 'bag') {
+      const bagKey = req.body?.bagKey;
+      const amount = Number(req.body?.amount);
+      if (!BAG_KEYS.includes(bagKey)) { await client.query('ROLLBACK'); return res.status(400).json({ error: 'invalid bagKey' }); }
+      if (!Number.isFinite(amount) || amount <= 0) { await client.query('ROLLBACK'); return res.status(400).json({ error: 'amount must be a positive number' }); }
+      qtyRequested = amount;
+      const have = Number(econ.bag?.[bagKey] || 0);
+      const newQty = have - amount;
+      newBag[bagKey] = newQty;
+      wentNegative = newQty < 0;
+      const bagLabel = BAG_LABELS[bagKey] || bagKey;
+      label = `${bagLabel} × ${amount.toLocaleString()}`;
+      mailBody = `${bagLabel} จำนวน ${amount.toLocaleString()} ถูกเรียกคืนโดยแอดมิน`
+        + (wentNegative ? ` ยอดตอนนี้ติดลบอยู่ ${Math.abs(newQty).toLocaleString()} — ต้องเล่นฟาร์มเพิ่มเพื่อชดใช้ ใช้จ่ายเพิ่มไม่ได้จนกว่ายอดจะกลับมาเป็นบวก` : '');
+
+    } else if (kind === 'card') {
+      const cardName = String(req.body?.cardName || '').trim();
+      const qty = Math.max(1, Math.floor(Number(req.body?.qty)) || 1);
+      if (!cardName) { await client.query('ROLLBACK'); return res.status(400).json({ error: 'cardName is required' }); }
+      const stats = CHARACTER_DB[cardName];
+      if (!stats) { await client.query('ROLLBACK'); return res.status(400).json({ error: 'unknown character name' }); }
+      qtyRequested = qty;
+
+      let remaining = qty;
+      const keep = [];
+      for (const card of newDeck) {
+        if (remaining > 0 && card.name === cardName) { remaining--; qtyTaken++; continue; }
+        keep.push(card);
+      }
+      newDeck = keep;
+
+      if (remaining > 0) {
+        convertedToMoney = true;
+        moneyDeducted = remaining * (SELL_PRICE_BY_RARITY[stats.rarity] || 5);
+        newMoney = Number(econ.money) - moneyDeducted;
+        wentNegative = newMoney < 0;
+      }
+
+      label = `${cardName}${qty > 1 ? ` × ${qty}` : ''}`;
+      const parts = [];
+      if (qtyTaken > 0) parts.push(`ริบออกจากกระเป๋าโดยตรง ${qtyTaken} ตัว`);
+      if (convertedToMoney) parts.push(`อีก ${remaining} ตัว ถูกขาย/ใช้ไปแล้วก่อนหน้านี้ จึงหักเงินแทนเป็นจำนวน ${moneyDeducted.toLocaleString()}`);
+      mailBody = `ตัวละคร "${cardName}" ${parts.join(' และ')} โดยแอดมิน`
+        + (wentNegative ? ` ยอดเงินตอนนี้ติดลบอยู่ ${Math.abs(newMoney).toLocaleString()} — ต้องเล่นหาเงินเพิ่มเพื่อชดใช้` : '');
+
+    } else if (kind === 'equip') {
+      const equipName = String(req.body?.equipName || '').trim();
+      const qty = Math.max(1, Math.floor(Number(req.body?.qty)) || 1);
+      if (!equipName) { await client.query('ROLLBACK'); return res.status(400).json({ error: 'equipName is required' }); }
+      const template = EQUIP_CATALOG.find((e) => e.name === equipName);
+      if (!template) { await client.query('ROLLBACK'); return res.status(400).json({ error: 'unknown equip name' }); }
+      qtyRequested = qty;
+
+      let remaining = qty;
+      const keep = [];
+      for (const eq of newEquipBag) {
+        if (remaining > 0 && eq.name === equipName) { remaining--; qtyTaken++; continue; }
+        keep.push(eq);
+      }
+      newEquipBag = keep;
+
+      if (remaining > 0) {
+        convertedToMoney = true;
+        moneyDeducted = remaining * (SELL_PRICE_BY_RARITY[template.rarity] || 5);
+        newMoney = Number(econ.money) - moneyDeducted;
+        wentNegative = newMoney < 0;
+      }
+
+      label = `${equipName}${qty > 1 ? ` × ${qty}` : ''}`;
+      const parts = [];
+      if (qtyTaken > 0) parts.push(`ริบออกจากกระเป๋าโดยตรง ${qtyTaken} ชิ้น`);
+      if (convertedToMoney) parts.push(`อีก ${remaining} ชิ้น ถูกใช้/สวมใส่/หายไปจากกระเป๋าแล้ว จึงหักเงินแทนเป็นจำนวน ${moneyDeducted.toLocaleString()}`);
+      mailBody = `อุปกรณ์ "${equipName}" ${parts.join(' และ')} โดยแอดมิน`
+        + (wentNegative ? ` ยอดเงินตอนนี้ติดลบอยู่ ${Math.abs(newMoney).toLocaleString()} — ต้องเล่นหาเงินเพิ่มเพื่อชดใช้` : '');
+    }
+
+    await client.query(
+      `UPDATE player_economy SET money = $2, bag = $3, deck = $4, equip_bag = $5, updated_at = now() WHERE player_id = $1`,
+      [playerId, newMoney, JSON.stringify(newBag), JSON.stringify(newDeck), JSON.stringify(newEquipBag)]
+    );
+
+    // แจ้งผู้เล่นผ่านกล่องจดหมาย ว่าโดนเรียกคืนอะไรไปเท่าไหร่ — ไม่มีของรางวัลแนบ (reward_money=0
+    // เสมอ) เพราะนี่คือการแจ้งเตือนหักของ ไม่ใช่เมลให้ของ
+    const mailRes = await client.query(
+      `INSERT INTO mailbox (player_id, subject, body, sent_by) VALUES ($1, $2, $3, 'admin-reclaim') RETURNING id`,
+      [playerId, `⚠️ แอดมินเรียกคืน: ${label}`, trimmedNote ? `${mailBody}\n\nหมายเหตุจากแอดมิน: ${trimmedNote}` : mailBody]
+    );
+
+    const logRes = await client.query(
+      `INSERT INTO admin_reclaims (player_id, kind, label, qty_requested, qty_taken, went_negative, converted_to_money, money_deducted, note, mail_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id, created_at`,
+      [playerId, kind, label, qtyRequested, qtyTaken, wentNegative, convertedToMoney, moneyDeducted, trimmedNote, mailRes.rows[0].id]
+    );
+
+    await client.query('COMMIT');
+    res.json({
+      ok: true,
+      reclaimId: logRes.rows[0].id,
+      createdAt: logRes.rows[0].created_at,
+      kind, label, qtyRequested, qtyTaken, wentNegative, convertedToMoney, moneyDeducted,
+      money: newMoney, bag: newBag, deck: newDeck, equipBag: newEquipBag,
+      mailId: mailRes.rows[0].id,
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}));
 
 module.exports = router;

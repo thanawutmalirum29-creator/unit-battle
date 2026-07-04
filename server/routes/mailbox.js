@@ -134,4 +134,20 @@ router.post('/:id/claim', requireAuth, asyncHandler(async (req, res) => {
   }
 }));
 
+// DELETE /api/mailbox/:id — player deletes a mail from their own inbox.
+// Purely a client-declutter action: rewards are already credited to
+// player_economy at claim time (see /:id/claim above), so deleting the mail
+// row here never touches money/bag/deck/equip_bag.
+router.delete('/:id', requireAuth, asyncHandler(async (req, res) => {
+  const mailId = Number(req.params.id);
+  if (!Number.isInteger(mailId)) return res.status(400).json({ error: 'invalid mail id' });
+
+  const { rowCount } = await pool.query(
+    `DELETE FROM mailbox WHERE id = $1 AND player_id = $2`,
+    [mailId, req.playerId]
+  );
+  if (rowCount === 0) return res.status(404).json({ error: 'mail not found' });
+  res.json({ ok: true });
+}));
+
 module.exports = router;

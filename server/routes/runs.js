@@ -11,15 +11,35 @@ const router = express.Router();
 // client uses to render the checkpoint buttons.
 const INF_CHECKPOINT_INTERVAL = 25;
 
-// POST /api/runs/start { playerId, mode: 'normal' | 'inf', startStage? }
+// POST /api/runs/start { playerId, mode: 'normal' | 'inf', startStage?, teamCardIds? }
 // startStage is only meaningful for mode 'inf' — lets a run begin at a
 // previously-cleared checkpoint instead of stage 1. Validated against
 // inf_progress so a player can't jump to a checkpoint they never reached.
+// teamCardIds (optional, sent by inf-mode.js) is checked against the
+// player's own deck for mode 'inf': a borrowed helper card (see
+// routes/helpers.js) is never allowed into an INF run, since a run can go
+// on long enough for the loan to hit its round cap or 12h expiry mid-run and
+// yank a unit out from under a battle already in progress. The client
+// already blocks selecting a borrowed card for INF — this is the
+// server-authoritative backstop.
 router.post('/start', asyncHandler(async (req, res) => {
-  const { playerId, mode } = req.body || {};
+  const { playerId, mode, teamCardIds } = req.body || {};
   let startStage = Number(req.body?.startStage) || 1;
   if (!playerId || !['normal', 'inf'].includes(mode)) {
     return res.status(400).json({ error: 'invalid playerId or mode' });
+  }
+
+  if (mode === 'inf' && Array.isArray(teamCardIds) && teamCardIds.length > 0) {
+    const { rows: econRows } = await pool.query(
+      `SELECT deck FROM player_economy WHERE player_id = $1`,
+      [playerId]
+    );
+    const deck = Array.isArray(econRows[0]?.deck) ? econRows[0].deck : [];
+    const idSet = new Set(teamCardIds);
+    const hasBorrowed = deck.some((c) => idSet.has(c.id) && c.borrowed);
+    if (hasBorrowed) {
+      return res.status(400).json({ error: 'ตัวละครที่ยืมมาจากเพื่อนไม่สามารถใช้ในด่าน INF ได้ กรุณาเลือกทีมใหม่' });
+    }
   }
 
   let baseline = 0; // run.max_stage / run.start_stage the run begins with

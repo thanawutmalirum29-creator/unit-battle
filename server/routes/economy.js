@@ -20,6 +20,7 @@ const {
   SKILL_UPGRADE_MAX_LEVEL, SKILL_UPGRADE_SHARD_COST_PER_LEVEL, SKILL_UPGRADE_SUCCESS_RATE,
   calcSellPrice,
 } = require('../game-data/economy-data');
+const { cleanupExpiredHelperLoans } = require('../db/helperLoans');
 
 const router = express.Router();
 
@@ -46,6 +47,9 @@ async function getOrCreateEconomy(client, playerId) {
 // ---------------------------------------------------------------------------
 router.get('/state', requireAuth, asyncHandler(async (req, res) => {
   await pool.query(`INSERT INTO player_economy (player_id) VALUES ($1) ON CONFLICT DO NOTHING`, [req.playerId]);
+  // sweep any borrowed helper cards that have passed their 12h loan (see
+  // routes/helpers.js) so the deck the client renders is never stale.
+  await cleanupExpiredHelperLoans(pool, req.playerId);
   const { rows } = await pool.query(`SELECT money, bag, deck, equip_bag, equip_blacklist, gacha_blacklist FROM player_economy WHERE player_id = $1`, [req.playerId]);
   res.json({ ...rows[0], money: Number(rows[0].money) });
 }));
@@ -634,6 +638,10 @@ router.post('/upgrade/guaranteed', requireAuth, asyncHandler(async (req, res) =>
       return res.status(404).json({ error: 'card not found in deck' });
     }
     const card = { ...deck[idx] };
+    if (card.borrowed) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'การ์ดที่ยืมมาจากเพื่อนไม่สามารถอัพเกรดได้' });
+    }
     if (!card.stars) card.stars = 1;
     if (card.maxed) {
       await client.query('ROLLBACK');
@@ -704,6 +712,10 @@ router.post('/skills/upgrade', requireAuth, asyncHandler(async (req, res) => {
       return res.status(404).json({ error: 'card not found in deck' });
     }
     const card = { ...deck[idx] };
+    if (card.borrowed) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'การ์ดที่ยืมมาจากเพื่อนไม่สามารถอัพเกรดสกิลได้' });
+    }
 
     const match = typeof card.skill === 'string' ? card.skill.match(/(.+) L(\d+)/) : null;
     if (!match) {
@@ -769,6 +781,11 @@ router.post('/sell', requireAuth, asyncHandler(async (req, res) => {
       return res.status(404).json({ error: 'card not found in deck' });
     }
 
+    if (deck[idx].borrowed) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'การ์ดที่ยืมมาจากเพื่อนไม่สามารถขายได้' });
+    }
+
     const sold = deck[idx];
     const price = calcSellPrice(sold);
     const newDeck = deck.filter((_, i) => i !== idx);
@@ -801,8 +818,10 @@ router.post('/sell-all', requireAuth, asyncHandler(async (req, res) => {
     await client.query('BEGIN');
     const econ = await getOrCreateEconomy(client, req.playerId);
     const idSet = new Set(cardIds);
-    const toSell = econ.deck.filter(c => idSet.has(c.id));
-    const kept = econ.deck.filter(c => !idSet.has(c.id));
+    // borrowed helper cards (see routes/helpers.js) are never sellable, even
+    // if their id slipped into a bulk "sell all unlocked" request
+    const toSell = econ.deck.filter(c => idSet.has(c.id) && !c.borrowed);
+    const kept = econ.deck.filter(c => !(idSet.has(c.id) && !c.borrowed));
     const totalEarned = toSell.reduce((sum, c) => sum + calcSellPrice(c), 0);
     const newMoney = Number(econ.money) + totalEarned;
 
@@ -841,6 +860,10 @@ router.post('/upgrade/paid', requireAuth, asyncHandler(async (req, res) => {
       return res.status(404).json({ error: 'card not found in deck' });
     }
     const card = { ...deck[idx] };
+    if (card.borrowed) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'การ์ดที่ยืมมาจากเพื่อนไม่สามารถอัพเกรดได้' });
+    }
     if (!card.stars) card.stars = 1;
     if (card.maxed) {
       await client.query('ROLLBACK');
@@ -911,6 +934,10 @@ router.post('/upgrade/duplicate', requireAuth, asyncHandler(async (req, res) => 
       return res.status(404).json({ error: 'card not found in deck' });
     }
     const card = { ...deck[idx] };
+    if (card.borrowed) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'การ์ดที่ยืมมาจากเพื่อนไม่สามารถอัพเกรดได้' });
+    }
     if (!card.stars) card.stars = 1;
     if (!(card.level >= UPGRADE_MAX_LEVEL && card.stars >= 5 && card.stars < 8)) {
       await client.query('ROLLBACK');
@@ -927,7 +954,7 @@ router.post('/upgrade/duplicate', requireAuth, asyncHandler(async (req, res) => 
     const dedupIds = [...new Set(duplicateCardIds)].filter(id => id !== cardId);
     const validDupes = dedupIds
       .map(id => deck.find(c => c.id === id))
-      .filter(c => c && c.name === card.name);
+      .filter(c => c && c.name === card.name && !c.borrowed);
 
     if (validDupes.length < need) {
       await client.query('ROLLBACK');

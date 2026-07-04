@@ -8,6 +8,7 @@ const { OAuth2Client } = require('google-auth-library');
 const pool = require('../db/pool');
 const asyncHandler = require('../middleware/asyncHandler');
 const { requireAuth } = require('../middleware/auth');
+const { resolveAccountStatus, accountBlockedPayload } = require('../db/accountStatus');
 const { generateUniquePublicId } = require('../utils/publicId');
 
 const router = express.Router();
@@ -92,7 +93,8 @@ router.post('/login', loginLimiter, asyncHandler(async (req, res) => {
   }
 
   const { rows } = await pool.query(
-    `SELECT id, pin_hash, public_id, status FROM players WHERE username = $1`,
+    `SELECT id, pin_hash, public_id, status, status_reason, status_changed_at, suspended_until
+     FROM players WHERE username = $1`,
     [username]
   );
   if (rows.length === 0) return res.status(404).json({ error: 'no such player, register first' });
@@ -100,7 +102,11 @@ router.post('/login', loginLimiter, asyncHandler(async (req, res) => {
 
   const ok = await bcrypt.compare(pin, rows[0].pin_hash);
   if (!ok) return res.status(401).json({ error: 'wrong pin' });
-  if (rows[0].status !== 'active') return res.status(403).json({ error: `account ${rows[0].status}` });
+
+  const statusInfo = await resolveAccountStatus(pool, rows[0].id, rows[0]);
+  if (statusInfo.status !== 'active') {
+    return res.status(403).json(accountBlockedPayload(statusInfo));
+  }
 
   const token = uuid();
   // self-heal: accounts created before the admin-console patch may not have a public_id yet
@@ -148,11 +154,16 @@ router.post('/google', asyncHandler(async (req, res) => {
   const googleId = payload.sub;
   const token = uuid();
 
-  const existing = await pool.query(`SELECT id, username, public_id, status FROM players WHERE google_id = $1`, [googleId]);
+  const existing = await pool.query(
+    `SELECT id, username, public_id, status, status_reason, status_changed_at, suspended_until
+     FROM players WHERE google_id = $1`,
+    [googleId]
+  );
 
   if (existing.rows.length > 0) {
-    if (existing.rows[0].status !== 'active') {
-      return res.status(403).json({ error: `account ${existing.rows[0].status}` });
+    const statusInfo = await resolveAccountStatus(pool, existing.rows[0].id, existing.rows[0]);
+    if (statusInfo.status !== 'active') {
+      return res.status(403).json(accountBlockedPayload(statusInfo));
     }
     // Returning Google user — just refresh their session token.
     let publicId = existing.rows[0].public_id;
@@ -211,6 +222,9 @@ router.post('/logout', requireAuth, asyncHandler(async (req, res) => {
 }));
 
 // GET /api/auth/me — current session's public_id + status, for the account page.
+// (requireAuth already blocks non-active accounts with the full status detail —
+// this only ever responds for an active account, but returns the same shape
+// for consistency.)
 router.get('/me', requireAuth, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
     `SELECT username, public_id, status FROM players WHERE id = $1`,
