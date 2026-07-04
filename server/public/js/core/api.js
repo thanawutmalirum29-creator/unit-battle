@@ -30,7 +30,7 @@ const GameAPI = (() => {
       const data = await res.json().catch(() => null);
       if (!res.ok) {
         console.warn("[GameAPI] request failed:", path, res.status, data?.error);
-        return { error: data?.error || `http ${res.status}`, status: res.status };
+        return { ...(data || {}), error: data?.error || `http ${res.status}`, status: res.status };
       }
       return data;
     } catch (err) {
@@ -50,6 +50,34 @@ const GameAPI = (() => {
       console.warn("[GameAPI] network error:", err);
       return null;
     }
+  }
+
+  // Like get(), but returns the parsed error body (with `status` attached)
+  // instead of collapsing every non-2xx response to null — needed so callers
+  // can read structured fields like `accountStatus`/`reason` off a 403. Only
+  // used where that detail actually matters (account-status check below);
+  // every other GET keeps using the plain get() above unchanged.
+  async function getRaw(path, auth) {
+    try {
+      const headers = {};
+      if (auth && authToken) headers["Authorization"] = "Bearer " + authToken;
+      const res = await fetch(BASE + path, { headers });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) return { ...(data || {}), status: res.status };
+      return data;
+    } catch (err) {
+      console.warn("[GameAPI] network error:", err);
+      return { error: "network" };
+    }
+  }
+
+  // Checks whether the current session's account is suspended/banned — used
+  // on page load (see auth-ui.js) to catch a status change that happened
+  // *after* the token was already stored, since isLoggedIn() only checks
+  // that a token exists, not that the account is still active.
+  async function checkAccountStatus() {
+    if (!isLoggedIn()) return null;
+    return getRaw("/api/auth/me", true);
   }
 
   // ---- Auth: username + PIN. Money/bag/deck require this; the old identify() flow
@@ -156,6 +184,20 @@ const GameAPI = (() => {
     return post(`/api/mailbox/${mailId}/claim`, {}, true);
   }
 
+  async function deleteMail(mailId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    try {
+      const headers = { Authorization: "Bearer " + authToken };
+      const res = await fetch(BASE + `/api/mailbox/${mailId}`, { method: "DELETE", headers });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) return { error: data?.error || `http ${res.status}` };
+      return data;
+    } catch (err) {
+      console.warn("[GameAPI] network error:", err);
+      return { error: "network" };
+    }
+  }
+
   // ---- Economy: server is the source of truth for money/bag/deck. ----
   async function fetchEconomyState() {
     if (!isLoggedIn()) return null;
@@ -170,6 +212,15 @@ const GameAPI = (() => {
   async function claimInfReward(runId, stage) {
     if (!isLoggedIn()) return { error: "not logged in" };
     return post("/api/economy/claim/inf", { runId, stage }, true);
+  }
+
+  // Call once per battle round a borrowed helper card actually fought in
+  // (any mode except INF, where borrowed cards can't be selected at all —
+  // see inf-mode.js). Counts cumulatively across every stage; server removes
+  // the card once its round budget hits zero. See routes/helpers.js.
+  async function consumeHelperRound(cardId, rounds) {
+    if (!isLoggedIn()) return null;
+    return post("/api/helpers/consume-round", { cardId, rounds: rounds || 1 }, true);
   }
 
   async function bossRunStart(bossId) {
@@ -292,6 +343,118 @@ const GameAPI = (() => {
     return post("/api/economy/equip/delete-by-rarity", { rarity }, true);
   }
 
+  // ---- Friends: search by public ID / username, send/accept/reject requests, list/remove. ----
+  async function searchPlayers(q) {
+    if (!isLoggedIn()) return [];
+    const data = await get(`/api/players/search?q=${encodeURIComponent(q)}`, true);
+    return Array.isArray(data) ? data : [];
+  }
+
+  async function fetchFriends() {
+    if (!isLoggedIn()) return [];
+    const data = await get("/api/players/friends", true);
+    return Array.isArray(data) ? data : [];
+  }
+
+  async function removeFriend(friendPlayerId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    try {
+      const headers = { Authorization: "Bearer " + authToken };
+      const res = await fetch(BASE + `/api/players/friends/${friendPlayerId}`, { method: "DELETE", headers });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) return { error: data?.error || `http ${res.status}` };
+      return data;
+    } catch (err) {
+      console.warn("[GameAPI] network error:", err);
+      return { error: "network" };
+    }
+  }
+
+  async function sendFriendRequest(publicId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/players/friends/request", { publicId }, true);
+  }
+
+  async function fetchIncomingFriendRequests() {
+    if (!isLoggedIn()) return [];
+    const data = await get("/api/players/friends/requests", true);
+    return Array.isArray(data) ? data : [];
+  }
+
+  async function fetchSentFriendRequests() {
+    if (!isLoggedIn()) return [];
+    const data = await get("/api/players/friends/requests/sent", true);
+    return Array.isArray(data) ? data : [];
+  }
+
+  async function acceptFriendRequest(requestId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post(`/api/players/friends/requests/${requestId}/accept`, {}, true);
+  }
+
+  async function rejectFriendRequest(requestId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post(`/api/players/friends/requests/${requestId}/reject`, {}, true);
+  }
+
+  async function cancelFriendRequest(requestId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    try {
+      const headers = { Authorization: "Bearer " + authToken };
+      const res = await fetch(BASE + `/api/players/friends/requests/${requestId}`, { method: "DELETE", headers });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) return { error: data?.error || `http ${res.status}` };
+      return data;
+    } catch (err) {
+      console.warn("[GameAPI] network error:", err);
+      return { error: "network" };
+    }
+  }
+
+  // ---- Helper / assist character system: set your own lendable helper, browse
+  // friends' helpers, and borrow one into your own deck for 12h. ----
+  async function fetchMyHelper() {
+    if (!isLoggedIn()) return { cardId: null, card: null };
+    const data = await get("/api/helpers/mine", true);
+    return data || { cardId: null, card: null };
+  }
+
+  async function setMyHelper(cardId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/helpers/set", { cardId }, true);
+  }
+
+  async function clearMyHelper() {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    try {
+      const headers = { Authorization: "Bearer " + authToken };
+      const res = await fetch(BASE + "/api/helpers/mine", { method: "DELETE", headers });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) return { error: data?.error || `http ${res.status}` };
+      return data;
+    } catch (err) {
+      console.warn("[GameAPI] network error:", err);
+      return { error: "network" };
+    }
+  }
+
+  async function fetchFriendsHelpers() {
+    if (!isLoggedIn()) return [];
+    const data = await get("/api/helpers/friends", true);
+    return Array.isArray(data) ? data : [];
+  }
+
+  async function fetchGuildmatesHelpers() {
+    if (!isLoggedIn()) return [];
+    const data = await get("/api/helpers/guildmates", true);
+    return Array.isArray(data) ? data : [];
+  }
+
+  async function borrowHelper(lenderId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/helpers/borrow", { lenderId }, true);
+  }
+
   // Call once on page load. Falls back to a local guest name if username not set yet.
   async function ensurePlayer() {
     if (playerId) return playerId;
@@ -325,10 +488,13 @@ const GameAPI = (() => {
   }
 
   // ---- INF mode: one continuous run from stage 1 (or a cleared checkpoint) until loss/full-clear ----
-  async function infRunStart(startStage) {
+  // teamCardIds: current selectedIndexes, so the server can reject a team
+  // that contains a borrowed helper card (see routes/runs.js) — borrowed
+  // cards can't be used in INF (see inf-mode.js for the client-side block).
+  async function infRunStart(startStage, teamCardIds) {
     await ensurePlayer();
     if (!playerId) return null;
-    const data = await post("/api/runs/start", { playerId, mode: "inf", startStage: startStage || 1 });
+    const data = await post("/api/runs/start", { playerId, mode: "inf", startStage: startStage || 1, teamCardIds: teamCardIds || [] });
     if (data?.runId) {
       infRunId = data.runId;
       infRunToken = data.token;
@@ -362,15 +528,187 @@ const GameAPI = (() => {
   }
 
   function getInfRunId() { return infRunId; }
+
+  // ---- Guilds ----
+  async function guildMine() {
+    if (!isLoggedIn()) return null;
+    return get("/api/guilds/mine", true);
+  }
+  async function guildList(q) {
+    if (!isLoggedIn()) return [];
+    const data = await get(`/api/guilds/list${q ? "?q=" + encodeURIComponent(q) : ""}`, true);
+    return Array.isArray(data) ? data : [];
+  }
+  async function guildRanking() {
+    if (!isLoggedIn()) return [];
+    const data = await get("/api/guilds/ranking", true);
+    return Array.isArray(data) ? data : [];
+  }
+  async function guildCreate(payload) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/guilds/create", payload, true);
+  }
+  async function guildUpdateSettings(payload) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    try {
+      const headers = { "Content-Type": "application/json", Authorization: "Bearer " + authToken };
+      const res = await fetch(BASE + "/api/guilds/settings", { method: "PATCH", headers, body: JSON.stringify(payload || {}) });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) return { error: data?.error || `http ${res.status}` };
+      return data;
+    } catch (err) {
+      console.warn("[GameAPI] network error:", err);
+      return { error: "network" };
+    }
+  }
+  async function guildJoin(guildId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post(`/api/guilds/${guildId}/join`, {}, true);
+  }
+  async function guildApply(guildId, message) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post(`/api/guilds/${guildId}/apply`, { message }, true);
+  }
+  async function guildMyRequests() {
+    if (!isLoggedIn()) return [];
+    const data = await get("/api/guilds/requests/mine", true);
+    return Array.isArray(data) ? data : [];
+  }
+  async function guildCancelMyRequest(requestId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    try {
+      const headers = { Authorization: "Bearer " + authToken };
+      const res = await fetch(BASE + `/api/guilds/requests/mine/${requestId}`, { method: "DELETE", headers });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) return { error: data?.error || `http ${res.status}` };
+      return data;
+    } catch (err) {
+      return { error: "network" };
+    }
+  }
+  async function guildIncomingRequests() {
+    if (!isLoggedIn()) return [];
+    const data = await get("/api/guilds/requests", true);
+    return Array.isArray(data) ? data : [];
+  }
+  async function guildAcceptRequest(requestId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post(`/api/guilds/requests/${requestId}/accept`, {}, true);
+  }
+  async function guildRejectRequest(requestId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post(`/api/guilds/requests/${requestId}/reject`, {}, true);
+  }
+  async function guildInvite(publicId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/guilds/invite", { publicId }, true);
+  }
+  async function guildMyInvites() {
+    if (!isLoggedIn()) return [];
+    const data = await get("/api/guilds/invites/mine", true);
+    return Array.isArray(data) ? data : [];
+  }
+  async function guildAcceptInvite(inviteId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post(`/api/guilds/invites/${inviteId}/accept`, {}, true);
+  }
+  async function guildRejectInvite(inviteId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post(`/api/guilds/invites/${inviteId}/reject`, {}, true);
+  }
+  async function guildCancelInvite(inviteId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    try {
+      const headers = { Authorization: "Bearer " + authToken };
+      const res = await fetch(BASE + `/api/guilds/invites/${inviteId}`, { method: "DELETE", headers });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) return { error: data?.error || `http ${res.status}` };
+      return data;
+    } catch (err) {
+      return { error: "network" };
+    }
+  }
+  async function guildMembers() {
+    if (!isLoggedIn()) return [];
+    const data = await get("/api/guilds/members", true);
+    return Array.isArray(data) ? data : [];
+  }
+  async function guildLeave() {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/guilds/leave", {}, true);
+  }
+  async function guildDisband() {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/guilds/disband", {}, true);
+  }
+  async function guildKick(playerId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/guilds/kick", { playerId }, true);
+  }
+  async function guildPromote(playerId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/guilds/promote", { playerId }, true);
+  }
+  async function guildDemote(playerId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/guilds/demote", { playerId }, true);
+  }
+  async function guildTransferLeadership(playerId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/guilds/transfer-leadership", { playerId }, true);
+  }
+  async function guildChatFetch(afterId) {
+    if (!isLoggedIn()) return [];
+    const data = await get(`/api/guilds/chat${afterId ? "?afterId=" + afterId : ""}`, true);
+    return Array.isArray(data) ? data : [];
+  }
+  async function guildChatSend(message) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/guilds/chat", { message }, true);
+  }
+  async function guildDonate(amount) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/guilds/donate", { amount }, true);
+  }
+  async function guildShopStatus() {
+    if (!isLoggedIn()) return null;
+    return get("/api/guilds/shop", true);
+  }
+  async function guildShopBuy(itemKey) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/guilds/shop/buy", { itemKey }, true);
+  }
+  async function guildBossStatus() {
+    if (!isLoggedIn()) return null;
+    return get("/api/guilds/boss", true);
+  }
+  async function guildBossAttack() {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/guilds/boss/attack", {}, true);
+  }
+  async function guildExpandCapacity() {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/guilds/expand-capacity", {}, true);
+  }
+
 return {
     ensurePlayer, reportNormalClear, fetchNormalProgress, infRunStart, infStageClear, infRunFinish, getInfRunId, fetchInfProgress,
     isLoggedIn, register, login, loginWithGoogle, logout, getAuthConfig, updateUsername, getUsername,
-    getPublicId, refreshMe, fetchMailbox, fetchMailDetail, claimMail,
-    fetchEconomyState, claimNormalReward, claimInfReward,
+    getPublicId, refreshMe, fetchMailbox, fetchMailDetail, claimMail, deleteMail,
+    fetchEconomyState, claimNormalReward, claimInfReward, consumeHelperRound, checkAccountStatus,
     bossRunStart, bossClaimTier, bossRunFinish,
     shopGetCurrent, shopMyStatus, shopBuy, shopBuyWithShard, skillUpgrade, gachaRoll, saveGachaBlacklist, upgradeGuaranteed,
     upgradePaid, upgradeDuplicate, sellCard, sellAllCards,
     equipGachaRoll, equipItemOnCard, unequipItemFromCard, deleteEquip, deleteEquipByRarityServer, saveEquipBlacklist,
+    searchPlayers, fetchFriends, removeFriend,
+    sendFriendRequest, fetchIncomingFriendRequests, fetchSentFriendRequests,
+    acceptFriendRequest, rejectFriendRequest, cancelFriendRequest,
+    fetchMyHelper, setMyHelper, clearMyHelper, fetchFriendsHelpers, fetchGuildmatesHelpers, borrowHelper,
+    guildMine, guildList, guildRanking, guildCreate, guildUpdateSettings, guildJoin, guildApply,
+    guildMyRequests, guildCancelMyRequest, guildIncomingRequests, guildAcceptRequest, guildRejectRequest,
+    guildInvite, guildMyInvites, guildAcceptInvite, guildRejectInvite, guildCancelInvite,
+    guildMembers, guildLeave, guildDisband, guildKick, guildPromote, guildDemote, guildTransferLeadership,
+    guildChatFetch, guildChatSend, guildDonate, guildShopStatus, guildShopBuy, guildBossStatus, guildBossAttack, guildExpandCapacity,
   };
 })();
 

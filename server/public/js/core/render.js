@@ -102,7 +102,10 @@ function renderDeck() {
     if (!card.id) card.id = "card-" + Date.now() + "-" + Math.random();
     if (!card.stars) card.stars = 1;
     if (!card.level) card.level = 1;
-    if (card.locked === undefined) card.locked = false; 
+    // การ์ดที่ยืมมาจากเพื่อน (ระบบขอความช่วยเหลือ) ล็อคอัตโนมัติกันขาย/ลืมปลดล็อค —
+    // เซิฟก็บล็อคการขาย/อัพเกรดการ์ดพวกนี้อยู่แล้ว (routes/economy.js), นี่แค่กันสับสนฝั่ง UI
+    if (card.borrowed) card.locked = true;
+    else if (card.locked === undefined) card.locked = false;
     card.equips = card.equips || []; // 🟢 กัน null
   });
   localStorage.setItem("deck", JSON.stringify(deck));
@@ -139,6 +142,13 @@ const stats = getRenderStats(card);
 
     // ✅ เลือกการ์ดเข้าทีม
     el.onclick = () => {
+      // 🚫 ห้ามใช้ตัวยืมจากเพื่อนในด่าน INF — ด่าน INF เล่นได้ยาวต่อเนื่อง มีโอกาส
+      // ที่ตัวยืมจะครบโควตา 20 รอบ หรือหมดอายุ 12 ชม. ระหว่างเล่น แล้วหายไปกลาง
+      // การต่อสู้ที่กำลังดำเนินอยู่ (ดู routes/runs.js POST /start สำหรับการเช็คฝั่งเซิฟ)
+      if (card.borrowed && document.body.dataset.mode === "inf") {
+        alert("ตัวละครที่ยืมมาจากเพื่อนไม่สามารถใช้ในด่าน INF ได้ (เสี่ยงหมดโควตา/หมดอายุระหว่างเล่นยาว)");
+        return;
+      }
       if (selectedIndexes.includes(card.id)) {
         selectedIndexes = selectedIndexes.filter(i => i !== card.id);
       } else {
@@ -200,6 +210,7 @@ const stats = getRenderStats(card);
       <div class="meta" style="margin-top:2px; font-size:12px">
         Skill:${card.skill}
       </div>
+      ${card.borrowed ? `<div class="meta" style="margin-top:2px; font-size:11px; color:#7dd3fc;">🤝 ยืมจาก ${card.lenderName || "เพื่อน"} • เหลือ ${Number.isFinite(card.roundsLeft) ? card.roundsLeft : 20} รอบ</div>` : ""}
     `;
     el.appendChild(lockBtn);
 
