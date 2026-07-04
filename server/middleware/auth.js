@@ -13,7 +13,7 @@ async function requireAuth(req, res, next) {
 
   try {
     const { rows } = await pool.query(
-      `SELECT id, status, status_reason, status_changed_at, suspended_until, session_expires_at
+      `SELECT id, status, status_reason, status_changed_at, suspended_until, session_expires_at, last_seen_at, is_guest
        FROM players WHERE session_token = $1`,
       [token]
     );
@@ -26,10 +26,30 @@ async function requireAuth(req, res, next) {
       return res.status(403).json(accountBlockedPayload(statusInfo));
     }
     req.playerId = rows[0].id;
+    req.isGuest = !!rows[0].is_guest;
+
+    // Bump last_seen_at, but only if it's been >30s since the last write —
+    // this endpoint is hit constantly during normal play, so throttling
+    // keeps it from turning into a write-per-request on every API call.
+    const lastSeen = rows[0].last_seen_at ? new Date(rows[0].last_seen_at).getTime() : 0;
+    if (Date.now() - lastSeen > 30000) {
+      pool.query(`UPDATE players SET last_seen_at = now() WHERE id = $1`, [rows[0].id]).catch(() => {});
+    }
+
     next();
   } catch (err) {
     next(err);
   }
 }
 
-module.exports = { requireAuth };
+// Extra middleware for the handful of endpoints guest/temporary accounts (see
+// POST /api/auth/guest) aren't allowed to use — joining/creating a guild, and
+// sending/receiving friend requests. Must run AFTER requireAuth (needs req.isGuest).
+function blockGuests(req, res, next) {
+  if (req.isGuest) {
+    return res.status(403).json({ error: 'บัญชีชั่วคราวใช้งานส่วนนี้ไม่ได้ กรุณาตั้งชื่อผู้เล่นและ PIN ที่หน้าบัญชีก่อน' });
+  }
+  next();
+}
+
+module.exports = { requireAuth, blockGuests };
