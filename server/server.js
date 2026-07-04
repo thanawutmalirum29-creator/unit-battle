@@ -12,6 +12,8 @@ const progressRoute = require('./routes/progress');
 const authRoute = require('./routes/auth');
 const economyRoute = require('./routes/economy');
 const mailboxRoute = require('./routes/mailbox');
+const helpersRoute = require('./routes/helpers');
+const guildsRoute = require('./routes/guilds');
 const adminRoute = require('./routes/admin');
 
 const app = express();
@@ -29,6 +31,8 @@ app.use('/api/progress', apiLimiter, progressRoute);
 app.use('/api/auth', apiLimiter, authRoute);
 app.use('/api/economy', apiLimiter, economyRoute);
 app.use('/api/mailbox', apiLimiter, mailboxRoute);
+app.use('/api/helpers', apiLimiter, helpersRoute);
+app.use('/api/guilds', apiLimiter, guildsRoute);
 // admin router has its own (stricter) rate limiter on /login — see routes/admin.js
 app.use('/api/admin', adminRoute);
 
