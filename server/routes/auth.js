@@ -52,6 +52,68 @@ async function generateRandomUsername() {
   return 'Player' + Date.now().toString().slice(-6); // astronomically unlikely fallback
 }
 
+// Picks a free "GuestNNNNNN" username for a temporary/guest account — distinct
+// prefix from generateRandomUsername()'s "PlayerNNNN" so admins (and the player
+// themselves, if they ever see the raw username) can tell guest accounts apart
+// at a glance even before checking the is_guest column.
+async function generateGuestUsername() {
+  for (let i = 0; i < 10; i++) {
+    const candidate = 'Guest' + Math.floor(100000 + Math.random() * 900000);
+    const existing = await pool.query(`SELECT id FROM players WHERE username = $1`, [candidate]);
+    if (existing.rows.length === 0) return candidate;
+  }
+  return 'Guest' + Date.now().toString().slice(-8);
+}
+
+// POST /api/auth/guest — creates a temporary/"เล่นแบบไม่ล็อกอิน" account: no
+// username/PIN chosen, no way to recover it if local storage is ever cleared
+// (session_token lives only in this browser's localStorage). Logged in
+// immediately, same as register/login. Can't join guilds or add/be-added as
+// friends — enforced server-side via blockGuests() in routes/guilds.js and
+// routes/players.js, not just hidden client-side.
+router.post('/guest', asyncHandler(async (req, res) => {
+  const username = await generateGuestUsername();
+  const token = uuid();
+  const publicId = await generateUniquePublicId(pool);
+
+  const { rows } = await pool.query(
+    `INSERT INTO players (username, session_token, session_expires_at, public_id, is_guest)
+     VALUES ($1, $2, $3, $4, true)
+     RETURNING id, username, public_id, status`,
+    [username, token, sessionExpiry(), publicId]
+  );
+
+  await pool.query(
+    `INSERT INTO player_economy (player_id) VALUES ($1) ON CONFLICT DO NOTHING`,
+    [rows[0].id]
+  );
+
+  res.json({ playerId: rows[0].id, username: rows[0].username, token, publicId: rows[0].public_id, status: rows[0].status, isGuest: true });
+}));
+
+// POST /api/auth/upgrade { username, pin } — converts the CURRENT guest account
+// into a permanent one in place (keeps all progress/money/deck — it's the same
+// player row, just no longer marked is_guest and now has a real username+PIN).
+// Only guests can call this; a normal account should use PATCH /username instead.
+router.post('/upgrade', requireAuth, asyncHandler(async (req, res) => {
+  if (!req.isGuest) return res.status(400).json({ error: 'บัญชีนี้ไม่ใช่บัญชีชั่วคราวอยู่แล้ว' });
+
+  const username = (req.body?.username || '').trim();
+  const pin = req.body?.pin;
+  if (!validateUsername(username)) return res.status(400).json({ error: 'invalid username (2-32 chars)' });
+  if (!validatePin(pin)) return res.status(400).json({ error: 'pin must be 4-8 digits' });
+
+  const existing = await pool.query(`SELECT id FROM players WHERE username = $1 AND id != $2`, [username, req.playerId]);
+  if (existing.rows.length > 0) return res.status(409).json({ error: 'username already taken' });
+
+  const pinHash = await bcrypt.hash(pin, 10);
+  await pool.query(
+    `UPDATE players SET username = $1, pin_hash = $2, is_guest = false WHERE id = $3`,
+    [username, pinHash, req.playerId]
+  );
+  res.json({ username, isGuest: false });
+}));
+
 // POST /api/auth/register { username, pin }
 // Creates a new player with a hashed PIN. Fails if the username is already taken
 // (use /login instead) — this is what stops someone else from claiming your name.
@@ -227,11 +289,11 @@ router.post('/logout', requireAuth, asyncHandler(async (req, res) => {
 // for consistency.)
 router.get('/me', requireAuth, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT username, public_id, status FROM players WHERE id = $1`,
+    `SELECT username, public_id, status, is_guest FROM players WHERE id = $1`,
     [req.playerId]
   );
   if (rows.length === 0) return res.status(404).json({ error: 'player not found' });
-  res.json({ username: rows[0].username, publicId: rows[0].public_id, status: rows[0].status });
+  res.json({ username: rows[0].username, publicId: rows[0].public_id, status: rows[0].status, isGuest: rows[0].is_guest });
 }));
 
 module.exports = router;

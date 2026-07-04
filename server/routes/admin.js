@@ -117,7 +117,7 @@ router.get('/players', requireAdmin, asyncHandler(async (req, res) => {
     where = `WHERE p.username ILIKE $1 OR p.public_id ILIKE $1`;
   }
   const { rows } = await pool.query(
-    `SELECT p.id, p.public_id, p.username, p.status, p.status_reason, p.status_changed_at, p.suspended_until, p.created_at,
+    `SELECT p.id, p.public_id, p.username, p.status, p.status_reason, p.status_changed_at, p.suspended_until, p.created_at, p.is_guest,
             COALESCE(e.money, 0) AS money,
             COALESCE(jsonb_array_length(e.deck), 0) AS deck_count,
             COALESCE(jsonb_array_length(e.equip_bag), 0) AS equip_count
@@ -137,6 +137,7 @@ router.get('/players', requireAdmin, asyncHandler(async (req, res) => {
     statusChangedAt: r.status_changed_at,
     suspendedUntil: r.suspended_until,
     createdAt: r.created_at,
+    isGuest: r.is_guest,
     money: Number(r.money),
     deckCount: r.deck_count,
     equipCount: r.equip_count,
@@ -146,7 +147,7 @@ router.get('/players', requireAdmin, asyncHandler(async (req, res) => {
 // GET /api/admin/players/:id — full detail (economy + bag) for one account.
 router.get('/players/:id', requireAdmin, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT p.id, p.public_id, p.username, p.status, p.status_reason, p.status_changed_at, p.suspended_until, p.created_at,
+    `SELECT p.id, p.public_id, p.username, p.status, p.status_reason, p.status_changed_at, p.suspended_until, p.created_at, p.is_guest,
             e.money, e.bag, e.deck, e.equip_bag
      FROM players p
      LEFT JOIN player_economy e ON e.player_id = p.id
@@ -164,6 +165,7 @@ router.get('/players/:id', requireAdmin, asyncHandler(async (req, res) => {
     statusChangedAt: r.status_changed_at,
     suspendedUntil: r.suspended_until,
     createdAt: r.created_at,
+    isGuest: r.is_guest,
     money: Number(r.money || 0),
     bag: r.bag || {},
     deck: Array.isArray(r.deck) ? r.deck : [],

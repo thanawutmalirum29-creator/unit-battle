@@ -2,8 +2,10 @@
 const express = require('express');
 const pool = require('../db/pool');
 const asyncHandler = require('../middleware/asyncHandler');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, blockGuests } = require('../middleware/auth');
 const { generateUniquePublicId } = require('../utils/publicId');
+const { MAX_EQUIPPED_BADGES, BADGE_CATALOG, findBadge, computeUnlockedBadgeKeys } = require('../game-data/badges-data');
+const { AVATAR_CATALOG, findAvatar, FRAME_CATALOG, findFrame, computeUnlockedAchievementFrameKeys } = require('../game-data/cosmetics-data');
 
 const router = express.Router();
 
@@ -68,7 +70,7 @@ router.post('/join-team', asyncHandler(async (req, res) => {
 // GET /api/players/search?q=... — search other players by exact public_id or
 // partial username (case-insensitive), for the "add friend" page. Requires
 // login so we know who's searching (to mark friends/pending requests).
-router.get('/search', requireAuth, asyncHandler(async (req, res) => {
+router.get('/search', requireAuth, blockGuests, asyncHandler(async (req, res) => {
   const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
   if (q.length < 2) return res.json([]);
 
@@ -77,6 +79,7 @@ router.get('/search', requireAuth, asyncHandler(async (req, res) => {
      FROM players
      WHERE id != $1
        AND status = 'active'
+       AND is_guest = false
        AND (public_id = $2 OR username ILIKE $3)
      ORDER BY (public_id = $2) DESC, username ASC
      LIMIT 20`,
@@ -118,7 +121,8 @@ router.get('/search', requireAuth, asyncHandler(async (req, res) => {
 // GET /api/players/friends — my friends list.
 router.get('/friends', requireAuth, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT p.id, p.username, p.public_id, f.created_at
+    `SELECT p.id, p.username, p.public_id, f.created_at,
+            p.status, p.suspended_until, p.last_seen_at
      FROM friendships f
      JOIN players p ON p.id = f.friend_id
      WHERE f.player_id = $1
@@ -127,6 +131,7 @@ router.get('/friends', requireAuth, asyncHandler(async (req, res) => {
   );
   res.json(rows.map((r) => ({
     playerId: r.id, username: r.username, publicId: r.public_id, addedAt: r.created_at,
+    accountStatus: r.status, suspendedUntil: r.suspended_until, lastSeenAt: r.last_seen_at,
   })));
 }));
 
@@ -147,15 +152,16 @@ router.delete('/friends/:friendId', requireAuth, asyncHandler(async (req, res) =
 // ============================================================================
 
 // POST /api/players/friends/request { publicId }
-router.post('/friends/request', requireAuth, asyncHandler(async (req, res) => {
+router.post('/friends/request', requireAuth, blockGuests, asyncHandler(async (req, res) => {
   const publicId = typeof req.body?.publicId === 'string' ? req.body.publicId.trim() : '';
   if (!publicId) return res.status(400).json({ error: 'missing publicId' });
 
   const target = await pool.query(
-    `SELECT id, username, public_id FROM players WHERE public_id = $1 AND status = 'active'`,
+    `SELECT id, username, public_id, is_guest FROM players WHERE public_id = $1 AND status = 'active'`,
     [publicId]
   );
   if (target.rows.length === 0) return res.status(404).json({ error: 'player not found' });
+  if (target.rows[0].is_guest) return res.status(400).json({ error: 'ผู้เล่นนี้ใช้บัญชีชั่วคราว ไม่สามารถเพิ่มเพื่อนได้' });
   const receiverId = target.rows[0].id;
   if (receiverId === req.playerId) return res.status(400).json({ error: 'cannot add yourself' });
 
@@ -272,6 +278,179 @@ router.delete('/friends/requests/:id', requireAuth, asyncHandler(async (req, res
   );
   if (rows.length === 0) return res.status(404).json({ error: 'request not found or already handled' });
   res.json({ ok: true });
+}));
+
+// ============================================================================
+// Achievement badges ("เหรียญความสำเร็จ") — see game-data/badges-data.js.
+// Unlocked status is always computed live from real stats, never stored;
+// only which of the unlocked badges the player has chosen to EQUIP is
+// persisted (players.equipped_badges).
+// ============================================================================
+
+// Gathers the handful of stats badges are checked against. Missing rows
+// (e.g. never played INF, not in a guild) just fall back to 0/false rather
+// than failing — a player with no guild simply can't have guild/boss/donate
+// badges unlocked yet.
+async function computePlayerBadgeStats(playerId) {
+  const [normalRow, infRow, guildRow, top10Row] = await Promise.all([
+    pool.query(`SELECT max_stage FROM normal_progress WHERE player_id = $1`, [playerId]),
+    pool.query(`SELECT max_stage FROM inf_progress WHERE player_id = $1`, [playerId]),
+    pool.query(
+      `SELECT g.level AS guild_level, gm.boss_damage_lifetime, gm.contribution_lifetime
+       FROM guild_members gm JOIN guilds g ON g.id = gm.guild_id
+       WHERE gm.player_id = $1`,
+      [playerId]
+    ),
+    pool.query(
+      `SELECT EXISTS (
+         SELECT 1 FROM (
+           SELECT player_id, RANK() OVER (PARTITION BY mode ORDER BY score DESC) AS rnk
+           FROM leaderboard_entries
+         ) ranked WHERE ranked.player_id = $1 AND ranked.rnk <= 10
+       ) AS top10`,
+      [playerId]
+    ),
+  ]);
+
+  return {
+    normalStage: normalRow.rows[0]?.max_stage || 0,
+    infStage: infRow.rows[0]?.max_stage || 0,
+    guildLevel: guildRow.rows[0]?.guild_level || 0,
+    bossDamageLifetime: Number(guildRow.rows[0]?.boss_damage_lifetime || 0),
+    contributionLifetime: Number(guildRow.rows[0]?.contribution_lifetime || 0),
+    leaderboardTop10: !!top10Row.rows[0]?.top10,
+  };
+}
+
+// GET /api/players/badges — full catalog, which keys are unlocked, and which
+// (unlocked) keys are currently equipped.
+router.get('/badges', requireAuth, asyncHandler(async (req, res) => {
+  const stats = await computePlayerBadgeStats(req.playerId);
+  const unlockedKeys = computeUnlockedBadgeKeys(stats);
+  const unlockedSet = new Set(unlockedKeys);
+
+  const { rows } = await pool.query(`SELECT equipped_badges FROM players WHERE id = $1`, [req.playerId]);
+  // Only ever report equipped badges that are STILL unlocked — guards against
+  // a badge becoming un-earnable after the fact (e.g. leaving the guild that
+  // gave a guild-level badge); nothing deletes the stored key, it just stops
+  // being shown as equipped until re-earned.
+  const equipped = (rows[0]?.equipped_badges || []).filter((k) => unlockedSet.has(k));
+
+  res.json({
+    maxEquipped: MAX_EQUIPPED_BADGES,
+    equipped,
+    badges: BADGE_CATALOG.map((b) => ({
+      key: b.key, category: b.category, tier: b.tier, icon: b.icon, name: b.name, desc: b.desc,
+      unlocked: unlockedSet.has(b.key),
+    })),
+  });
+}));
+
+// PUT /api/players/badges/equipped { badges: [key, ...] } — up to MAX_EQUIPPED_BADGES,
+// every key must be a real badge the player currently has unlocked.
+router.put('/badges/equipped', requireAuth, asyncHandler(async (req, res) => {
+  const requested = Array.isArray(req.body?.badges) ? req.body.badges : null;
+  if (!requested) return res.status(400).json({ error: 'badges must be an array' });
+
+  const uniqueKeys = [...new Set(requested.filter((k) => typeof k === 'string'))];
+  if (uniqueKeys.length > MAX_EQUIPPED_BADGES) {
+    return res.status(400).json({ error: `can only equip up to ${MAX_EQUIPPED_BADGES} badges` });
+  }
+  if (uniqueKeys.some((k) => !findBadge(k))) {
+    return res.status(400).json({ error: 'unknown badge key' });
+  }
+
+  const stats = await computePlayerBadgeStats(req.playerId);
+  const unlockedSet = new Set(computeUnlockedBadgeKeys(stats));
+  const notUnlocked = uniqueKeys.filter((k) => !unlockedSet.has(k));
+  if (notUnlocked.length > 0) {
+    return res.status(400).json({ error: 'badge not unlocked yet', badges: notUnlocked });
+  }
+
+  await pool.query(`UPDATE players SET equipped_badges = $1 WHERE id = $2`, [JSON.stringify(uniqueKeys), req.playerId]);
+  res.json({ ok: true, equipped: uniqueKeys });
+}));
+
+// ============================================================================
+// Profile cosmetics — "ปก" (avatar icon) + "กรอบปก" (avatar frame).
+// See game-data/cosmetics-data.js.
+//   - Avatars are freely selectable (players.avatar_icon).
+//   - Frames come from two sources: achievement (unlocked status derived
+//     live from the same stats as badges, never stored) and guild shop
+//     (ownership persisted in players.owned_frames — see routes/guilds.js
+//     POST /shop/buy). Only one frame can be equipped at a time.
+// ============================================================================
+
+// GET /api/players/cosmetics — avatar catalog + current avatar, and the full
+// frame catalog annotated with unlocked/owned status + which frame is equipped.
+router.get('/cosmetics', requireAuth, asyncHandler(async (req, res) => {
+  const [stats, row] = await Promise.all([
+    computePlayerBadgeStats(req.playerId),
+    pool.query(`SELECT avatar_icon, equipped_frame, owned_frames FROM players WHERE id = $1`, [req.playerId]),
+  ]);
+  const player = row.rows[0] || {};
+  const achievementUnlocked = new Set(computeUnlockedAchievementFrameKeys(stats));
+  const owned = new Set(Array.isArray(player.owned_frames) ? player.owned_frames : []);
+
+  // A frame stops being shown as equipped if it's no longer available (e.g.
+  // an achievement frame tied to a guild the player has since left) — same
+  // self-healing behavior as equipped badges above.
+  const isAvailable = (key) => achievementUnlocked.has(key) || owned.has(key);
+  const equippedFrame = player.equipped_frame && isAvailable(player.equipped_frame) ? player.equipped_frame : null;
+
+  res.json({
+    avatar: {
+      current: player.avatar_icon || 'shield',
+      catalog: AVATAR_CATALOG,
+    },
+    frames: {
+      equipped: equippedFrame,
+      catalog: FRAME_CATALOG.map((f) => ({
+        key: f.key, category: f.category, tier: f.tier, name: f.name, desc: f.desc, source: f.source,
+        unlocked: isAvailable(f.key),
+      })),
+    },
+  });
+}));
+
+// PUT /api/players/avatar { avatar } — set the "ปก" (avatar icon). Freely
+// selectable from AVATAR_CATALOG, no unlock condition.
+router.put('/avatar', requireAuth, asyncHandler(async (req, res) => {
+  const avatar = typeof req.body?.avatar === 'string' ? req.body.avatar : '';
+  if (!findAvatar(avatar)) return res.status(400).json({ error: 'unknown avatar key' });
+
+  await pool.query(`UPDATE players SET avatar_icon = $1 WHERE id = $2`, [avatar, req.playerId]);
+  res.json({ ok: true, avatar });
+}));
+
+// PUT /api/players/frame { frame } — equip a "กรอบปก" (avatar frame), or pass
+// frame: null to remove it. Must be a frame the player currently has
+// available (unlocked via achievement, or owned from the guild shop).
+router.put('/frame', requireAuth, asyncHandler(async (req, res) => {
+  const requested = req.body?.frame;
+  if (requested !== null && typeof requested !== 'string') {
+    return res.status(400).json({ error: 'frame must be a string or null' });
+  }
+
+  if (requested === null) {
+    await pool.query(`UPDATE players SET equipped_frame = NULL WHERE id = $1`, [req.playerId]);
+    return res.json({ ok: true, equipped: null });
+  }
+
+  if (!findFrame(requested)) return res.status(400).json({ error: 'unknown frame key' });
+
+  const [stats, row] = await Promise.all([
+    computePlayerBadgeStats(req.playerId),
+    pool.query(`SELECT owned_frames FROM players WHERE id = $1`, [req.playerId]),
+  ]);
+  const achievementUnlocked = new Set(computeUnlockedAchievementFrameKeys(stats));
+  const owned = new Set(row.rows[0]?.owned_frames || []);
+  if (!achievementUnlocked.has(requested) && !owned.has(requested)) {
+    return res.status(400).json({ error: 'frame not unlocked yet' });
+  }
+
+  await pool.query(`UPDATE players SET equipped_frame = $1 WHERE id = $2`, [requested, req.playerId]);
+  res.json({ ok: true, equipped: requested });
 }));
 
 module.exports = router;

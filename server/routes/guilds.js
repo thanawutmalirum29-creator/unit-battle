@@ -9,12 +9,14 @@
 const express = require('express');
 const pool = require('../db/pool');
 const asyncHandler = require('../middleware/asyncHandler');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, blockGuests } = require('../middleware/auth');
 const { getMembership, isLeaderOrOfficer, ensureGuildBossStateTx, grantGuildExpTx } = require('../db/guildHelpers');
 const {
   GUILD_NAME_MIN, GUILD_NAME_MAX, GUILD_TAG_MIN, GUILD_TAG_MAX,
   GUILD_DESC_MAX, GUILD_CREATE_COST, GUILD_EMBLEMS, GUILD_JOIN_MODES,
   DONATION_MIN, DONATION_MAX, DONATION_DAILY_LIMIT, contributionForDonation,
+  DONATION_DAILY_MONEY_CAP, DONATION_DAILY_CONTRIBUTION_CAP, DONATION_DAILY_GUILD_EXP_CAP,
+  currentGameDayStart, currentGameDayEnd,
   GUILD_SHOP_CATALOG, findShopItem,
   currentGuildCycle, guildCycleEndsAt,
   GUILD_BOSS_NAME, GUILD_BOSS_ATTACKS_PER_DAY, computeBossAttackDamage,
@@ -61,6 +63,16 @@ router.get('/mine', requireAuth, asyncHandler(async (req, res) => {
     [membership.guild_id]
   );
 
+  const { rows: donationRows } = await pool.query(
+    `SELECT COUNT(*)::int AS n,
+            COALESCE(SUM(amount), 0)::bigint AS money_sum,
+            COALESCE(SUM(contribution_awarded), 0)::bigint AS contribution_sum,
+            COALESCE(SUM(guild_exp_awarded), 0)::bigint AS exp_sum
+     FROM guild_donations WHERE player_id = $1 AND created_at >= $2`,
+    [req.playerId, currentGameDayStart()]
+  );
+  const d = donationRows[0];
+
   res.json({
     guild: guildSummary(membership),
     memberCount: countRows[0].n,
@@ -69,6 +81,13 @@ router.get('/mine', requireAuth, asyncHandler(async (req, res) => {
     myContributionBalance: Number(membership.contribution_balance),
     myBossDamageCycle: Number(membership.boss_damage_cycle),
     joinedAt: membership.joined_at,
+    myDonationToday: {
+      donationsCount: d.n, donationsCountCap: DONATION_DAILY_LIMIT,
+      money: Number(d.money_sum), moneyCap: DONATION_DAILY_MONEY_CAP,
+      contribution: Number(d.contribution_sum), contributionCap: DONATION_DAILY_CONTRIBUTION_CAP,
+      guildExp: Number(d.exp_sum), guildExpCap: DONATION_DAILY_GUILD_EXP_CAP,
+      resetsAt: currentGameDayEnd().toISOString(),
+    },
   });
 }));
 
@@ -126,7 +145,7 @@ router.get('/ranking', requireAuth, asyncHandler(async (req, res) => {
 // ---------------------------------------------------------------------------
 // POST /api/guilds/create { name, tag, description, emblem, joinMode }
 // ---------------------------------------------------------------------------
-router.post('/create', requireAuth, asyncHandler(async (req, res) => {
+router.post('/create', requireAuth, blockGuests, asyncHandler(async (req, res) => {
   const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
   const tag = typeof req.body?.tag === 'string' ? req.body.tag.trim().toUpperCase() : '';
   const description = typeof req.body?.description === 'string' ? req.body.description.trim().slice(0, GUILD_DESC_MAX) : '';
@@ -276,7 +295,7 @@ router.post('/expand-capacity', requireAuth, asyncHandler(async (req, res) => {
 // ---------------------------------------------------------------------------
 // POST /api/guilds/:id/join — instant join, only when join_mode = 'open'.
 // ---------------------------------------------------------------------------
-router.post('/:id/join', requireAuth, asyncHandler(async (req, res) => {
+router.post('/:id/join', requireAuth, blockGuests, asyncHandler(async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -324,7 +343,7 @@ router.post('/:id/join', requireAuth, asyncHandler(async (req, res) => {
 // ---------------------------------------------------------------------------
 // POST /api/guilds/:id/apply { message } — for join_mode = 'apply'.
 // ---------------------------------------------------------------------------
-router.post('/:id/apply', requireAuth, asyncHandler(async (req, res) => {
+router.post('/:id/apply', requireAuth, blockGuests, asyncHandler(async (req, res) => {
   const message = typeof req.body?.message === 'string' ? req.body.message.trim().slice(0, 200) : '';
 
   const existing = await pool.query(`SELECT 1 FROM guild_members WHERE player_id = $1`, [req.playerId]);
@@ -466,8 +485,9 @@ router.post('/invite', requireAuth, asyncHandler(async (req, res) => {
   const publicId = typeof req.body?.publicId === 'string' ? req.body.publicId.trim() : '';
   if (!publicId) return res.status(400).json({ error: 'missing publicId' });
 
-  const target = await pool.query(`SELECT id, username FROM players WHERE public_id = $1 AND status = 'active'`, [publicId]);
+  const target = await pool.query(`SELECT id, username, is_guest FROM players WHERE public_id = $1 AND status = 'active'`, [publicId]);
   if (target.rows.length === 0) return res.status(404).json({ error: 'ไม่พบผู้เล่นนี้' });
+  if (target.rows[0].is_guest) return res.status(400).json({ error: 'ผู้เล่นนี้ใช้บัญชีชั่วคราว ไม่สามารถเชิญเข้ากิลด์ได้' });
   const inviteeId = target.rows[0].id;
 
   const alreadyIn = await pool.query(`SELECT 1 FROM guild_members WHERE player_id = $1`, [inviteeId]);
@@ -498,7 +518,7 @@ router.get('/invites/mine', requireAuth, asyncHandler(async (req, res) => {
   })));
 }));
 
-router.post('/invites/:id/accept', requireAuth, asyncHandler(async (req, res) => {
+router.post('/invites/:id/accept', requireAuth, blockGuests, asyncHandler(async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -583,7 +603,7 @@ router.get('/members', requireAuth, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
     `SELECT gm.player_id, gm.role, gm.contribution_lifetime, gm.contribution_balance,
             gm.boss_damage_cycle, gm.boss_damage_lifetime, gm.joined_at,
-            p.username, p.public_id
+            p.username, p.public_id, p.status, p.suspended_until, p.last_seen_at
      FROM guild_members gm JOIN players p ON p.id = gm.player_id
      WHERE gm.guild_id = $1
      ORDER BY (gm.role = 'leader') DESC, (gm.role = 'officer') DESC, gm.contribution_lifetime DESC`,
@@ -594,6 +614,7 @@ router.get('/members', requireAuth, asyncHandler(async (req, res) => {
     contributionLifetime: Number(r.contribution_lifetime), contributionBalance: Number(r.contribution_balance),
     bossDamageCycle: Number(r.boss_damage_cycle), bossDamageLifetime: Number(r.boss_damage_lifetime),
     joinedAt: r.joined_at,
+    accountStatus: r.status, suspendedUntil: r.suspended_until, lastSeenAt: r.last_seen_at,
   })));
 }));
 
@@ -824,13 +845,26 @@ router.post('/donate', requireAuth, asyncHandler(async (req, res) => {
       return res.status(404).json({ error: 'คุณยังไม่ได้อยู่ในกิลด์' });
     }
 
-    const dayCount = await client.query(
-      `SELECT COUNT(*)::int AS n FROM guild_donations WHERE player_id = $1 AND created_at > now() - interval '24 hours'`,
-      [req.playerId]
+    const dayStart = currentGameDayStart();
+    const dayStats = await client.query(
+      `SELECT COUNT(*)::int AS n,
+              COALESCE(SUM(amount), 0)::bigint AS money_sum,
+              COALESCE(SUM(contribution_awarded), 0)::bigint AS contribution_sum,
+              COALESCE(SUM(guild_exp_awarded), 0)::bigint AS exp_sum
+       FROM guild_donations WHERE player_id = $1 AND created_at >= $2`,
+      [req.playerId, dayStart]
     );
-    if (dayCount.rows[0].n >= DONATION_DAILY_LIMIT) {
+    const stats = dayStats.rows[0];
+    if (stats.n >= DONATION_DAILY_LIMIT) {
       await client.query('ROLLBACK');
       return res.status(429).json({ error: `บริจาคได้สูงสุด ${DONATION_DAILY_LIMIT} ครั้งต่อวัน` });
+    }
+    const moneyDonatedToday = Number(stats.money_sum);
+    if (moneyDonatedToday + amount > DONATION_DAILY_MONEY_CAP) {
+      await client.query('ROLLBACK');
+      return res.status(429).json({
+        error: `บริจาคเงินได้สูงสุด ${DONATION_DAILY_MONEY_CAP.toLocaleString()} ต่อวัน (บริจาคไปแล้ววันนี้ ${moneyDonatedToday.toLocaleString()})`,
+      });
     }
 
     await client.query(`INSERT INTO player_economy (player_id) VALUES ($1) ON CONFLICT DO NOTHING`, [req.playerId]);
@@ -840,7 +874,18 @@ router.post('/donate', requireAuth, asyncHandler(async (req, res) => {
       return res.status(400).json({ error: 'เงินไม่พอ' });
     }
 
-    const contribution = contributionForDonation(amount);
+    // Contribution points and guild EXP each have their own daily cap per
+    // player (reset with dayStart above). Extra money beyond what earns the
+    // capped amount still goes to the treasury — it just stops personally
+    // rewarding the donor for the rest of the game day.
+    const rawContribution = contributionForDonation(amount);
+    const contributionLeftToday = Math.max(0, DONATION_DAILY_CONTRIBUTION_CAP - Number(stats.contribution_sum));
+    const contribution = Math.min(rawContribution, contributionLeftToday);
+
+    const rawExp = contribution * GUILD_EXP_PER_CONTRIBUTION;
+    const expLeftToday = Math.max(0, DONATION_DAILY_GUILD_EXP_CAP - Number(stats.exp_sum));
+    const expAwarded = Math.min(rawExp, expLeftToday);
+
     const guildId = membership.rows[0].guild_id;
 
     await client.query(`UPDATE player_economy SET money = money - $2, updated_at = now() WHERE player_id = $1`, [req.playerId, amount]);
@@ -854,14 +899,19 @@ router.post('/donate', requireAuth, asyncHandler(async (req, res) => {
       [guildId, amount, contribution]
     );
     await client.query(
-      `INSERT INTO guild_donations (guild_id, player_id, amount, contribution_awarded) VALUES ($1, $2, $3, $4)`,
-      [guildId, req.playerId, amount, contribution]
+      `INSERT INTO guild_donations (guild_id, player_id, amount, contribution_awarded, guild_exp_awarded) VALUES ($1, $2, $3, $4, $5)`,
+      [guildId, req.playerId, amount, contribution, expAwarded]
     );
-    const levelResult = await grantGuildExpTx(client, guildId, contribution * GUILD_EXP_PER_CONTRIBUTION);
+    const levelResult = await grantGuildExpTx(client, guildId, expAwarded);
 
     await client.query('COMMIT');
     res.json({
-      ok: true, contribution, donationsLeftToday: DONATION_DAILY_LIMIT - dayCount.rows[0].n - 1,
+      ok: true, contribution, donationsLeftToday: DONATION_DAILY_LIMIT - stats.n - 1,
+      moneyDonatedToday: moneyDonatedToday + amount, moneyCapToday: DONATION_DAILY_MONEY_CAP,
+      contributionEarnedToday: Number(stats.contribution_sum) + contribution, contributionCapToday: DONATION_DAILY_CONTRIBUTION_CAP,
+      guildExpEarnedToday: Number(stats.exp_sum) + expAwarded, guildExpCapToday: DONATION_DAILY_GUILD_EXP_CAP,
+      contributionCapped: contribution < rawContribution,
+      dailyResetAt: currentGameDayEnd().toISOString(),
       guildLevel: levelResult?.level, leveledUp: !!levelResult?.leveledUp,
     });
   } catch (err) {
@@ -880,23 +930,34 @@ router.get('/shop', requireAuth, asyncHandler(async (req, res) => {
   if (!membership) return res.status(404).json({ error: 'คุณยังไม่ได้อยู่ในกิลด์' });
 
   const cycle = currentGuildCycle();
-  const { rows } = await pool.query(
-    `SELECT item_key, COUNT(*)::int AS n FROM guild_shop_purchases WHERE player_id = $1 AND cycle = $2 GROUP BY item_key`,
-    [req.playerId, cycle]
-  );
-  const boughtByKey = new Map(rows.map((r) => [r.item_key, r.n]));
+  const [purchaseRows, playerRow] = await Promise.all([
+    pool.query(
+      `SELECT item_key, COUNT(*)::int AS n FROM guild_shop_purchases WHERE player_id = $1 AND cycle = $2 GROUP BY item_key`,
+      [req.playerId, cycle]
+    ),
+    pool.query(`SELECT owned_frames FROM players WHERE id = $1`, [req.playerId]),
+  ]);
+  const boughtByKey = new Map(purchaseRows.rows.map((r) => [r.item_key, r.n]));
+  const ownedFrames = new Set(playerRow.rows[0]?.owned_frames || []);
   const guildLevel = expProgress(Number(membership.exp) || 0).level;
 
   res.json({
     myBalance: Number(membership.contribution_balance),
     guildLevel,
     cycleEndsAt: guildCycleEndsAt(cycle),
-    catalog: GUILD_SHOP_CATALOG.map((item) => ({
-      ...item,
-      locked: guildLevel < item.minLevel,
-      purchasedThisCycle: boughtByKey.get(item.key) || 0,
-      remaining: guildLevel < item.minLevel ? 0 : Math.max(0, item.limit - (boughtByKey.get(item.key) || 0)),
-    })),
+    catalog: GUILD_SHOP_CATALOG.map((item) => {
+      // กรอบปก (avatar frame) items are a one-time cosmetic purchase, not a
+      // weekly-refreshing consumable — once owned, permanently blocked
+      // regardless of what the weekly purchase count says.
+      const owned = !!item.rewardFrameKey && ownedFrames.has(item.rewardFrameKey);
+      return {
+        ...item,
+        locked: guildLevel < item.minLevel,
+        owned,
+        purchasedThisCycle: boughtByKey.get(item.key) || 0,
+        remaining: owned || guildLevel < item.minLevel ? 0 : Math.max(0, item.limit - (boughtByKey.get(item.key) || 0)),
+      };
+    }),
   });
 }));
 
@@ -923,6 +984,18 @@ router.post('/shop/buy', requireAuth, asyncHandler(async (req, res) => {
       return res.status(400).json({ error: 'แต้มบริจาคไม่พอ' });
     }
 
+    // กรอบปก (avatar frame) items are a one-time cosmetic — block repurchase
+    // permanently once owned, independent of the weekly cycle/limit below.
+    let playerRow = null;
+    if (item.rewardFrameKey) {
+      playerRow = await client.query(`SELECT owned_frames FROM players WHERE id = $1 FOR UPDATE`, [req.playerId]);
+      const ownedFrames = playerRow.rows[0]?.owned_frames || [];
+      if (ownedFrames.includes(item.rewardFrameKey)) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'คุณมีกรอบปกนี้อยู่แล้ว' });
+      }
+    }
+
     const cycle = currentGuildCycle();
     const boughtCount = await client.query(
       `SELECT COUNT(*)::int AS n FROM guild_shop_purchases WHERE player_id = $1 AND cycle = $2 AND item_key = $3`,
@@ -938,6 +1011,16 @@ router.post('/shop/buy', requireAuth, asyncHandler(async (req, res) => {
       `INSERT INTO guild_shop_purchases (guild_id, player_id, cycle, item_key, cost) VALUES ($1, $2, $3, $4, $5)`,
       [membership.rows[0].guild_id, req.playerId, cycle, item.key, item.cost]
     );
+
+    if (item.rewardFrameKey) {
+      // Cosmetic-only reward — no money/bag payload, just grant ownership.
+      const ownedFrames = playerRow.rows[0]?.owned_frames || [];
+      const newOwnedFrames = [...ownedFrames, item.rewardFrameKey];
+      await client.query(`UPDATE players SET owned_frames = $2 WHERE id = $1`, [req.playerId, JSON.stringify(newOwnedFrames)]);
+
+      await client.query('COMMIT');
+      return res.json({ ok: true, frame: item.rewardFrameKey, balanceLeft: Number(membership.rows[0].contribution_balance) - item.cost });
+    }
 
     await client.query(`INSERT INTO player_economy (player_id) VALUES ($1) ON CONFLICT DO NOTHING`, [req.playerId]);
     const econ = await client.query(`SELECT money, bag FROM player_economy WHERE player_id = $1 FOR UPDATE`, [req.playerId]);

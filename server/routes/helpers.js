@@ -160,6 +160,9 @@ async function attachHelperStatus(playerId, candidates) {
       canRequest: !!card && !cooldownEndsAt,
       cooldownEndsAt,
       activeLoan,
+      accountStatus: f.status,
+      suspendedUntil: f.suspended_until,
+      lastSeenAt: f.last_seen_at,
     };
   });
 }
@@ -174,7 +177,7 @@ router.get('/friends', requireAuth, asyncHandler(async (req, res) => {
   await cleanupExpiredHelperLoans(pool, req.playerId);
 
   const { rows: friends } = await pool.query(
-    `SELECT p.id, p.username, p.public_id, ph.card_id, pe.deck
+    `SELECT p.id, p.username, p.public_id, p.status, p.suspended_until, p.last_seen_at, ph.card_id, pe.deck
      FROM friendships f
      JOIN players p ON p.id = f.friend_id
      LEFT JOIN player_helpers ph ON ph.player_id = f.friend_id
@@ -203,7 +206,7 @@ router.get('/guildmates', requireAuth, asyncHandler(async (req, res) => {
   if (membership.length === 0) return res.json([]);
 
   const { rows: guildmates } = await pool.query(
-    `SELECT p.id, p.username, p.public_id, ph.card_id, pe.deck
+    `SELECT p.id, p.username, p.public_id, p.status, p.suspended_until, p.last_seen_at, ph.card_id, pe.deck
      FROM guild_members gm
      JOIN players p ON p.id = gm.player_id
      LEFT JOIN player_helpers ph ON ph.player_id = gm.player_id
