@@ -57,6 +57,10 @@
     .friend-helper-row:last-child{ border-bottom:none; }
     .friend-helper-info{ flex:1; min-width:0; }
     .friend-helper-preview{ color:var(--muted); font-size:12px; margin-top:3px; line-height:1.5; }
+    .friends-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:14px 0; }
+    .friends-tab-btn{ flex:1; min-width:140px; }
+    .friends-tab-btn.active{ outline:2px solid var(--accent,#6ea8fe); }
+
     .cooldown-pill{ font-size:12px; color:var(--muted); }
     .helper-picker-overlay{
       position:fixed; inset:0; background:rgba(0,0,0,.6); display:none;
@@ -107,6 +111,13 @@
   <div id="guildmatesHelpersMount"><div class="helper-none">กำลังโหลด…</div></div>
 </section>
 
+
+<div class="friends-tabs" id="friendsTabs" style="display:none">
+  <button class="friends-tab-btn active" data-target="friendsListPanel">👥 รายชื่อเพื่อน</button>
+  <button class="friends-tab-btn" data-target="friendsIncomingPanel">📩 คำขอที่ส่งมาหาเรา</button>
+  <button class="friends-tab-btn" data-target="friendsSentPanel">📤 คำขอที่เราส่งไป</button>
+  <button class="friends-tab-btn" data-target="friendsSearchPanel">🔎 ค้นหาผู้เล่น</button>
+</div>
 <section class="panel" id="friendsIncomingPanel" style="display:none">
   <h3>คำขอเป็นเพื่อน <span id="friendRequestBadge" style="display:none">0</span></h3>
   <div id="friendsIncomingList"></div>
@@ -565,10 +576,23 @@
     document.getElementById("myHelperPanel").style.display = loggedIn ? "block" : "none";
     document.getElementById("friendsHelpersPanel").style.display = loggedIn ? "block" : "none";
     document.getElementById("guildmatesHelpersPanel").style.display = loggedIn ? "block" : "none";
-    document.getElementById("friendsIncomingPanel").style.display = loggedIn ? "block" : "none";
-    document.getElementById("friendsSearchPanel").style.display = loggedIn ? "block" : "none";
-    document.getElementById("friendsSentPanel").style.display = loggedIn ? "block" : "none";
-    document.getElementById("friendsListPanel").style.display = loggedIn ? "block" : "none";
+    document.getElementById("friendsTabs").style.display = loggedIn ? "flex" : "none";
+
+    const tabPanels = ["friendsListPanel","friendsIncomingPanel","friendsSentPanel","friendsSearchPanel"];
+    function showFriendsTab(panelId){
+      tabPanels.forEach(id=>{
+        document.getElementById(id).style.display = (loggedIn && id===panelId) ? "block" : "none";
+      });
+      document.querySelectorAll('.friends-tab-btn').forEach(btn=>{
+        btn.classList.toggle('active', btn.dataset.target === panelId);
+      });
+    }
+
+    document.querySelectorAll('.friends-tab-btn').forEach(btn=>{
+      btn.onclick = ()=> showFriendsTab(btn.dataset.target);
+    });
+
+    showFriendsTab("friendsListPanel");
     if (!loggedIn) return;
     syncMoneyFromServer();
     await refreshAll();
