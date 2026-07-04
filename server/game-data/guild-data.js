@@ -91,7 +91,37 @@ function computeMaxMembers(level, extraCapacityPurchased) {
 const DONATION_MIN = 100;
 const DONATION_MAX = 1000000;
 const DONATION_RATE = 100; // money per 1 contribution point
-const DONATION_DAILY_LIMIT = 10; // max donations per player per rolling 24h
+const DONATION_DAILY_LIMIT = 10; // max donation ACTIONS per player per game day
+
+// Per-player daily caps on what donating actually earns — separate from
+// DONATION_DAILY_LIMIT above (which just caps how many donate taps you get).
+// A player can still donate money past the point/EXP caps (it still funds
+// the guild treasury), they just stop personally earning contribution
+// points / guild EXP for the rest of the game day.
+const DONATION_DAILY_MONEY_CAP = 1000000;      // max money donated per player per game day
+const DONATION_DAILY_CONTRIBUTION_CAP = 500;   // max contribution points earned per player per game day
+const DONATION_DAILY_GUILD_EXP_CAP = 500;      // max guild EXP granted from one player's donations per game day
+
+// ---------------------------------------------------------------------------
+// "Game day" boundary for the caps above: resets at 04:00 Thailand time
+// (UTC+7), not midnight UTC and not a rolling 24h window. Thailand has no
+// DST, so a fixed offset is safe here.
+// ---------------------------------------------------------------------------
+const THAILAND_UTC_OFFSET_MS = 7 * 60 * 60 * 1000;
+const DAILY_RESET_HOUR_MS = 4 * 60 * 60 * 1000; // 04:00
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Start (as a real UTC Date) of the game day currently in progress.
+function currentGameDayStart() {
+  const thaiNow = Date.now() + THAILAND_UTC_OFFSET_MS;
+  const dayIndex = Math.floor((thaiNow - DAILY_RESET_HOUR_MS) / DAY_MS);
+  const thaiDayStart = dayIndex * DAY_MS + DAILY_RESET_HOUR_MS;
+  return new Date(thaiDayStart - THAILAND_UTC_OFFSET_MS);
+}
+// When the game day currently in progress will roll over (also a real UTC Date).
+function currentGameDayEnd() {
+  return new Date(currentGameDayStart().getTime() + DAY_MS);
+}
 
 function contributionForDonation(amount) {
   return Math.floor(amount / DONATION_RATE);
@@ -105,19 +135,29 @@ const GUILD_SHOP_CATALOG = [
   { key: 'money_small', name: 'ถุงเงินกิลด์ (เล็ก)', cost: 30, limit: 10, minLevel: 1, rewardMoney: 3000 },
   { key: 'money_medium', name: 'ถุงเงินกิลด์ (กลาง)', cost: 80, limit: 6, minLevel: 1, rewardMoney: 10000 },
   { key: 'money_large', name: 'ถุงเงินกิลด์ (ใหญ่)', cost: 200, limit: 3, minLevel: 1, rewardMoney: 30000 },
-  { key: 'shard_gray', name: 'เศษพลังเทา x30', cost: 20, limit: 10, minLevel: 1, rewardBagKey: 'shardGray', rewardBagQty: 30 },
-  { key: 'shard_blue', name: 'เศษพลังฟ้า x20', cost: 50, limit: 8, minLevel: 1, rewardBagKey: 'shardBlue', rewardBagQty: 20 },
-  { key: 'shard_purple', name: 'เศษพลังม่วง x10', cost: 120, limit: 5, minLevel: 5, rewardBagKey: 'shardPurple', rewardBagQty: 10 },
-  { key: 'shard_gold', name: 'เศษพลังทอง x5', cost: 300, limit: 3, minLevel: 10, rewardBagKey: 'shardGold', rewardBagQty: 5 },
+  { key: 'shard_gray', name: 'ชาร์ดเทา x30', cost: 20, limit: 10, minLevel: 1, rewardBagKey: 'shardGray', rewardBagQty: 30 },
+  { key: 'shard_blue', name: 'ชาร์ดน้ำเงิน x20', cost: 50, limit: 8, minLevel: 1, rewardBagKey: 'shardBlue', rewardBagQty: 20 },
+  { key: 'shard_purple', name: 'ชาร์ดม่วง x10', cost: 120, limit: 5, minLevel: 5, rewardBagKey: 'shardPurple', rewardBagQty: 10 },
+  { key: 'shard_gold', name: 'ชาร์ดทอง x5', cost: 300, limit: 3, minLevel: 10, rewardBagKey: 'shardGold', rewardBagQty: 5 },
   { key: 'memory_rare', name: 'เศษความทรงจำ Rare x10', cost: 60, limit: 5, minLevel: 1, rewardBagKey: 'memoryRare', rewardBagQty: 10 },
   { key: 'memory_epic', name: 'เศษความทรงจำ Epic x5', cost: 150, limit: 3, minLevel: 5, rewardBagKey: 'memoryEpic', rewardBagQty: 5 },
   // Higher guild levels unlock stronger redemptions — same personal
   // contribution_balance currency, just gated by how far the guild has leveled.
   { key: 'money_huge', name: 'ถุงเงินกิลด์ (มหึมา)', cost: 500, limit: 2, minLevel: 15, rewardMoney: 100000 },
-  { key: 'shard_red', name: 'เศษพลังแดง x5', cost: 450, limit: 3, minLevel: 20, rewardBagKey: 'shardRed', rewardBagQty: 5 },
+  { key: 'shard_red', name: 'ชาร์ดแดง x5', cost: 450, limit: 3, minLevel: 20, rewardBagKey: 'shardRed', rewardBagQty: 5 },
   { key: 'memory_legendary', name: 'เศษความทรงจำ Legendary x5', cost: 400, limit: 3, minLevel: 20, rewardBagKey: 'memoryLegendary', rewardBagQty: 5 },
-  { key: 'shard_sky', name: 'เศษพลังฟ้าสวรรค์ x3', cost: 800, limit: 2, minLevel: 30, rewardBagKey: 'shardSky', rewardBagQty: 3 },
+  { key: 'shard_sky', name: 'ชาร์ดฟ้าสวรรค์ x3', cost: 800, limit: 2, minLevel: 30, rewardBagKey: 'shardSky', rewardBagQty: 3 },
   { key: 'memory_cosmic', name: 'เศษความทรงจำ Cosmic x3', cost: 900, limit: 2, minLevel: 40, rewardBagKey: 'memoryCosmic', rewardBagQty: 3 },
+
+  // --- กรอบปก (avatar frames, see game-data/cosmetics-data.js FRAME_CATALOG) ---
+  // One-time cosmetic unlocks, not consumables — `rewardFrameKey` instead of
+  // rewardMoney/rewardBagKey. `limit` still caps purchases-per-cycle like
+  // every other item, but routes/guilds.js also permanently blocks
+  // repurchase once the player owns the frame (players.owned_frames), so in
+  // practice these can only ever be bought once no matter how limit/cycle
+  // are set. minLevel is set high since these are meant to be a rare flex.
+  { key: 'frame_dragon', name: 'กรอบมังกรทองกิลด์', cost: 600, limit: 1, minLevel: 25, rewardFrameKey: 'frame_guild_shop_dragon' },
+  { key: 'frame_phoenix', name: 'กรอบฟีนิกซ์เพลิงกิลด์', cost: 1200, limit: 1, minLevel: 40, rewardFrameKey: 'frame_guild_shop_phoenix' },
 ];
 function findShopItem(key) {
   return GUILD_SHOP_CATALOG.find((i) => i.key === key) || null;
@@ -127,13 +167,36 @@ function findShopItem(key) {
 // Weekly cycle clock, shared by the guild shop's purchase limits and the
 // guild boss. Separate from economy's 5-minute SHOP_REFRESH_INTERVAL_MS —
 // this one is intentionally a full week.
+//
+// Resets every SUNDAY at 04:00 Thailand time (UTC+7) — NOT a rolling 7-day
+// window from the Unix epoch (that used to drift to whatever weekday
+// 1970-01-01 happened to be, i.e. Thursday, so the "weekly" reset silently
+// landed on Thursday 07:00 UTC instead of the intended Sunday morning).
+//
+// Reuses the same 04:00-Thai "day start" boundary as currentGameDayStart()
+// above: dayIndex counts 04:00-Thai-aligned days since the epoch, and
+// dayIndex 0 (1970-01-01 04:00 Thai) falls on a Thursday, so dayIndex 3
+// (1970-01-04 04:00 Thai) is the first such boundary that lands on a Sunday.
+// Every 7 dayIndex values after that is another Sunday — that's the anchor
+// weeks are counted from.
 // ---------------------------------------------------------------------------
-const GUILD_CYCLE_MS = 7 * 24 * 60 * 60 * 1000;
+const WEEK_MS = 7 * DAY_MS;
+const GUILD_CYCLE_MS = WEEK_MS; // kept for anything reading the raw duration
+const FIRST_SUNDAY_DAY_INDEX = 3;
+
 function currentGuildCycle() {
-  return Math.floor(Date.now() / GUILD_CYCLE_MS);
+  const thaiNow = Date.now() + THAILAND_UTC_OFFSET_MS;
+  const dayIndex = Math.floor((thaiNow - DAILY_RESET_HOUR_MS) / DAY_MS);
+  return Math.floor((dayIndex - FIRST_SUNDAY_DAY_INDEX) / 7);
+}
+// Start (as a real UTC Date) of a given weekly cycle number.
+function guildCycleStartsAt(cycle) {
+  const dayIndex = cycle * 7 + FIRST_SUNDAY_DAY_INDEX;
+  const thaiWeekStart = dayIndex * DAY_MS + DAILY_RESET_HOUR_MS;
+  return new Date(thaiWeekStart - THAILAND_UTC_OFFSET_MS);
 }
 function guildCycleEndsAt(cycle) {
-  return new Date((cycle + 1) * GUILD_CYCLE_MS).toISOString();
+  return new Date(guildCycleStartsAt(cycle).getTime() + WEEK_MS).toISOString();
 }
 
 // ---------------------------------------------------------------------------
@@ -192,6 +255,8 @@ module.exports = {
   GUILD_NAME_MIN, GUILD_NAME_MAX, GUILD_TAG_MIN, GUILD_TAG_MAX,
   GUILD_DESC_MAX, GUILD_CREATE_COST, GUILD_EMBLEMS, GUILD_JOIN_MODES,
   DONATION_MIN, DONATION_MAX, DONATION_RATE, DONATION_DAILY_LIMIT, contributionForDonation,
+  DONATION_DAILY_MONEY_CAP, DONATION_DAILY_CONTRIBUTION_CAP, DONATION_DAILY_GUILD_EXP_CAP,
+  currentGameDayStart, currentGameDayEnd,
   GUILD_SHOP_CATALOG, findShopItem,
   GUILD_CYCLE_MS, currentGuildCycle, guildCycleEndsAt,
   GUILD_BOSS_NAME, GUILD_BOSS_MAX_HP, GUILD_BOSS_ATTACKS_PER_DAY, GUILD_BOSS_MIN_DAMAGE,
