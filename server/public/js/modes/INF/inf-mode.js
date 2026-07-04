@@ -25,10 +25,33 @@ async function startInfGame(startStage = 1) {
   }
   if (battleRunning) return;
 
-  // server times the whole run and (for checkpoints) validates the checkpoint is unlocked
-  const runData = await GameAPI.infRunStart(startStage);
-  if (startStage > 1 && runData && runData.error) {
-    alert("❌ ยังไม่ปลดล็อกจุดเริ่มต้นนี้: " + runData.error);
+  // 🚫 กันเหนียว: selectedIndexes ใช้ localStorage ร่วมกับโหมด NORMAL/BOSS ถ้า
+  // ผู้เล่นเลือกทีมที่มีตัวยืมไว้จากหน้าอื่นแล้วสลับมาหน้า INF โดยตรง (ไม่ผ่านการ
+  // คลิกเลือกใน render.js ที่บล็อกไว้แล้ว) ให้เอาตัวยืมออกจากทีมตรงนี้อีกชั้น
+  const deckNow = JSON.parse(localStorage.getItem("deck") || "[]");
+  const hasBorrowedSelected = selectedIndexes.some(id => {
+    const c = deckNow.find(c => c.id === id);
+    return c && c.borrowed;
+  });
+  if (hasBorrowedSelected) {
+    selectedIndexes = selectedIndexes.filter(id => {
+      const c = deckNow.find(c => c.id === id);
+      return !(c && c.borrowed);
+    });
+    localStorage.setItem("selectedIndexes", JSON.stringify(selectedIndexes));
+    alert("ตัวละครที่ยืมมาจากเพื่อนไม่สามารถใช้ในด่าน INF ได้ ถูกเอาออกจากทีมให้แล้ว กรุณาเลือกทีมใหม่");
+    if (typeof renderDeck === "function") renderDeck();
+    return;
+  }
+
+  // server times the whole run, validates the checkpoint is unlocked, and
+  // (as a backstop) rejects the run if teamCardIds contains a borrowed card.
+  // runData.status is only set for an actual HTTP error response (see
+  // api.js post()) — a network/offline failure has no status, and gameplay
+  // is still allowed to continue locally in that case, same as before.
+  const runData = await GameAPI.infRunStart(startStage, selectedIndexes);
+  if (runData && runData.error && runData.status) {
+    alert("❌ " + runData.error);
     autoMode = false;
     return;
   }
@@ -238,7 +261,9 @@ function prepareInfBattle() {
   if (currentInfStage === 1 || playerTeam.length === 0) {
     playerTeam = selectedIndexes.map((id, idx) => {
       const card = deck.find(c => c.id === id);
-      if (!card) return null;
+      // 🚫 กันเหนียวอีกชั้น: ตัวยืมจากเพื่อนห้ามใช้ในด่าน INF เด็ดขาด (ดูจุดเลือก
+      // ทีมใน render.js และเช็คฝั่งเซิฟใน routes/runs.js POST /start)
+      if (!card || card.borrowed) return null;
 
       const finalStats = getRenderStats(card);
 
