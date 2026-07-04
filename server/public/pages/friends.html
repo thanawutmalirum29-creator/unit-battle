@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <title>👥 เพื่อน</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0c121b" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <script src="../js/core/pwa-register.js" defer></script>
+  <link rel="stylesheet" href="../css/game.css" />
+  <link rel="stylesheet" href="../css/skills.css" />
+  <link rel="stylesheet" href="../css/theme.css" />
+  <script src="../js/core/ui-popup.js"></script>
+  <style>
+    .friend-row{
+      display:flex; justify-content:space-between; align-items:center; gap:10px;
+      padding:10px 6px; border-bottom:1px solid var(--border);
+      font-size:14px;
+    }
+    .friend-row:last-child{ border-bottom:none; }
+    .friend-name{ font-weight:700; }
+    .friend-id{ font-family:monospace; color:var(--muted); font-size:12px; letter-spacing:.5px; }
+    .friend-actions{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+    .friend-actions button{ font-size:12.5px; padding:6px 10px; }
+    .friend-status-pill{ font-size:12px; color:var(--muted); }
+    .friend-empty, .friend-hint{ color:var(--muted); font-size:13px; padding:8px 4px; }
+    #friendsLoggedOutMsg{ color:var(--muted); font-size:14px; }
+    .accept-btn{ background:linear-gradient(135deg,#1f7a3d,#124d26); border:1px solid rgba(74,222,128,.4); color:#d7ffe4; }
+    .accept-btn:hover{ background:linear-gradient(135deg,#249149,#155c2d); }
+    .reject-btn, .remove-friend-btn, .cancel-request-btn{
+      background:linear-gradient(135deg,#7a1c1c,#4d0f0f); border:1px solid rgba(239,68,68,.4); color:#ffd5d5;
+    }
+    .reject-btn:hover, .remove-friend-btn:hover, .cancel-request-btn:hover{ background:linear-gradient(135deg,#9c2424,#601313); }
+    #friendRequestBadge{
+      display:inline-flex; align-items:center; justify-content:center;
+      min-width:18px; height:18px; padding:0 4px; margin-left:6px;
+      border-radius:999px; background:#e53e3e; color:#fff; font-size:11px; font-weight:800;
+    }
+    .helper-card{
+      display:flex; justify-content:space-between; align-items:center; gap:10px;
+      padding:10px; border-radius:10px; background:rgba(255,255,255,.04);
+      border:1px solid var(--border); font-size:13px;
+    }
+    .helper-card .helper-name{ font-weight:700; }
+    .helper-card .helper-stats{ color:var(--muted); font-size:12px; margin-top:2px; }
+    .helper-none{ color:var(--muted); font-size:13px; padding:8px 4px; }
+    .set-helper-btn, .change-helper-btn{ background:linear-gradient(135deg,#1f5f7a,#12394d); border:1px solid rgba(96,165,250,.4); color:#dcefff; }
+    .set-helper-btn:hover, .change-helper-btn:hover{ background:linear-gradient(135deg,#24799c,#155067); }
+    .borrow-btn{ background:linear-gradient(135deg,#1f7a3d,#124d26); border:1px solid rgba(74,222,128,.4); color:#d7ffe4; }
+    .borrow-btn:hover{ background:linear-gradient(135deg,#249149,#155c2d); }
+    .borrow-btn:disabled{ opacity:.5; cursor:not-allowed; background:rgba(255,255,255,.06); border-color:var(--border); color:var(--muted); }
+    .friend-helper-row{
+      display:flex; justify-content:space-between; align-items:center; gap:10px;
+      padding:10px 6px; border-bottom:1px solid var(--border); font-size:14px;
+    }
+    .friend-helper-row:last-child{ border-bottom:none; }
+    .friend-helper-info{ flex:1; min-width:0; }
+    .friend-helper-preview{ color:var(--muted); font-size:12px; margin-top:3px; line-height:1.5; }
+    .cooldown-pill{ font-size:12px; color:var(--muted); }
+    .helper-picker-overlay{
+      position:fixed; inset:0; background:rgba(0,0,0,.6); display:none;
+      align-items:flex-end; justify-content:center; z-index:999;
+    }
+    .helper-picker-overlay.open{ display:flex; }
+    .helper-picker-sheet{
+      background:var(--bg, #0c121b); width:100%; max-width:520px; max-height:75vh;
+      overflow-y:auto; border-radius:16px 16px 0 0; padding:14px; border:1px solid var(--border);
+    }
+    .helper-picker-sheet h3{ margin:0 0 10px; }
+    .helper-pick-item{
+      display:flex; justify-content:space-between; align-items:center; gap:10px;
+      padding:10px; border-radius:10px; margin-bottom:8px; cursor:pointer;
+      background:rgba(255,255,255,.04); border:1px solid var(--border);
+    }
+    .helper-pick-item:hover{ background:rgba(255,255,255,.08); }
+    .helper-pick-close{ width:100%; margin-top:6px; }
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <h1>👥 เพื่อน</h1>
+  <div class="right-group">
+    <div id="moneyWindow">💰 0</div>
+  </div>
+</header>
+
+<section class="panel" id="friendsLoggedOutPanel" style="display:none">
+  <p id="friendsLoggedOutMsg">ต้องเข้าสู่ระบบก่อนถึงจะใช้ระบบเพื่อนได้</p>
+</section>
+
+<section class="panel" id="myHelperPanel" style="display:none">
+  <h3>🤝 ตัวช่วยเหลือของฉัน</h3>
+  <p class="friend-hint">ตั้งตัวละคร 1 ตัวให้เพื่อนขอยืมไปใช้ในเด็คได้ชั่วคราว (12 ชม.) — การ์ดของคุณไม่หายไปไหน เพื่อนแค่ได้สำเนาไปใช้</p>
+  <div id="myHelperMount"><div class="helper-none">กำลังโหลด…</div></div>
+</section>
+
+<section class="panel" id="friendsHelpersPanel" style="display:none">
+  <h3>🆘 ขอความช่วยเหลือจากเพื่อน</h3>
+  <p class="friend-hint">ขอได้ 1 ครั้งต่อเพื่อน 1 คน ทุก 24 ชม. — ตัวละครที่ได้จะอยู่ในเด็ค 12 ชม. แล้วหายไปเอง</p>
+  <div id="friendsHelpersMount"><div class="helper-none">กำลังโหลด…</div></div>
+</section>
+
+<section class="panel" id="guildmatesHelpersPanel" style="display:none">
+  <h3>🏰 ขอความช่วยเหลือจากคนในกิลด์</h3>
+  <p class="friend-hint">ทำงานแบบเดียวกับเพื่อน — ขอได้ 1 ครั้งต่อคน ทุก 24 ชม. (คนที่เป็นเพื่อนกันอยู่แล้วจะแสดงในลิสต์เพื่อนด้านบนแทน)</p>
+  <div id="guildmatesHelpersMount"><div class="helper-none">กำลังโหลด…</div></div>
+</section>
+
+<section class="panel" id="friendsIncomingPanel" style="display:none">
+  <h3>คำขอเป็นเพื่อน <span id="friendRequestBadge" style="display:none">0</span></h3>
+  <div id="friendsIncomingList"></div>
+</section>
+
+<section class="panel" id="friendsSearchPanel" style="display:none">
+  <h3>ค้นหาผู้เล่น</h3>
+  <div class="searchbar">
+    <input id="friendSearchInput" type="text" placeholder="ค้นหาด้วย ID หรือชื่อผู้เล่น..." />
+    <button id="friendSearchBtn">ค้นหา</button>
+  </div>
+  <p class="friend-hint">พิมพ์ ID (15 ตัวอักษร) แบบเต็ม หรือชื่อผู้เล่นบางส่วนก็ได้</p>
+  <div id="friendSearchResults"></div>
+</section>
+
+<section class="panel" id="friendsSentPanel" style="display:none">
+  <h3>คำขอที่ส่งไป</h3>
+  <div id="friendsSentList"></div>
+</section>
+
+<section class="panel" id="friendsListPanel" style="display:none">
+  <h3>รายชื่อเพื่อน (<span id="friendCount">0</span>)</h3>
+  <div id="friendsList"></div>
+</section>
+
+<div class="helper-picker-overlay" id="helperPickerOverlay">
+  <div class="helper-picker-sheet">
+    <h3>เลือกตัวละครช่วยเหลือ</h3>
+    <div id="helperPickerList"></div>
+    <button type="button" class="helper-pick-close" id="helperPickerCloseBtn">ปิด</button>
+  </div>
+</div>
+
+
+<script src="../js/core/api.js"></script>
+<script src="../js/core/auth-ui.js"></script>
+<script src="../js/core/money.js"></script>
+<script src="../js/core/deck.js"></script>
+<script>
+  function escapeHtml(s) {
+    const d = document.createElement("div");
+    d.textContent = s == null ? "" : String(s);
+    return d.innerHTML;
+  }
+
+  function statusPill(status) {
+    if (status === "friends") return '<span class="friend-status-pill">✓ เพื่อนกันแล้ว</span>';
+    if (status === "request_sent") return '<span class="friend-status-pill">⏳ รอตอบรับ</span>';
+    return "";
+  }
+
+  // ---- Helper / assist character system ----
+  const RARITY_ORDER = { Common: 1, Rare: 2, Epic: 3, Legendary: 4, Mythical: 5, Cosmic: 6 };
+
+  function fmtRemaining(iso) {
+    const ms = new Date(iso).getTime() - Date.now();
+    if (ms <= 0) return null;
+    const totalMin = Math.ceil(ms / 60000);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    if (h <= 0) return `${m} นาที`;
+    return `${h} ชม. ${m} นาที`;
+  }
+
+  function helperPreviewHtml(card) {
+    if (!card) return "";
+    const stars = "⭐".repeat(Math.min(card.stars || 1, 5)) + (card.stars > 5 ? "🌟".repeat(card.stars - 5) : "");
+    return `
+      <div class="helper-name">${escapeHtml(card.name)} <span style="color:var(--muted);font-weight:400">(${escapeHtml(card.rarity || "")})</span></div>
+      <div class="helper-stats">${stars} Lv.${escapeHtml(String(card.level ?? 1))} · HP ${card.hp} · ATK ${card.atk} · DEF ${card.def ?? "?"} · Skill: ${escapeHtml(card.skill || "None")}</div>
+    `;
+  }
+
+  async function renderMyHelper() {
+    const mount = document.getElementById("myHelperMount");
+    mount.innerHTML = '<div class="helper-none">กำลังโหลด…</div>';
+    const data = await GameAPI.fetchMyHelper();
+    if (!data || !data.card) {
+      mount.innerHTML = `
+        <div class="helper-none">ยังไม่ได้ตั้งตัวช่วยเหลือ</div>
+        <button type="button" class="set-helper-btn" id="openHelperPickerBtn">➕ ตั้งตัวช่วยเหลือ</button>
+      `;
+    } else {
+      mount.innerHTML = `
+        <div class="helper-card">
+          <div class="friend-helper-info">${helperPreviewHtml(data.card)}</div>
+          <div class="friend-actions">
+            <button type="button" class="change-helper-btn" id="openHelperPickerBtn">🔄 เปลี่ยน</button>
+            <button type="button" class="remove-friend-btn" id="clearHelperBtn">✖ ยกเลิก</button>
+          </div>
+        </div>
+      `;
+      document.getElementById("clearHelperBtn").addEventListener("click", async () => {
+        if (!(await uiConfirm("ยกเลิกการตั้งตัวช่วยเหลือ? เพื่อนจะขอยืมตัวนี้ไม่ได้อีก"))) return;
+        const result = await GameAPI.clearMyHelper();
+        if (result?.ok) renderMyHelper();
+        else alert(result?.error || "ทำรายการไม่สำเร็จ");
+      });
+    }
+    const openBtn = document.getElementById("openHelperPickerBtn");
+    if (openBtn) openBtn.addEventListener("click", openHelperPicker);
+  }
+
+  async function openHelperPicker() {
+    const overlay = document.getElementById("helperPickerOverlay");
+    const list = document.getElementById("helperPickerList");
+    list.innerHTML = '<div class="helper-none">กำลังโหลดเด็ค…</div>';
+    overlay.classList.add("open");
+
+    const state = await GameAPI.fetchEconomyState();
+    const deck = Array.isArray(state?.deck) ? [...state.deck] : [];
+    // การ์ดที่ยืมมาจากเพื่อนคนอื่นตั้งเป็นตัวช่วยเหลือต่อไม่ได้ (บังคับฝั่งเซิฟด้วย)
+    const lendable = deck.filter((c) => !c.borrowed);
+    lendable.sort((a, b) => {
+      if ((b.stars || 0) !== (a.stars || 0)) return (b.stars || 0) - (a.stars || 0);
+      return (RARITY_ORDER[b.rarity] || 0) - (RARITY_ORDER[a.rarity] || 0);
+    });
+
+    if (!lendable.length) {
+      list.innerHTML = '<div class="helper-none">ไม่มีการ์ดที่ตั้งเป็นตัวช่วยเหลือได้ในเด็ค</div>';
+      return;
+    }
+    list.innerHTML = lendable.map((c) => `
+      <div class="helper-pick-item" data-card-id="${escapeHtml(c.id)}">
+        <div>${helperPreviewHtml(c)}</div>
+      </div>
+    `).join("");
+    list.querySelectorAll(".helper-pick-item").forEach((el) => {
+      el.addEventListener("click", async () => {
+        const cardId = el.dataset.cardId;
+        const result = await GameAPI.setMyHelper(cardId);
+        if (result?.ok) {
+          overlay.classList.remove("open");
+          renderMyHelper();
+        } else {
+          alert(result?.error || "ตั้งตัวช่วยเหลือไม่สำเร็จ");
+        }
+      });
+    });
+  }
+
+  document.getElementById("helperPickerCloseBtn").addEventListener("click", () => {
+    document.getElementById("helperPickerOverlay").classList.remove("open");
+  });
+
+  let helperCountdownTimer = null;
+
+  // Shared list renderer for both the "friends" and "guildmates" helper
+  // panels — same row markup and same borrow/cooldown/active-loan states,
+  // just a different data source and empty-state message per panel.
+  async function renderHelperList(mountId, fetchFn, emptyMsg) {
+    const mount = document.getElementById(mountId);
+    mount.innerHTML = '<div class="helper-none">กำลังโหลด…</div>';
+    const list = await fetchFn();
+    if (!list.length) {
+      mount.innerHTML = `<div class="helper-none">${emptyMsg}</div>`;
+      return;
+    }
+    mount.innerHTML = list.map((f) => {
+      let actionHtml;
+      if (!f.helper) {
+        actionHtml = `<span class="friend-status-pill">ยังไม่ได้ตั้งตัวช่วยเหลือ</span>`;
+      } else if (f.activeLoan) {
+        actionHtml = `<span class="cooldown-pill" data-countdown="${escapeHtml(f.activeLoan.expiresAt)}" data-countdown-label="ใช้งานอยู่">⏳ ใช้งานอยู่ ${fmtRemaining(f.activeLoan.expiresAt) || ""}</span>`;
+      } else if (f.cooldownEndsAt) {
+        actionHtml = `<span class="cooldown-pill" data-countdown="${escapeHtml(f.cooldownEndsAt)}" data-countdown-label="ขอได้อีกครั้งใน">🕒 ขอได้อีกครั้งใน ${fmtRemaining(f.cooldownEndsAt) || ""}</span>`;
+      } else {
+        actionHtml = `<button type="button" class="borrow-btn" data-lender-id="${escapeHtml(f.friendId)}">🆘 ขอความช่วยเหลือ</button>`;
+      }
+      return `
+        <div class="friend-helper-row" data-friend-id="${escapeHtml(f.friendId)}">
+          <div class="friend-helper-info">
+            <div class="friend-name">${escapeHtml(f.username)}</div>
+            ${f.helper ? `<div class="friend-helper-preview">${helperPreviewHtml(f.helper)}</div>` : ""}
+          </div>
+          <div class="friend-actions">${actionHtml}</div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  async function renderFriendsHelpers() {
+    await renderHelperList("friendsHelpersMount", GameAPI.fetchFriendsHelpers, "ยังไม่มีเพื่อน ลองเพิ่มเพื่อนก่อนด้านล่าง");
+    startHelperCountdowns();
+  }
+
+  async function renderGuildmatesHelpers() {
+    await renderHelperList("guildmatesHelpersMount", GameAPI.fetchGuildmatesHelpers, "ยังไม่มีคนในกิลด์ที่ขอได้ (หรือยังไม่ได้เข้ากิลด์)");
+    startHelperCountdowns();
+  }
+
+  function startHelperCountdowns() {
+    if (helperCountdownTimer) clearInterval(helperCountdownTimer);
+    helperCountdownTimer = setInterval(() => {
+      let anyExpiredFriends = false;
+      let anyExpiredGuildmates = false;
+      document.querySelectorAll("#friendsHelpersMount .cooldown-pill[data-countdown]").forEach((el) => {
+        const remaining = fmtRemaining(el.dataset.countdown);
+        if (!remaining) {
+          anyExpiredFriends = true;
+        } else {
+          el.textContent = `${el.dataset.countdownLabel === "ใช้งานอยู่" ? "⏳" : "🕒"} ${el.dataset.countdownLabel} ${remaining}`;
+        }
+      });
+      document.querySelectorAll("#guildmatesHelpersMount .cooldown-pill[data-countdown]").forEach((el) => {
+        const remaining = fmtRemaining(el.dataset.countdown);
+        if (!remaining) {
+          anyExpiredGuildmates = true;
+        } else {
+          el.textContent = `${el.dataset.countdownLabel === "ใช้งานอยู่" ? "⏳" : "🕒"} ${el.dataset.countdownLabel} ${remaining}`;
+        }
+      });
+      // refresh from server once a countdown hits zero, per panel
+      if (anyExpiredFriends) renderFriendsHelpers();
+      if (anyExpiredGuildmates) renderGuildmatesHelpers();
+    }, 30000);
+  }
+
+  async function handleBorrowClick(e, refreshFn) {
+    const btn = e.target.closest(".borrow-btn");
+    if (!btn) return;
+    const lenderId = btn.dataset.lenderId;
+    if (!lenderId) return;
+    btn.disabled = true;
+    const result = await GameAPI.borrowHelper(lenderId);
+    if (result?.ok) {
+      if (typeof applyServerDeck === "function") applyServerDeck(result.deck);
+      else localStorage.setItem("deck", JSON.stringify(result.deck));
+      alert(`ได้รับ ${result.card.name} มาช่วยรบแล้ว! อยู่ในเด็คได้ 12 ชม.`);
+      refreshFn();
+    } else {
+      alert(result?.error || "ขอความช่วยเหลือไม่สำเร็จ");
+      btn.disabled = false;
+    }
+  }
+
+  document.getElementById("friendsHelpersMount").addEventListener("click", (e) => handleBorrowClick(e, renderFriendsHelpers));
+  document.getElementById("guildmatesHelpersMount").addEventListener("click", (e) => handleBorrowClick(e, renderGuildmatesHelpers));
+
+  function renderResults(results) {
+    const mount = document.getElementById("friendSearchResults");
+    if (!results.length) {
+      mount.innerHTML = '<div class="friend-empty">ไม่พบผู้เล่นที่ตรงกับคำค้นหา</div>';
+      return;
+    }
+    mount.innerHTML = results.map((r) => {
+      let actions = '<button type="button" class="send-request-btn">➕ ส่งคำขอ</button>';
+      if (r.status === "friends" || r.status === "request_sent") {
+        actions = statusPill(r.status);
+      } else if (r.status === "request_received") {
+        actions = `<span class="friend-status-pill">ส่งคำขอมาแล้ว —</span>
+          <button type="button" class="accept-btn quick-accept-btn" data-request-id="${escapeHtml(r.requestId)}">✅ ตอบรับ</button>`;
+      }
+      return `
+      <div class="friend-row" data-public-id="${escapeHtml(r.publicId)}">
+        <div>
+          <div class="friend-name">${escapeHtml(r.username)}</div>
+          <div class="friend-id">${escapeHtml(r.publicId)}</div>
+        </div>
+        <div class="friend-actions">${actions}</div>
+      </div>`;
+    }).join("");
+  }
+
+  async function renderIncomingRequests() {
+    const mount = document.getElementById("friendsIncomingList");
+    mount.innerHTML = '<div class="friend-empty">กำลังโหลด…</div>';
+    const requests = await GameAPI.fetchIncomingFriendRequests();
+    const badge = document.getElementById("friendRequestBadge");
+    if (requests.length) {
+      badge.textContent = requests.length;
+      badge.style.display = "inline-flex";
+    } else {
+      badge.style.display = "none";
+    }
+    if (!requests.length) {
+      mount.innerHTML = '<div class="friend-empty">ไม่มีคำขอเป็นเพื่อนที่รอตอบรับ</div>';
+      return;
+    }
+    mount.innerHTML = requests.map((r) => `
+      <div class="friend-row" data-request-id="${escapeHtml(r.requestId)}">
+        <div>
+          <div class="friend-name">${escapeHtml(r.username)}</div>
+          <div class="friend-id">${escapeHtml(r.publicId)}</div>
+        </div>
+        <div class="friend-actions">
+          <button type="button" class="accept-btn">✅ ตอบรับ</button>
+          <button type="button" class="reject-btn">❌ ปฏิเสธ</button>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  async function renderSentRequests() {
+    const mount = document.getElementById("friendsSentList");
+    mount.innerHTML = '<div class="friend-empty">กำลังโหลด…</div>';
+    const requests = await GameAPI.fetchSentFriendRequests();
+    if (!requests.length) {
+      mount.innerHTML = '<div class="friend-empty">ไม่มีคำขอที่ส่งไปรอตอบรับ</div>';
+      return;
+    }
+    mount.innerHTML = requests.map((r) => `
+      <div class="friend-row" data-request-id="${escapeHtml(r.requestId)}">
+        <div>
+          <div class="friend-name">${escapeHtml(r.username)}</div>
+          <div class="friend-id">${escapeHtml(r.publicId)}</div>
+        </div>
+        <div class="friend-actions">
+          <span class="friend-status-pill">⏳ รอตอบรับ</span>
+          <button type="button" class="cancel-request-btn">ยกเลิก</button>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  async function renderFriendsList() {
+    const mount = document.getElementById("friendsList");
+    mount.innerHTML = '<div class="friend-empty">กำลังโหลด…</div>';
+    const friends = await GameAPI.fetchFriends();
+    document.getElementById("friendCount").textContent = friends.length;
+    if (!friends.length) {
+      mount.innerHTML = '<div class="friend-empty">ยังไม่มีเพื่อนเลย ลองค้นหาด้วย ID หรือชื่อด้านบน</div>';
+      return;
+    }
+    mount.innerHTML = friends.map((f) => `
+      <div class="friend-row" data-player-id="${escapeHtml(f.playerId)}">
+        <div>
+          <div class="friend-name">${escapeHtml(f.username)}</div>
+          <div class="friend-id">${escapeHtml(f.publicId)}</div>
+        </div>
+        <div class="friend-actions">
+          <button type="button" class="remove-friend-btn">🗑 ลบเพื่อน</button>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  async function refreshAll() {
+    await Promise.all([renderIncomingRequests(), renderSentRequests(), renderFriendsList(), renderMyHelper(), renderFriendsHelpers(), renderGuildmatesHelpers()]);
+  }
+
+  async function doSearch() {
+    const q = document.getElementById("friendSearchInput").value.trim();
+    if (q.length < 2) {
+      document.getElementById("friendSearchResults").innerHTML =
+        '<div class="friend-empty">พิมพ์อย่างน้อย 2 ตัวอักษร</div>';
+      return;
+    }
+    document.getElementById("friendSearchResults").innerHTML = '<div class="friend-empty">กำลังค้นหา…</div>';
+    const results = await GameAPI.searchPlayers(q);
+    renderResults(results);
+  }
+
+  document.getElementById("friendSearchBtn").addEventListener("click", doSearch);
+  document.getElementById("friendSearchInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") doSearch();
+  });
+
+  // ---- ค้นหา: ส่งคำขอ / ตอบรับด่วนถ้าเขาส่งมาให้เราอยู่แล้ว ----
+  document.getElementById("friendSearchResults").addEventListener("click", async (e) => {
+    const sendBtn = e.target.closest(".send-request-btn");
+    const quickAcceptBtn = e.target.closest(".quick-accept-btn");
+    const btn = sendBtn || quickAcceptBtn;
+    if (!btn) return;
+    const row = btn.closest(".friend-row");
+    btn.disabled = true;
+
+    if (sendBtn) {
+      const publicId = row?.dataset.publicId;
+      if (!publicId) return;
+      const result = await GameAPI.sendFriendRequest(publicId);
+      if (result?.ok) {
+        row.querySelector(".friend-actions").innerHTML = statusPill("request_sent");
+        renderSentRequests();
+      } else {
+        alert(result?.error || "ส่งคำขอไม่สำเร็จ ลองใหม่อีกครั้ง");
+        btn.disabled = false;
+      }
+    } else if (quickAcceptBtn) {
+      const requestId = quickAcceptBtn.dataset.requestId;
+      const result = await GameAPI.acceptFriendRequest(requestId);
+      if (result?.ok) {
+        row.querySelector(".friend-actions").innerHTML = statusPill("friends");
+        refreshAll();
+      } else {
+        alert(result?.error || "ตอบรับไม่สำเร็จ ลองใหม่อีกครั้ง");
+        btn.disabled = false;
+      }
+    }
+  });
+
+  // ---- คำขอที่เข้ามา: ตอบรับ / ปฏิเสธ ----
+  document.getElementById("friendsIncomingList").addEventListener("click", async (e) => {
+    const acceptBtn = e.target.closest(".accept-btn");
+    const rejectBtn = e.target.closest(".reject-btn");
+    const btn = acceptBtn || rejectBtn;
+    if (!btn) return;
+    const row = btn.closest(".friend-row");
+    const requestId = row?.dataset.requestId;
+    if (!requestId) return;
+
+    if (rejectBtn && !(await uiConfirm("ปฏิเสธคำขอเป็นเพื่อนนี้?"))) return;
+
+    row.querySelectorAll("button").forEach((b) => (b.disabled = true));
+    const result = acceptBtn
+      ? await GameAPI.acceptFriendRequest(requestId)
+      : await GameAPI.rejectFriendRequest(requestId);
+
+    if (result?.ok) {
+      refreshAll();
+    } else {
+      alert(result?.error || "ทำรายการไม่สำเร็จ ลองใหม่อีกครั้ง");
+      row.querySelectorAll("button").forEach((b) => (b.disabled = false));
+    }
+  });
+
+  // ---- คำขอที่ส่งไป: ยกเลิก ----
+  document.getElementById("friendsSentList").addEventListener("click", async (e) => {
+    const btn = e.target.closest(".cancel-request-btn");
+    if (!btn) return;
+    const row = btn.closest(".friend-row");
+    const requestId = row?.dataset.requestId;
+    if (!requestId) return;
+    if (!(await uiConfirm("ยกเลิกคำขอเป็นเพื่อนที่ส่งไปนี้?"))) return;
+    btn.disabled = true;
+    const result = await GameAPI.cancelFriendRequest(requestId);
+    if (result?.ok) {
+      renderSentRequests();
+    } else {
+      alert(result?.error || "ยกเลิกไม่สำเร็จ ลองใหม่อีกครั้ง");
+      btn.disabled = false;
+    }
+  });
+
+  // ---- รายชื่อเพื่อน: ลบเพื่อน ----
+  document.getElementById("friendsList").addEventListener("click", async (e) => {
+    const btn = e.target.closest(".remove-friend-btn");
+    if (!btn) return;
+    const row = btn.closest(".friend-row");
+    const playerId = row?.dataset.playerId;
+    if (!playerId) return;
+    if (!(await uiConfirm("ลบเพื่อนคนนี้?"))) return;
+    btn.disabled = true;
+    const result = await GameAPI.removeFriend(playerId);
+    if (result?.ok) {
+      renderFriendsList();
+    } else {
+      alert(result?.error || "ลบเพื่อนไม่สำเร็จ ลองใหม่อีกครั้ง");
+      btn.disabled = false;
+    }
+  });
+
+  async function init() {
+    const loggedIn = window.GameAPI && GameAPI.isLoggedIn && GameAPI.isLoggedIn();
+    document.getElementById("friendsLoggedOutPanel").style.display = loggedIn ? "none" : "block";
+    document.getElementById("myHelperPanel").style.display = loggedIn ? "block" : "none";
+    document.getElementById("friendsHelpersPanel").style.display = loggedIn ? "block" : "none";
+    document.getElementById("guildmatesHelpersPanel").style.display = loggedIn ? "block" : "none";
+    document.getElementById("friendsIncomingPanel").style.display = loggedIn ? "block" : "none";
+    document.getElementById("friendsSearchPanel").style.display = loggedIn ? "block" : "none";
+    document.getElementById("friendsSentPanel").style.display = loggedIn ? "block" : "none";
+    document.getElementById("friendsListPanel").style.display = loggedIn ? "block" : "none";
+    if (!loggedIn) return;
+    syncMoneyFromServer();
+    await refreshAll();
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+</script>
+<script src="../js/core/nav-fab.js"></script>
+<script src="../js/core/mail-fab.js"></script>
+</body>
+</html>

@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <title>🛡️ กิลด์</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0c121b" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <script src="../js/core/pwa-register.js" defer></script>
+  <link rel="stylesheet" href="../css/game.css" />
+  <link rel="stylesheet" href="../css/skills.css" />
+  <link rel="stylesheet" href="../css/theme.css" />
+  <script src="../js/core/ui-popup.js"></script>
+  <style>
+    .guild-tabs{ display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; margin-bottom:12px; }
+    .guild-tabs button{ flex:0 0 auto; font-size:13px; padding:8px 12px; white-space:nowrap; }
+    .guild-tab-panel{ display:none; }
+    .guild-tab-panel.active{ display:block; }
+
+    .guild-card{
+      display:flex; gap:12px; align-items:flex-start; padding:12px; border-radius:12px;
+      background:rgba(255,255,255,.04); border:1px solid var(--border); margin-bottom:10px;
+    }
+    .guild-emblem{ font-size:34px; line-height:1; }
+    .guild-card-info{ flex:1; min-width:0; }
+    .guild-card-name{ font-weight:800; font-size:16px; }
+    .guild-card-tag{ color:var(--accent-2); font-size:12px; font-weight:700; margin-left:6px; }
+    .guild-card-meta{ color:var(--muted); font-size:12.5px; margin-top:3px; line-height:1.6; }
+    .guild-card-desc{ color:var(--muted); font-size:13px; margin-top:6px; white-space:pre-wrap; }
+    .guild-card-actions{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+
+    .row{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 6px; border-bottom:1px solid var(--border); font-size:14px; }
+    .row:last-child{ border-bottom:none; }
+    .row-name{ font-weight:700; }
+    .row-sub{ color:var(--muted); font-size:12px; margin-top:2px; }
+    .row-actions{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+    .row-actions button{ font-size:12.5px; padding:6px 10px; }
+    .empty-hint{ color:var(--muted); font-size:13px; padding:8px 4px; }
+
+    .role-pill{ font-size:11px; padding:2px 7px; border-radius:999px; font-weight:700; margin-left:6px; }
+    .role-leader{ background:rgba(250,204,21,.18); color:#facc15; }
+    .role-officer{ background:rgba(96,165,250,.18); color:#60a5fa; }
+    .role-member{ background:rgba(255,255,255,.08); color:var(--muted); }
+
+    .accept-btn{ background:linear-gradient(135deg,#1f7a3d,#124d26); border:1px solid rgba(74,222,128,.4); color:#d7ffe4; }
+    .accept-btn:hover{ background:linear-gradient(135deg,#249149,#155c2d); }
+    .danger-btn{ background:linear-gradient(135deg,#7a1c1c,#4d0f0f); border:1px solid rgba(239,68,68,.4); color:#ffd5d5; }
+    .danger-btn:hover{ background:linear-gradient(135deg,#9c2424,#601313); }
+
+    .hp-bar-outer{ width:100%; height:18px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid var(--border); overflow:hidden; }
+    .hp-bar-inner{ height:100%; background:linear-gradient(90deg,#e53e3e,#f4b942); transition:width .3s ease; }
+    .hp-label{ display:flex; justify-content:space-between; font-size:12.5px; color:var(--muted); margin-top:4px; }
+
+    .exp-bar-outer{ width:100%; height:14px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid var(--border); overflow:hidden; margin-top:6px; }
+    .exp-bar-inner{ height:100%; background:linear-gradient(90deg,#7bd6ff,#5c8bff); transition:width .3s ease; }
+    .level-badge{ display:inline-block; font-size:12px; font-weight:800; color:#facc15; background:rgba(250,204,21,.15); padding:2px 8px; border-radius:999px; margin-left:6px; }
+    .shop-item-lock{ color:#f4b942; font-size:11px; margin-bottom:6px; }
+
+    .shop-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    @media (min-width:420px){ .shop-grid{ grid-template-columns:1fr 1fr 1fr; } }
+    .shop-item{ padding:10px; border-radius:10px; background:rgba(255,255,255,.04); border:1px solid var(--border); text-align:center; }
+    .shop-item-name{ font-size:12.5px; font-weight:700; min-height:32px; }
+    .shop-item-cost{ color:var(--accent-2); font-size:13px; margin:4px 0; }
+    .shop-item-left{ color:var(--muted); font-size:11px; margin-bottom:6px; }
+    .shop-item button{ width:100%; font-size:12px; padding:6px; }
+
+    .chat-box{ height:320px; overflow-y:auto; border:1px solid var(--border); border-radius:10px; padding:8px; background:rgba(0,0,0,.15); margin-bottom:8px; display:flex; flex-direction:column; gap:6px; }
+    .chat-msg{ font-size:13.5px; line-height:1.4; }
+    .chat-msg .who{ font-weight:700; color:var(--accent-2); }
+    .chat-msg .when{ color:var(--muted); font-size:10.5px; margin-left:4px; }
+    .chat-input-row{ display:flex; gap:8px; }
+    .chat-input-row input{ flex:1; }
+
+    .form-field{ margin-bottom:10px; }
+    .form-field label{ display:block; font-size:12.5px; color:var(--muted); margin-bottom:4px; }
+    .emblem-picker{ display:flex; gap:6px; flex-wrap:wrap; }
+    .emblem-opt{ font-size:22px; padding:6px 9px; border-radius:8px; border:1px solid var(--border); background:rgba(255,255,255,.04); cursor:pointer; }
+    .emblem-opt.sel{ background:linear-gradient(135deg,var(--accent),#3f63d6); }
+    .join-mode-opt{ display:flex; align-items:center; gap:6px; font-size:13px; margin-bottom:4px; }
+
+    #guildLoggedOutMsg{ color:var(--muted); font-size:14px; }
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <h1>🛡️ กิลด์</h1>
+  <div class="right-group">
+    <div id="moneyWindow">💰 0</div>
+  </div>
+</header>
+
+<section class="panel" id="guildLoggedOutPanel" style="display:none">
+  <p id="guildLoggedOutMsg">ต้องเข้าสู่ระบบก่อนถึงจะใช้ระบบกิลด์ได้</p>
+</section>
+
+<div id="guildLoading" class="panel"><p class="empty-hint">กำลังโหลด…</p></div>
+
+<!-- ============================= ไม่มีกิลด์ ============================= -->
+<div id="guildNoneView" style="display:none">
+  <section class="panel" id="myInvitesPanel" style="display:none">
+    <h3>📨 คำเชิญเข้ากิลด์</h3>
+    <div id="myInvitesList"></div>
+  </section>
+
+  <section class="panel" id="myAppsPanel" style="display:none">
+    <h3>📝 คำขอที่ส่งไป</h3>
+    <div id="myAppsList"></div>
+  </section>
+
+  <section class="panel">
+    <h3>🔍 ค้นหา / จัดอันดับกิลด์</h3>
+    <div class="searchbar">
+      <input id="guildSearchInput" type="text" placeholder="ค้นหาชื่อหรือแท็กกิลด์..." />
+      <button id="guildSearchBtn">ค้นหา</button>
+    </div>
+    <p class="empty-hint" id="guildListHint">แสดงกิลด์อันดับต้นๆ ตามยอดบริจาครวม</p>
+    <div id="guildListMount"></div>
+  </section>
+
+  <section class="panel">
+    <h3>➕ สร้างกิลด์ใหม่</h3>
+    <p class="empty-hint">ค่าใช้จ่ายในการสร้าง: <b id="createCostLabel">-</b> เงิน</p>
+    <div class="form-field">
+      <label>ชื่อกิลด์</label>
+      <input id="createNameInput" type="text" maxlength="24" placeholder="เช่น เงาราตรี" />
+    </div>
+    <div class="form-field">
+      <label>แท็ก (2-5 ตัวอักษร)</label>
+      <input id="createTagInput" type="text" maxlength="5" placeholder="เช่น NIGHT" style="text-transform:uppercase" />
+    </div>
+    <div class="form-field">
+      <label>คำอธิบาย (ไม่บังคับ)</label>
+      <input id="createDescInput" type="text" maxlength="200" placeholder="บอกเล่ากิลด์ของคุณสั้นๆ" />
+    </div>
+    <div class="form-field">
+      <label>สัญลักษณ์กิลด์</label>
+      <div class="emblem-picker" id="emblemPicker"></div>
+    </div>
+    <div class="form-field">
+      <label>รูปแบบการเข้าร่วม</label>
+      <div id="createJoinModeOpts"></div>
+    </div>
+    <button id="createGuildBtn" style="width:100%">สร้างกิลด์</button>
+  </section>
+</div>
+
+<!-- ============================= มีกิลด์แล้ว ============================= -->
+<div id="guildMainView" style="display:none">
+  <div class="guild-tabs">
+    <button class="mode-button guild-tab-btn active" data-tab="overview">ภาพรวม</button>
+    <button class="mode-button guild-tab-btn" data-tab="members">สมาชิก</button>
+    <button class="mode-button guild-tab-btn" data-tab="requests" id="tabRequestsBtn" style="display:none">คำร้อง</button>
+    <button class="mode-button guild-tab-btn" data-tab="chat">แชท</button>
+    <button class="mode-button guild-tab-btn" data-tab="shop">ร้านค้า</button>
+    <button class="mode-button guild-tab-btn" data-tab="boss">บอส</button>
+    <button class="mode-button guild-tab-btn" data-tab="ranking">อันดับ</button>
+  </div>
+
+  <!-- ---- ภาพรวม ---- -->
+  <div class="guild-tab-panel active" data-panel="overview">
+    <section class="panel">
+      <div id="myGuildCardMount"></div>
+      <div id="guildExpMount"></div>
+    </section>
+    <section class="panel" id="expandCapacityPanel" style="display:none">
+      <h3>📈 ขยายจำนวนสมาชิกสูงสุด</h3>
+      <p class="empty-hint">กิลด์ถึงเลเวลสูงสุดของโบนัสจำนวนสมาชิกแล้ว (35 คน) ซื้อขยายเพิ่มอีก <b id="expandBonusLabel">5</b> คน (รวมสูงสุด 40 คน) โดยใช้เงินจากคลังกิลด์ <b id="expandCostLabel">-</b></p>
+      <button id="expandCapacityBtn" style="width:100%">ขยายจำนวนสมาชิก</button>
+    </section>
+    <section class="panel">
+      <h3>💰 บริจาคเข้ากิลด์</h3>
+      <p class="empty-hint">ทุก 100 เงิน = 1 แต้มบริจาค (ใช้ซื้อของในร้านค้ากิลด์ได้) บริจาคได้สูงสุด <span id="donationLimitLabel">10</span> ครั้ง/วัน</p>
+      <div class="searchbar">
+        <input id="donateAmountInput" type="number" min="100" step="100" placeholder="จำนวนเงิน" />
+        <button id="donateBtn">บริจาค</button>
+      </div>
+      <p class="empty-hint">แต้มบริจาคของฉัน: <b id="myContribBalance">0</b> (สะสมทั้งหมด <b id="myContribLifetime">0</b>)</p>
+    </section>
+    <section class="panel" id="leaderSettingsPanel" style="display:none">
+      <h3>⚙️ ตั้งค่ากิลด์ (หัวหน้าเท่านั้น)</h3>
+      <div class="form-field">
+        <label>คำอธิบาย</label>
+        <input id="editDescInput" type="text" maxlength="200" />
+      </div>
+      <div class="form-field">
+        <label>รูปแบบการเข้าร่วม</label>
+        <div id="editJoinModeOpts"></div>
+      </div>
+      <button id="saveSettingsBtn">บันทึกการตั้งค่า</button>
+    </section>
+    <section class="panel">
+      <button id="leaveGuildBtn" class="danger-btn" style="width:100%">🚪 ออกจากกิลด์</button>
+    </section>
+  </div>
+
+  <!-- ---- สมาชิก ---- -->
+  <div class="guild-tab-panel" data-panel="members">
+    <section class="panel">
+      <h3>👥 สมาชิกกิลด์ (<span id="memberCountLabel">0</span>/<span id="memberMaxLabel">20</span>)</h3>
+      <div id="membersListMount"></div>
+    </section>
+    <section class="panel" id="invitePanel" style="display:none">
+      <h3>✉️ เชิญเพื่อนเข้ากิลด์</h3>
+      <div class="searchbar">
+        <input id="inviteIdInput" type="text" placeholder="ใส่ ID ผู้เล่น (15 ตัวอักษร)" />
+        <button id="inviteBtn">ส่งคำเชิญ</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ---- คำร้อง (หัวหน้า/รองหัวหน้า) ---- -->
+  <div class="guild-tab-panel" data-panel="requests">
+    <section class="panel">
+      <h3>📝 คำขอเข้าร่วม</h3>
+      <div id="incomingRequestsMount"></div>
+    </section>
+  </div>
+
+  <!-- ---- แชท ---- -->
+  <div class="guild-tab-panel" data-panel="chat">
+    <section class="panel">
+      <h3>💬 แชทกิลด์</h3>
+      <div class="chat-box" id="chatBox"></div>
+      <div class="chat-input-row">
+        <input id="chatInput" type="text" maxlength="300" placeholder="พิมพ์ข้อความ..." />
+        <button id="chatSendBtn">ส่ง</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ---- ร้านค้ากิลด์ ---- -->
+  <div class="guild-tab-panel" data-panel="shop">
+    <section class="panel">
+      <h3>🏪 ร้านค้ากิลด์</h3>
+      <p class="empty-hint">แต้มบริจาคของฉัน: <b id="shopMyBalance">0</b> · กิลด์เลเวล <b id="shopGuildLevel">1</b> · โควตารีเซ็ตทุกสัปดาห์ (<span id="shopCycleEnds">-</span>)</p>
+      <div class="shop-grid" id="shopGrid"></div>
+    </section>
+  </div>
+
+  <!-- ---- บอสกิลด์ ---- -->
+  <div class="guild-tab-panel" data-panel="boss">
+    <section class="panel">
+      <h3 id="bossNameLabel">⚔️ บอสกิลด์</h3>
+      <div class="hp-bar-outer"><div class="hp-bar-inner" id="bossHpBar" style="width:100%"></div></div>
+      <div class="hp-label"><span id="bossHpText">0 / 0</span><span id="bossDefeatedLabel"></span></div>
+      <p class="empty-hint">รอบนี้สิ้นสุด: <span id="bossCycleEnds">-</span></p>
+      <p class="empty-hint">ดาเมจของฉันรอบนี้: <b id="myBossDamage">0</b> · โจมตีได้อีก <b id="bossAttacksLeft">0</b>/<span id="bossAttacksMax">3</span> ครั้งวันนี้</p>
+      <button id="bossAttackBtn" style="width:100%">⚔️ โจมตี</button>
+    </section>
+    <section class="panel">
+      <h3>🏆 ดาเมจสูงสุดในกิลด์ (รอบนี้)</h3>
+      <div id="bossTopMount"></div>
+    </section>
+  </div>
+
+  <!-- ---- อันดับกิลด์ ---- -->
+  <div class="guild-tab-panel" data-panel="ranking">
+    <section class="panel">
+      <h3>🏆 จัดอันดับกิลด์ (ยอดบริจาครวม)</h3>
+      <div id="rankingMount"></div>
+    </section>
+  </div>
+</div>
+
+<script src="../js/core/api.js"></script>
+<script src="../js/core/auth-ui.js"></script>
+<script src="../js/core/money.js"></script>
+<script>
+  const GUILD_EMBLEMS = ['🛡️','⚔️','🐉','🔥','❄️','⭐','🌙','👑','💀','🦅','🐺','⚡'];
+  const GUILD_CREATE_COST = 20000;
+  const GUILD_CAPACITY_EXPANSION_COST = 300000;
+  let myGuildState = null; // last result of GameAPI.guildMine()
+  let chatPollTimer = null;
+  let lastChatId = 0;
+  let selectedEmblem = GUILD_EMBLEMS[0];
+  let selectedJoinMode = 'apply';
+  let editSelectedJoinMode = 'apply';
+
+  function escapeHtml(s) {
+    const d = document.createElement("div");
+    d.textContent = s == null ? "" : String(s);
+    return d.innerHTML;
+  }
+  function fmtNum(n) { return Number(n || 0).toLocaleString(); }
+  function fmtDate(iso) {
+    try { return new Date(iso).toLocaleString("th-TH", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" }); }
+    catch (e) { return String(iso); }
+  }
+  function roleLabel(role) {
+    if (role === 'leader') return '<span class="role-pill role-leader">หัวหน้า</span>';
+    if (role === 'officer') return '<span class="role-pill role-officer">รองหัวหน้า</span>';
+    return '<span class="role-pill role-member">สมาชิก</span>';
+  }
+  function joinModeLabel(mode) {
+    if (mode === 'open') return 'เข้าร่วมได้ทันที';
+    if (mode === 'invite') return 'ต้องรับเชิญเท่านั้น';
+    return 'ต้องส่งคำขอ';
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll(".guild-tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+    document.querySelectorAll(".guild-tab-panel").forEach((p) => p.classList.toggle("active", p.dataset.panel === tab));
+    if (chatPollTimer) { clearInterval(chatPollTimer); chatPollTimer = null; }
+    if (tab === "members") renderMembers();
+    else if (tab === "requests") renderIncomingRequests();
+    else if (tab === "chat") { renderChat(true); chatPollTimer = setInterval(() => renderChat(false), 4000); }
+    else if (tab === "shop") renderShop();
+    else if (tab === "boss") renderBoss();
+    else if (tab === "ranking") renderRanking();
+  }
+
+  // ================= ไม่มีกิลด์: ค้นหา/สร้าง/คำเชิญ/คำขอที่ส่งไป =================
+  function buildEmblemPicker(mountId, onPick, initial) {
+    const mount = document.getElementById(mountId);
+    mount.innerHTML = "";
+    GUILD_EMBLEMS.forEach((e) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "emblem-opt" + (e === initial ? " sel" : "");
+      btn.textContent = e;
+      btn.addEventListener("click", () => {
+        mount.querySelectorAll(".emblem-opt").forEach((b) => b.classList.remove("sel"));
+        btn.classList.add("sel");
+        onPick(e);
+      });
+      mount.appendChild(btn);
+    });
+  }
+  function buildJoinModeRadios(mountId, name, onPick, initial) {
+    const mount = document.getElementById(mountId);
+    const opts = [["open","เข้าร่วมได้เลยทันที"],["apply","ต้องส่งคำขอ ให้หัวหน้า/รองหัวหน้ากดรับ"],["invite","หัวหน้าต้องเชิญเท่านั้น"]];
+    mount.innerHTML = opts.map(([val,label]) => `
+      <label class="join-mode-opt"><input type="radio" name="${name}" value="${val}" ${val===initial?"checked":""}/> ${label}</label>
+    `).join("");
+    mount.querySelectorAll(`input[name="${name}"]`).forEach((r) => r.addEventListener("change", () => onPick(r.value)));
+  }
+
+  async function renderGuildListAndInvitesApps() {
+    document.getElementById("createCostLabel").textContent = fmtNum(GUILD_CREATE_COST);
+    buildEmblemPicker("emblemPicker", (e) => selectedEmblem = e, selectedEmblem);
+    buildJoinModeRadios("createJoinModeOpts", "createJoinMode", (v) => selectedJoinMode = v, selectedJoinMode);
+
+    const [invites, apps] = await Promise.all([GameAPI.guildMyInvites(), GameAPI.guildMyRequests()]);
+
+    const invPanel = document.getElementById("myInvitesPanel");
+    const invList = document.getElementById("myInvitesList");
+    if (invites.length === 0) { invPanel.style.display = "none"; }
+    else {
+      invPanel.style.display = "";
+      invList.innerHTML = invites.map((i) => `
+        <div class="row">
+          <div>
+            <div class="row-name">${i.emblem || "🛡️"} ${escapeHtml(i.guildName)} <span class="guild-card-tag">[${escapeHtml(i.guildTag)}]</span></div>
+            <div class="row-sub">เชิญโดย ${escapeHtml(i.inviterUsername)} · ${fmtDate(i.createdAt)}</div>
+          </div>
+          <div class="row-actions">
+            <button class="accept-btn" onclick="acceptInvite('${i.inviteId}')">รับคำเชิญ</button>
+            <button class="danger-btn" onclick="rejectInvite('${i.inviteId}')">ปฏิเสธ</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    const appPanel = document.getElementById("myAppsPanel");
+    const appList = document.getElementById("myAppsList");
+    if (apps.length === 0) { appPanel.style.display = "none"; }
+    else {
+      appPanel.style.display = "";
+      appList.innerHTML = apps.map((a) => `
+        <div class="row">
+          <div>
+            <div class="row-name">${escapeHtml(a.guildName)} <span class="guild-card-tag">[${escapeHtml(a.guildTag)}]</span></div>
+            <div class="row-sub">ส่งเมื่อ ${fmtDate(a.createdAt)} · รอการตอบรับ</div>
+          </div>
+          <div class="row-actions"><button class="danger-btn" onclick="cancelMyRequest('${a.requestId}')">ยกเลิก</button></div>
+        </div>
+      `).join("");
+    }
+
+    await searchGuilds("");
+  }
+
+  async function searchGuilds(q) {
+    const mount = document.getElementById("guildListMount");
+    mount.innerHTML = '<p class="empty-hint">กำลังโหลด…</p>';
+    const list = q ? await GameAPI.guildList(q) : await GameAPI.guildList();
+    document.getElementById("guildListHint").textContent = q
+      ? `ผลการค้นหา "${q}"` : "แสดงกิลด์อันดับต้นๆ ตามยอดบริจาครวม";
+    if (list.length === 0) { mount.innerHTML = '<p class="empty-hint">ไม่พบกิลด์</p>'; return; }
+    mount.innerHTML = list.map((g) => {
+      let actionBtn = "";
+      if (g.full) actionBtn = `<button disabled>เต็มแล้ว</button>`;
+      else if (g.joinMode === 'open') actionBtn = `<button class="accept-btn" onclick="joinGuildDirect('${g.id}')">เข้าร่วม</button>`;
+      else if (g.joinMode === 'apply') actionBtn = `<button onclick="applyToGuild('${g.id}')">ส่งคำขอ</button>`;
+      else actionBtn = `<span class="empty-hint">ต้องรอรับเชิญ</span>`;
+      return `
+        <div class="guild-card">
+          <div class="guild-emblem">${g.emblem}</div>
+          <div class="guild-card-info">
+            <div class="guild-card-name">${escapeHtml(g.name)} <span class="guild-card-tag">[${escapeHtml(g.tag)}]</span></div>
+            <div class="guild-card-meta">หัวหน้า: ${escapeHtml(g.leaderUsername)} · Lv.${g.level} · สมาชิก ${g.memberCount}/${g.maxMembers} · แต้มรวม ${fmtNum(g.totalContribution)} · ${joinModeLabel(g.joinMode)}</div>
+            ${g.description ? `<div class="guild-card-desc">${escapeHtml(g.description)}</div>` : ""}
+            <div class="guild-card-actions">${actionBtn}</div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  async function joinGuildDirect(id) {
+    const r = await GameAPI.guildJoin(id);
+    if (r?.error) return alert(r.error);
+    await loadGuildState();
+  }
+  async function applyToGuild(id) {
+    const r = await GameAPI.guildApply(id, "");
+    if (r?.error) return alert(r.error);
+    alert("ส่งคำขอเรียบร้อย รอการตอบรับจากหัวหน้ากิลด์");
+    await renderGuildListAndInvitesApps();
+  }
+  async function cancelMyRequest(id) {
+    const r = await GameAPI.guildCancelMyRequest(id);
+    if (r?.error) return alert(r.error);
+    await renderGuildListAndInvitesApps();
+  }
+  async function acceptInvite(id) {
+    const r = await GameAPI.guildAcceptInvite(id);
+    if (r?.error) return alert(r.error);
+    await loadGuildState();
+  }
+  async function rejectInvite(id) {
+    const r = await GameAPI.guildRejectInvite(id);
+    if (r?.error) return alert(r.error);
+    await renderGuildListAndInvitesApps();
+  }
+
+  document.getElementById("guildSearchBtn").addEventListener("click", () => {
+    searchGuilds(document.getElementById("guildSearchInput").value.trim());
+  });
+  document.getElementById("createGuildBtn").addEventListener("click", async () => {
+    const name = document.getElementById("createNameInput").value.trim();
+    const tag = document.getElementById("createTagInput").value.trim().toUpperCase();
+    const description = document.getElementById("createDescInput").value.trim();
+    const r = await GameAPI.guildCreate({ name, tag, description, emblem: selectedEmblem, joinMode: selectedJoinMode });
+    if (r?.error) return alert(r.error);
+    await loadGuildState();
+  });
+
+  // ================= มีกิลด์แล้ว: ภาพรวม =================
+  function renderOverview() {
+    const g = myGuildState.guild;
+    const mount = document.getElementById("myGuildCardMount");
+    mount.innerHTML = `
+      <div class="guild-card">
+        <div class="guild-emblem">${g.emblem}</div>
+        <div class="guild-card-info">
+          <div class="guild-card-name">${escapeHtml(g.name)} <span class="guild-card-tag">[${escapeHtml(g.tag)}]</span> ${roleLabel(myGuildState.myRole)} <span class="level-badge">Lv.${g.level}</span></div>
+          <div class="guild-card-meta">สมาชิก ${myGuildState.memberCount}/${g.maxMembers} · คลังกิลด์ ${fmtNum(g.treasuryMoney)} · แต้มรวม ${fmtNum(g.totalContribution)} · ${joinModeLabel(g.joinMode)}</div>
+          ${g.description ? `<div class="guild-card-desc">${escapeHtml(g.description)}</div>` : ""}
+        </div>
+      </div>
+    `;
+
+    const expMount = document.getElementById("guildExpMount");
+    if (g.expForNextLevel === null) {
+      expMount.innerHTML = `<p class="empty-hint">เลเวลสูงสุดแล้ว (Lv.${g.maxLevel}) · EXP สะสมทั้งหมด ${fmtNum(g.exp)} (เก็บต่อได้เรื่อยๆ เผื่ออนาคตปลดเพดานเพิ่ม)</p>`;
+    } else {
+      const pct = Math.max(0, Math.min(100, (g.expIntoLevel / g.expForNextLevel) * 100));
+      expMount.innerHTML = `
+        <div class="exp-bar-outer"><div class="exp-bar-inner" style="width:${pct}%"></div></div>
+        <p class="empty-hint">EXP เลเวลนี้ ${fmtNum(g.expIntoLevel)}/${fmtNum(g.expForNextLevel)} · ได้จากการบริจาคและตีบอสกิลด์</p>
+      `;
+    }
+
+    document.getElementById("myContribBalance").textContent = fmtNum(myGuildState.myContributionBalance);
+    document.getElementById("myContribLifetime").textContent = fmtNum(myGuildState.myContributionLifetime);
+
+    const expandPanel = document.getElementById("expandCapacityPanel");
+    if (myGuildState.myRole === 'leader' && g.capacityExpansionAvailable) {
+      expandPanel.style.display = "";
+      document.getElementById("expandCostLabel").textContent = fmtNum(GUILD_CAPACITY_EXPANSION_COST);
+    } else {
+      expandPanel.style.display = "none";
+    }
+
+    const leaderPanel = document.getElementById("leaderSettingsPanel");
+    if (myGuildState.myRole === 'leader') {
+      leaderPanel.style.display = "";
+      document.getElementById("editDescInput").value = g.description || "";
+      editSelectedJoinMode = g.joinMode;
+      buildJoinModeRadios("editJoinModeOpts", "editJoinMode", (v) => editSelectedJoinMode = v, g.joinMode);
+    } else {
+      leaderPanel.style.display = "none";
+    }
+
+    document.getElementById("leaveGuildBtn").textContent = myGuildState.myRole === 'leader' && myGuildState.memberCount > 1
+      ? "🚪 ออกจากกิลด์ (ต้องโอนตำแหน่งก่อน)"
+      : myGuildState.myRole === 'leader' ? "💥 ยุบกิลด์ (คุณเป็นสมาชิกคนเดียว)" : "🚪 ออกจากกิลด์";
+
+    document.getElementById("tabRequestsBtn").style.display =
+      (myGuildState.myRole === 'leader' || myGuildState.myRole === 'officer') ? "" : "none";
+    document.getElementById("invitePanel").style.display =
+      (myGuildState.myRole === 'leader' || myGuildState.myRole === 'officer') ? "" : "none";
+  }
+
+  document.getElementById("expandCapacityBtn").addEventListener("click", async () => {
+    if (!confirm(`ยืนยันใช้เงินคลังกิลด์ ${fmtNum(GUILD_CAPACITY_EXPANSION_COST)} เพื่อขยายจำนวนสมาชิกสูงสุด?`)) return;
+    const r = await GameAPI.guildExpandCapacity();
+    if (r?.error) return alert(r.error);
+    await loadGuildState();
+    alert("ขยายจำนวนสมาชิกสำเร็จ!");
+  });
+
+  document.getElementById("donateBtn").addEventListener("click", async () => {
+    const amount = parseInt(document.getElementById("donateAmountInput").value, 10);
+    if (!Number.isFinite(amount) || amount < 100) return alert("กรุณาใส่จำนวนเงินอย่างน้อย 100");
+    const r = await GameAPI.guildDonate(amount);
+    if (r?.error) return alert(r.error);
+    document.getElementById("donateAmountInput").value = "";
+    await syncMoneyFromServer();
+    await loadGuildState();
+    alert(`บริจาคสำเร็จ ได้รับ ${r.contribution} แต้มบริจาค` + (r.leveledUp ? `\n🎉 กิลด์เลื่อนเป็นเลเวล ${r.guildLevel}!` : ""));
+  });
+
+  document.getElementById("saveSettingsBtn").addEventListener("click", async () => {
+    const description = document.getElementById("editDescInput").value.trim();
+    const r = await GameAPI.guildUpdateSettings({ description, joinMode: editSelectedJoinMode });
+    if (r?.error) return alert(r.error);
+    myGuildState.guild = r.guild;
+    renderOverview();
+    alert("บันทึกแล้ว");
+  });
+
+  document.getElementById("leaveGuildBtn").addEventListener("click", async () => {
+    if (!confirm("ยืนยันออกจากกิลด์?")) return;
+    const r = await GameAPI.guildLeave();
+    if (r?.error) return alert(r.error);
+    await loadGuildState();
+  });
+
+  // ================= สมาชิก =================
+  async function renderMembers() {
+    const mount = document.getElementById("membersListMount");
+    mount.innerHTML = '<p class="empty-hint">กำลังโหลด…</p>';
+    const members = await GameAPI.guildMembers();
+    document.getElementById("memberCountLabel").textContent = members.length;
+    document.getElementById("memberMaxLabel").textContent = myGuildState.guild.maxMembers;
+
+    const myRole = myGuildState.myRole;
+    mount.innerHTML = members.map((m) => {
+      let actions = "";
+      const isMe = m.playerId === myGuildState.myPlayerId;
+      if (!isMe) {
+        if (myRole === 'leader') {
+          if (m.role === 'member') actions += `<button onclick="promoteMember('${m.playerId}')">เลื่อนเป็นรองหัวหน้า</button>`;
+          if (m.role === 'officer') actions += `<button onclick="demoteMember('${m.playerId}')">ปลดจากรองหัวหน้า</button>`;
+          actions += `<button onclick="transferLeadership('${m.playerId}')">โอนหัวหน้า</button>`;
+        }
+        if (myRole === 'leader' || (myRole === 'officer' && m.role === 'member')) {
+          actions += `<button class="danger-btn" onclick="kickMember('${m.playerId}')">เตะออก</button>`;
+        }
+      }
+      return `
+        <div class="row">
+          <div>
+            <div class="row-name">${escapeHtml(m.username)} ${roleLabel(m.role)}</div>
+            <div class="row-sub">แต้มบริจาค ${fmtNum(m.contributionLifetime)} · ดาเมจบอสสัปดาห์นี้ ${fmtNum(m.bossDamageCycle)} · เข้าร่วม ${fmtDate(m.joinedAt)}</div>
+          </div>
+          <div class="row-actions">${actions}</div>
+        </div>
+      `;
+    }).join("") || '<p class="empty-hint">ไม่มีสมาชิก</p>';
+  }
+  async function promoteMember(id) { const r = await GameAPI.guildPromote(id); if (r?.error) return alert(r.error); renderMembers(); }
+  async function demoteMember(id) { const r = await GameAPI.guildDemote(id); if (r?.error) return alert(r.error); renderMembers(); }
+  async function kickMember(id) { if (!confirm("ยืนยันเตะสมาชิกคนนี้ออก?")) return; const r = await GameAPI.guildKick(id); if (r?.error) return alert(r.error); renderMembers(); }
+  async function transferLeadership(id) {
+    if (!confirm("ยืนยันโอนตำแหน่งหัวหน้ากิลด์ให้คนนี้? คุณจะกลายเป็นรองหัวหน้าแทน")) return;
+    const r = await GameAPI.guildTransferLeadership(id);
+    if (r?.error) return alert(r.error);
+    await loadGuildState();
+    switchTab("members");
+  }
+
+  document.getElementById("inviteBtn").addEventListener("click", async () => {
+    const publicId = document.getElementById("inviteIdInput").value.trim();
+    if (!publicId) return;
+    const r = await GameAPI.guildInvite(publicId);
+    if (r?.error) return alert(r.error);
+    document.getElementById("inviteIdInput").value = "";
+    alert(`ส่งคำเชิญให้ ${r.username} แล้ว`);
+  });
+
+  // ================= คำร้อง =================
+  async function renderIncomingRequests() {
+    const mount = document.getElementById("incomingRequestsMount");
+    mount.innerHTML = '<p class="empty-hint">กำลังโหลด…</p>';
+    const list = await GameAPI.guildIncomingRequests();
+    if (list.length === 0) { mount.innerHTML = '<p class="empty-hint">ไม่มีคำขอเข้าร่วมค้างอยู่</p>'; return; }
+    mount.innerHTML = list.map((r) => `
+      <div class="row">
+        <div>
+          <div class="row-name">${escapeHtml(r.username)}</div>
+          <div class="row-sub">${r.message ? escapeHtml(r.message) + " · " : ""}ส่งเมื่อ ${fmtDate(r.createdAt)}</div>
+        </div>
+        <div class="row-actions">
+          <button class="accept-btn" onclick="acceptJoinRequest('${r.requestId}')">รับเข้ากิลด์</button>
+          <button class="danger-btn" onclick="rejectJoinRequest('${r.requestId}')">ปฏิเสธ</button>
+        </div>
+      </div>
+    `).join("");
+  }
+  async function acceptJoinRequest(id) { const r = await GameAPI.guildAcceptRequest(id); if (r?.error) return alert(r.error); renderIncomingRequests(); loadGuildState(); }
+  async function rejectJoinRequest(id) { const r = await GameAPI.guildRejectRequest(id); if (r?.error) return alert(r.error); renderIncomingRequests(); }
+
+  // ================= แชท =================
+  async function renderChat(scrollToBottom) {
+    const box = document.getElementById("chatBox");
+    const msgs = await GameAPI.guildChatFetch(lastChatId > 0 ? lastChatId : undefined);
+    if (msgs.length === 0 && lastChatId > 0) return;
+    if (lastChatId === 0) box.innerHTML = "";
+    msgs.forEach((m) => {
+      lastChatId = Math.max(lastChatId, m.id);
+      const div = document.createElement("div");
+      div.className = "chat-msg";
+      div.innerHTML = `<span class="who">${escapeHtml(m.username)}:</span> ${escapeHtml(m.message)} <span class="when">${fmtDate(m.createdAt)}</span>`;
+      box.appendChild(div);
+    });
+    if (scrollToBottom || msgs.length > 0) box.scrollTop = box.scrollHeight;
+  }
+  async function sendChat() {
+    const input = document.getElementById("chatInput");
+    const message = input.value.trim();
+    if (!message) return;
+    const r = await GameAPI.guildChatSend(message);
+    if (r?.error) return alert(r.error);
+    input.value = "";
+    if (r.message) {
+      lastChatId = Math.max(lastChatId, r.message.id);
+      const box = document.getElementById("chatBox");
+      const div = document.createElement("div");
+      div.className = "chat-msg";
+      div.innerHTML = `<span class="who">${escapeHtml(r.message.username)}:</span> ${escapeHtml(r.message.message)} <span class="when">${fmtDate(r.message.createdAt)}</span>`;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+  }
+  document.getElementById("chatSendBtn").addEventListener("click", sendChat);
+  document.getElementById("chatInput").addEventListener("keydown", (e) => { if (e.key === "Enter") sendChat(); });
+
+  // ================= ร้านค้ากิลด์ =================
+  async function renderShop() {
+    const grid = document.getElementById("shopGrid");
+    grid.innerHTML = '<p class="empty-hint">กำลังโหลด…</p>';
+    const data = await GameAPI.guildShopStatus();
+    if (!data) { grid.innerHTML = '<p class="empty-hint">โหลดร้านค้าไม่สำเร็จ</p>'; return; }
+    document.getElementById("shopMyBalance").textContent = fmtNum(data.myBalance);
+    document.getElementById("shopGuildLevel").textContent = data.guildLevel;
+    document.getElementById("shopCycleEnds").textContent = fmtDate(data.cycleEndsAt);
+    grid.innerHTML = data.catalog.map((item) => `
+      <div class="shop-item">
+        <div class="shop-item-name">${escapeHtml(item.name)}</div>
+        <div class="shop-item-cost">💠 ${item.cost}</div>
+        ${item.locked
+          ? `<div class="shop-item-lock">🔒 ต้องเลเวลกิลด์ ${item.minLevel}</div>`
+          : `<div class="shop-item-left">เหลือ ${item.remaining}/${item.limit} สัปดาห์นี้</div>`}
+        <button ${item.locked || item.remaining <= 0 || data.myBalance < item.cost ? "disabled" : ""} onclick="buyShopItem('${item.key}')">แลก</button>
+      </div>
+    `).join("");
+  }
+  async function buyShopItem(key) {
+    const r = await GameAPI.guildShopBuy(key);
+    if (r?.error) return alert(r.error);
+    await syncMoneyFromServer();
+    await loadGuildState();
+    await renderShop();
+    alert("แลกไอเทมสำเร็จ!");
+  }
+
+  // ================= บอสกิลด์ =================
+  async function renderBoss() {
+    const data = await GameAPI.guildBossStatus();
+    if (!data) return;
+    document.getElementById("bossNameLabel").textContent = `⚔️ ${data.bossName}`;
+    const pct = data.maxHp > 0 ? Math.max(0, Math.min(100, (data.currentHp / data.maxHp) * 100)) : 0;
+    document.getElementById("bossHpBar").style.width = pct + "%";
+    document.getElementById("bossHpText").textContent = `${fmtNum(data.currentHp)} / ${fmtNum(data.maxHp)}`;
+    document.getElementById("bossDefeatedLabel").textContent = data.defeated ? "💀 ถูกปราบแล้ว" : "";
+    document.getElementById("bossCycleEnds").textContent = fmtDate(data.cycleEndsAt);
+    document.getElementById("myBossDamage").textContent = fmtNum(data.myDamageCycle);
+    document.getElementById("bossAttacksLeft").textContent = data.attacksLeftToday;
+    document.getElementById("bossAttacksMax").textContent = data.attacksLeftToday + data.attacksToday;
+
+    const btn = document.getElementById("bossAttackBtn");
+    btn.disabled = data.defeated || data.attacksLeftToday <= 0;
+    btn.textContent = data.defeated ? "บอสถูกปราบแล้ว รอสัปดาห์หน้า" : data.attacksLeftToday <= 0 ? "โจมตีครบวันนี้แล้ว" : "⚔️ โจมตี";
+
+    const topMount = document.getElementById("bossTopMount");
+    topMount.innerHTML = data.topDamage.length === 0
+      ? '<p class="empty-hint">ยังไม่มีใครโจมตีบอสในรอบนี้</p>'
+      : data.topDamage.map((t, i) => `
+        <div class="row"><div class="row-name">#${i+1} ${escapeHtml(t.username)}</div><div>${fmtNum(t.damage)}</div></div>
+      `).join("");
+  }
+  document.getElementById("bossAttackBtn").addEventListener("click", async () => {
+    const r = await GameAPI.guildBossAttack();
+    if (r?.error) return alert(r.error);
+    alert(`สร้างดาเมจ ${fmtNum(r.damage)}!` + (r.defeated ? " 🎉 บอสถูกปราบแล้ว!" : "") + (r.leveledUp ? `\n📈 กิลด์เลื่อนเป็นเลเวล ${r.guildLevel}!` : ""));
+    await renderBoss();
+  });
+
+  // ================= อันดับกิลด์ =================
+  async function renderRanking() {
+    const mount = document.getElementById("rankingMount");
+    mount.innerHTML = '<p class="empty-hint">กำลังโหลด…</p>';
+    const list = await GameAPI.guildRanking();
+    mount.innerHTML = list.map((g) => `
+      <div class="row">
+        <div>
+          <div class="row-name">#${g.rank} ${g.emblem} ${escapeHtml(g.name)} <span class="guild-card-tag">[${escapeHtml(g.tag)}]</span> <span class="level-badge">Lv.${g.level}</span></div>
+          <div class="row-sub">หัวหน้า ${escapeHtml(g.leaderUsername)} · สมาชิก ${g.memberCount}/${g.maxMembers}</div>
+        </div>
+        <div>${fmtNum(g.totalContribution)}</div>
+      </div>
+    `).join("") || '<p class="empty-hint">ยังไม่มีกิลด์</p>';
+  }
+
+  // ================= โหลดสถานะหลัก =================
+  async function loadGuildState() {
+    if (!GameAPI.isLoggedIn()) {
+      document.getElementById("guildLoading").style.display = "none";
+      document.getElementById("guildLoggedOutPanel").style.display = "";
+      return;
+    }
+    document.getElementById("guildLoggedOutPanel").style.display = "none";
+    document.getElementById("guildLoading").style.display = "";
+    document.getElementById("guildNoneView").style.display = "none";
+    document.getElementById("guildMainView").style.display = "none";
+    if (chatPollTimer) { clearInterval(chatPollTimer); chatPollTimer = null; }
+
+    const data = await GameAPI.guildMine();
+    document.getElementById("guildLoading").style.display = "none";
+
+    if (!data || !data.guild) {
+      myGuildState = null;
+      document.getElementById("guildNoneView").style.display = "";
+      await renderGuildListAndInvitesApps();
+      return;
+    }
+
+    myGuildState = data;
+    myGuildState.myPlayerId = GameAPI.isLoggedIn() ? localStorage.getItem("playerId") : null;
+    document.getElementById("guildMainView").style.display = "";
+    document.getElementById("donationLimitLabel").textContent = 10;
+    renderOverview();
+    switchTab(document.querySelector(".guild-tab-btn.active")?.dataset.tab || "overview");
+  }
+
+  document.querySelectorAll(".guild-tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+  });
+
+  window.onAuthReady = () => loadGuildState();
+  document.addEventListener("DOMContentLoaded", () => {
+    if (GameAPI.isLoggedIn()) loadGuildState();
+  });
+</script>
+<script src="../js/core/nav-fab.js"></script>
+</body>
+</html>
