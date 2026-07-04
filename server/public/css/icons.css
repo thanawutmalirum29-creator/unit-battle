@@ -1,0 +1,862 @@
+/* =========================================================
+   ICON SYSTEM — drawn entirely in CSS (no emoji, no images)
+   Usage: <span class=gicon-gear></span>  (single unquoted class, no spaces —
+   safe to drop straight into any JS string, single- or double-quoted)
+   Icons scale with font-size (1em square) and inherit color
+   via `currentColor`, so just set color/font-size on a parent.
+   ========================================================= */
+
+/* Each icon uses ONE unquoted class token in markup, e.g. <span class=gicon-shield></span>
+   (no base .gicon class needed) so it never collides with surrounding JS string quotes. */
+.gicon-arrow-down,
+.gicon-arrow-up,
+.gicon-bag,
+.gicon-battle,
+.gicon-block,
+.gicon-bolt,
+.gicon-card,
+.gicon-cart,
+.gicon-castle,
+.gicon-chart-up,
+.gicon-chat,
+.gicon-check,
+.gicon-check-circle,
+.gicon-clock,
+.gicon-close,
+.gicon-coin,
+.gicon-crown,
+.gicon-door,
+.gicon-dragon,
+.gicon-eagle,
+.gicon-fire,
+.gicon-frame,
+.gicon-gear,
+.gicon-gem,
+.gicon-handshake,
+.gicon-help,
+.gicon-hourglass,
+.gicon-infinity,
+.gicon-lock,
+.gicon-mail,
+.gicon-mailbox,
+.gicon-medal,
+.gicon-moon,
+.gicon-note,
+.gicon-party,
+.gicon-pencil,
+.gicon-plus,
+.gicon-refresh,
+.gicon-search,
+.gicon-shield,
+.gicon-skull,
+.gicon-snowflake,
+.gicon-star,
+.gicon-store,
+.gicon-sword,
+.gicon-trash,
+.gicon-trophy,
+.gicon-unlock,
+.gicon-user,
+.gicon-users,
+.gicon-warning,
+.gicon-wolf,
+.gicon-x {
+  display: inline-block;
+  position: relative;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.gicon-arrow-down::before,.gicon-arrow-up::before,.gicon-bag::before,.gicon-battle::before,.gicon-block::before,.gicon-bolt::before,.gicon-card::before,.gicon-cart::before,.gicon-castle::before,.gicon-chart-up::before,.gicon-chat::before,.gicon-check::before,.gicon-check-circle::before,.gicon-clock::before,.gicon-close::before,.gicon-coin::before,.gicon-crown::before,.gicon-door::before,.gicon-dragon::before,.gicon-eagle::before,.gicon-fire::before,.gicon-frame::before,.gicon-gear::before,.gicon-gem::before,.gicon-handshake::before,.gicon-help::before,.gicon-hourglass::before,.gicon-infinity::before,.gicon-lock::before,.gicon-mail::before,.gicon-mailbox::before,.gicon-medal::before,.gicon-moon::before,.gicon-note::before,.gicon-party::before,.gicon-pencil::before,.gicon-plus::before,.gicon-refresh::before,.gicon-search::before,.gicon-shield::before,.gicon-skull::before,.gicon-snowflake::before,.gicon-star::before,.gicon-store::before,.gicon-sword::before,.gicon-trash::before,.gicon-trophy::before,.gicon-unlock::before,.gicon-user::before,.gicon-users::before,.gicon-warning::before,.gicon-wolf::before,.gicon-x::before,
+.gicon-arrow-down::after,.gicon-arrow-up::after,.gicon-bag::after,.gicon-battle::after,.gicon-block::after,.gicon-bolt::after,.gicon-card::after,.gicon-cart::after,.gicon-castle::after,.gicon-chart-up::after,.gicon-chat::after,.gicon-check::after,.gicon-check-circle::after,.gicon-clock::after,.gicon-close::after,.gicon-coin::after,.gicon-crown::after,.gicon-door::after,.gicon-dragon::after,.gicon-eagle::after,.gicon-fire::after,.gicon-frame::after,.gicon-gear::after,.gicon-gem::after,.gicon-handshake::after,.gicon-help::after,.gicon-hourglass::after,.gicon-infinity::after,.gicon-lock::after,.gicon-mail::after,.gicon-mailbox::after,.gicon-medal::after,.gicon-moon::after,.gicon-note::after,.gicon-party::after,.gicon-pencil::after,.gicon-plus::after,.gicon-refresh::after,.gicon-search::after,.gicon-shield::after,.gicon-skull::after,.gicon-snowflake::after,.gicon-star::after,.gicon-store::after,.gicon-sword::after,.gicon-trash::after,.gicon-trophy::after,.gicon-unlock::after,.gicon-user::after,.gicon-users::after,.gicon-warning::after,.gicon-wolf::after,.gicon-x::after {
+  content: "";
+  position: absolute;
+  box-sizing: border-box;
+}
+
+/* ---------- gear / settings ---------- */
+.gicon-gear::before {
+  inset: 8%;
+  border-radius: 50%;
+  border: 0.14em dashed currentColor;
+}
+.gicon-gear::after {
+  inset: 38%;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ---------- user / person ---------- */
+.gicon-user::before {
+  top: 6%;
+  left: 30%;
+  width: 40%;
+  height: 40%;
+  border-radius: 50%;
+  background: currentColor;
+}
+.gicon-user::after {
+  bottom: 0;
+  left: 12%;
+  width: 76%;
+  height: 46%;
+  border-radius: 50% 50% 0 0;
+  background: currentColor;
+}
+
+/* ---------- users / group (two overlapping people) ---------- */
+.gicon-users::before {
+  top: 20%;
+  left: 4%;
+  width: 52%;
+  height: 52%;
+  border-radius: 50%;
+  border: 0.12em solid currentColor;
+}
+.gicon-users::after {
+  top: 20%;
+  right: 4%;
+  width: 52%;
+  height: 52%;
+  border-radius: 50%;
+  border: 0.12em solid currentColor;
+}
+
+/* ---------- coin / money ---------- */
+.gicon-coin::before {
+  inset: 4%;
+  border-radius: 50%;
+  background: currentColor;
+}
+.gicon-coin::after {
+  inset: 20%;
+  border-radius: 50%;
+  border: 0.09em solid rgba(0, 0, 0, 0.28);
+}
+
+/* ---------- gem / diamond ---------- */
+.gicon-gem::before {
+  inset: 14%;
+  background: currentColor;
+  clip-path: polygon(50% 0%, 100% 35%, 50% 100%, 0% 35%);
+}
+
+/* ---------- close / x ---------- */
+.gicon-close::before,
+.gicon-close::after,
+.gicon-x::before,
+.gicon-x::after {
+  top: 48%;
+  left: 8%;
+  width: 84%;
+  height: 0.13em;
+  background: currentColor;
+  border-radius: 0.1em;
+}
+.gicon-close::before,
+.gicon-x::before {
+  transform: rotate(45deg);
+}
+.gicon-close::after,
+.gicon-x::after {
+  transform: rotate(-45deg);
+}
+
+/* ---------- check / checkmark ---------- */
+.gicon-check::before {
+  top: 22%;
+  left: 16%;
+  width: 55%;
+  height: 30%;
+  border-left: 0.14em solid currentColor;
+  border-bottom: 0.14em solid currentColor;
+  transform: rotate(-45deg);
+}
+
+/* ---------- check-circle (success ✅) ---------- */
+.gicon-check-circle::before {
+  inset: 3%;
+  border-radius: 50%;
+  border: 0.1em solid currentColor;
+}
+.gicon-check-circle::after {
+  top: 30%;
+  left: 24%;
+  width: 42%;
+  height: 22%;
+  border-left: 0.12em solid currentColor;
+  border-bottom: 0.12em solid currentColor;
+  transform: rotate(-45deg);
+}
+
+/* ---------- shield ---------- */
+.gicon-shield::before {
+  inset: 4%;
+  background: currentColor;
+  clip-path: polygon(50% 0%, 100% 18%, 100% 55%, 50% 100%, 0% 55%, 0% 18%);
+}
+
+/* ---------- lock ---------- */
+.gicon-lock::before {
+  top: 8%;
+  left: 24%;
+  width: 52%;
+  height: 40%;
+  border: 0.11em solid currentColor;
+  border-bottom: none;
+  border-radius: 0.5em 0.5em 0 0;
+}
+.gicon-lock::after {
+  top: 42%;
+  left: 12%;
+  width: 76%;
+  height: 50%;
+  background: currentColor;
+  border-radius: 0.12em;
+}
+
+/* ---------- unlocked padlock (for "unlock" states) ---------- */
+.gicon-unlock::before {
+  top: 4%;
+  left: 10%;
+  width: 52%;
+  height: 40%;
+  border: 0.11em solid currentColor;
+  border-bottom: none;
+  border-radius: 0.5em 0.5em 0 0;
+  transform: rotate(-18deg);
+}
+.gicon-unlock::after {
+  top: 42%;
+  left: 12%;
+  width: 76%;
+  height: 50%;
+  background: currentColor;
+  border-radius: 0.12em;
+}
+
+/* ---------- pencil / edit ---------- */
+.gicon-pencil::before {
+  top: 38%;
+  left: 8%;
+  width: 74%;
+  height: 20%;
+  background: currentColor;
+  border-radius: 0.05em;
+  transform: rotate(-45deg);
+}
+.gicon-pencil::after {
+  bottom: 12%;
+  left: 8%;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 0 0.32em 0.32em;
+  border-color: transparent transparent currentColor transparent;
+  transform: rotate(-45deg);
+}
+
+/* ---------- mailbox / envelope ---------- */
+.gicon-mail::before,
+.gicon-mailbox::before {
+  inset: 20% 5%;
+  border: 0.1em solid currentColor;
+  border-radius: 0.08em;
+}
+.gicon-mail::after,
+.gicon-mailbox::after {
+  top: 20%;
+  left: 5%;
+  width: 90%;
+  height: 0;
+  border-left: 0.45em solid transparent;
+  border-right: 0.45em solid transparent;
+  border-top: 0.32em solid currentColor;
+}
+
+/* ---------- card (game card) ---------- */
+.gicon-card::before {
+  inset: 6% 22%;
+  border: 0.1em solid currentColor;
+  border-radius: 0.14em;
+}
+.gicon-card::after {
+  top: 42%;
+  left: 42%;
+  width: 16%;
+  height: 16%;
+  background: currentColor;
+  clip-path: polygon(50% 0%, 100% 35%, 50% 100%, 0% 35%);
+}
+
+/* ---------- bag / backpack ---------- */
+.gicon-bag::before {
+  inset: 26% 8% 4% 8%;
+  border: 0.1em solid currentColor;
+  border-radius: 0 0 0.2em 0.2em;
+}
+.gicon-bag::after {
+  top: 6%;
+  left: 32%;
+  width: 36%;
+  height: 24%;
+  border: 0.1em solid currentColor;
+  border-bottom: none;
+  border-radius: 0.25em 0.25em 0 0;
+}
+
+/* ---------- medal / badge ---------- */
+.gicon-medal::before {
+  bottom: 4%;
+  left: 22%;
+  width: 56%;
+  height: 56%;
+  border-radius: 50%;
+  border: 0.11em solid currentColor;
+}
+.gicon-medal::after {
+  top: 0;
+  left: 36%;
+  width: 28%;
+  height: 34%;
+  background: currentColor;
+  clip-path: polygon(0 0, 100% 0, 68% 100%, 50% 65%, 32% 100%);
+}
+
+/* ---------- picture frame ---------- */
+.gicon-frame::before {
+  inset: 8%;
+  border: 0.13em solid currentColor;
+  border-radius: 0.1em;
+}
+.gicon-frame::after {
+  bottom: 22%;
+  left: 22%;
+  width: 30%;
+  height: 30%;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+/* ---------- sword (single) ---------- */
+.gicon-sword::before {
+  top: 4%;
+  left: 44%;
+  width: 0.14em;
+  height: 62%;
+  background: currentColor;
+  border-radius: 0.1em;
+  transform: rotate(35deg);
+  transform-origin: top center;
+}
+.gicon-sword::after {
+  top: 52%;
+  left: 20%;
+  width: 60%;
+  height: 0.13em;
+  background: currentColor;
+  transform: rotate(35deg);
+}
+
+/* ---------- crossed swords (battle) ---------- */
+.gicon-battle::before,
+.gicon-battle::after {
+  top: 44%;
+  left: 0;
+  width: 100%;
+  height: 0.16em;
+  background: currentColor;
+  border-radius: 0.1em;
+}
+.gicon-battle::before {
+  transform: rotate(45deg);
+}
+.gicon-battle::after {
+  transform: rotate(-45deg);
+}
+
+/* ---------- infinity ---------- */
+.gicon-infinity::before,
+.gicon-infinity::after {
+  top: 22%;
+  width: 46%;
+  height: 56%;
+  border: 0.13em solid currentColor;
+  border-radius: 50%;
+}
+.gicon-infinity::before {
+  left: 1%;
+  transform: rotate(-32deg);
+}
+.gicon-infinity::after {
+  right: 1%;
+  transform: rotate(32deg);
+}
+
+/* ---------- castle ---------- */
+.gicon-castle::before {
+  inset: 26% 6% 0 6%;
+  background: currentColor;
+  clip-path: polygon(
+    0% 100%, 0% 32%, 14% 32%, 14% 14%, 28% 14%, 28% 32%,
+    42% 32%, 42% 14%, 58% 14%, 58% 32%,
+    72% 32%, 72% 14%, 86% 14%, 86% 32%, 100% 32%, 100% 100%
+  );
+}
+
+/* ---------- shopping cart / basket ---------- */
+.gicon-cart::before {
+  bottom: 6%;
+  left: 6%;
+  width: 82%;
+  height: 46%;
+  background: currentColor;
+  clip-path: polygon(12% 0%, 100% 0%, 86% 100%, 0% 100%);
+}
+.gicon-cart::after {
+  top: 2%;
+  left: 18%;
+  width: 48%;
+  height: 36%;
+  border: 0.1em solid currentColor;
+  border-bottom: none;
+  border-radius: 0.6em 0.6em 0 0;
+}
+
+/* ---------- store (guild shop building) ---------- */
+.gicon-store::before {
+  bottom: 4%;
+  left: 8%;
+  width: 84%;
+  height: 50%;
+  border: 0.1em solid currentColor;
+  border-top: none;
+}
+.gicon-store::after {
+  top: 6%;
+  left: 2%;
+  width: 96%;
+  height: 34%;
+  background: currentColor;
+  clip-path: polygon(0% 100%, 10% 0%, 90% 0%, 100% 100%);
+}
+
+/* ---------- door ---------- */
+.gicon-door::before {
+  inset: 4% 20% 0 20%;
+  border: 0.11em solid currentColor;
+  border-radius: 0.5em 0.5em 0 0;
+}
+.gicon-door::after {
+  top: 46%;
+  right: 24%;
+  width: 12%;
+  height: 12%;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ---------- search / magnifier ---------- */
+.gicon-search::before {
+  top: 6%;
+  left: 6%;
+  width: 60%;
+  height: 60%;
+  border-radius: 50%;
+  border: 0.13em solid currentColor;
+}
+.gicon-search::after {
+  bottom: 6%;
+  right: 6%;
+  width: 38%;
+  height: 0.13em;
+  background: currentColor;
+  transform: rotate(45deg);
+  transform-origin: right center;
+}
+
+/* ---------- plus ---------- */
+.gicon-plus::before,
+.gicon-plus::after {
+  top: 46%;
+  left: 8%;
+  width: 84%;
+  height: 0.15em;
+  background: currentColor;
+  border-radius: 0.1em;
+}
+.gicon-plus::after {
+  transform: rotate(90deg);
+}
+
+/* ---------- chart up ---------- */
+.gicon-chart-up::before {
+  bottom: 6%;
+  left: 4%;
+  width: 92%;
+  height: 0.1em;
+  background: currentColor;
+}
+.gicon-chart-up::after {
+  top: 8%;
+  left: 4%;
+  width: 92%;
+  height: 70%;
+  background: currentColor;
+  clip-path: polygon(
+    0% 100%, 0% 88%, 28% 55%, 48% 72%, 78% 20%, 78% 34%, 48% 86%, 28% 69%, 8% 100%
+  );
+}
+
+/* ---------- refresh / reload ---------- */
+.gicon-refresh::before {
+  inset: 8%;
+  border-radius: 50%;
+  border: 0.13em solid currentColor;
+  border-right-color: transparent;
+}
+.gicon-refresh::after {
+  top: 2%;
+  right: 14%;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0.22em 0.22em 0 0;
+  border-color: currentColor transparent transparent transparent;
+  transform: rotate(20deg);
+}
+
+/* ---------- trash / delete ---------- */
+.gicon-trash::before {
+  top: 22%;
+  left: 16%;
+  width: 68%;
+  height: 66%;
+  border: 0.1em solid currentColor;
+  border-top: none;
+  border-radius: 0 0 0.1em 0.1em;
+}
+.gicon-trash::after {
+  top: 12%;
+  left: 8%;
+  width: 84%;
+  height: 0.12em;
+  background: currentColor;
+  box-shadow: 0 -0.16em 0 0 currentColor;
+}
+
+/* ---------- warning ---------- */
+.gicon-warning::before {
+  inset: 4%;
+  background: currentColor;
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+}
+.gicon-warning::after {
+  top: 42%;
+  left: 46%;
+  width: 8%;
+  height: 8%;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 -0.24em 0 0 #fff;
+}
+
+/* ---------- block / suspended ---------- */
+.gicon-block::before {
+  inset: 4%;
+  border-radius: 50%;
+  border: 0.14em solid currentColor;
+}
+.gicon-block::after {
+  top: 50%;
+  left: 8%;
+  width: 84%;
+  height: 0.14em;
+  background: currentColor;
+  transform: rotate(45deg);
+}
+
+/* ---------- star ---------- */
+.gicon-star::before {
+  inset: 2%;
+  background: currentColor;
+  clip-path: polygon(
+    50% 0%, 63% 35%, 100% 38%, 72% 60%,
+    82% 96%, 50% 75%, 18% 96%, 28% 60%,
+    0% 38%, 37% 35%
+  );
+}
+
+/* ---------- crown ---------- */
+.gicon-crown::before {
+  bottom: 10%;
+  left: 6%;
+  width: 88%;
+  height: 24%;
+  background: currentColor;
+}
+.gicon-crown::after {
+  bottom: 30%;
+  left: 6%;
+  width: 88%;
+  height: 46%;
+  background: currentColor;
+  clip-path: polygon(
+    0% 100%, 0% 40%, 20% 65%, 32% 10%,
+    50% 45%, 68% 10%, 80% 65%, 100% 40%, 100% 100%
+  );
+}
+
+/* ---------- bolt / lightning ---------- */
+.gicon-bolt::before {
+  inset: 2%;
+  background: currentColor;
+  clip-path: polygon(60% 0%, 20% 55%, 45% 55%, 35% 100%, 80% 40%, 55% 40%);
+}
+
+/* ---------- fire / flame ---------- */
+.gicon-fire::before {
+  inset: 4%;
+  background: currentColor;
+  border-radius: 45% 45% 45% 45% / 60% 60% 40% 40%;
+  clip-path: polygon(50% 0%, 90% 45%, 90% 80%, 50% 100%, 10% 80%, 10% 45%);
+}
+.gicon-fire::after {
+  bottom: 10%;
+  left: 32%;
+  width: 36%;
+  height: 36%;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 50% 50% 50% 0%;
+}
+
+/* ---------- snowflake ---------- */
+.gicon-snowflake::before {
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-conic-gradient(currentColor 0deg 3deg, transparent 3deg 60deg);
+  -webkit-mask: radial-gradient(circle, transparent 6%, black 7%);
+  mask: radial-gradient(circle, transparent 6%, black 7%);
+}
+
+/* ---------- moon (crescent) ---------- */
+.gicon-moon::before {
+  inset: 8%;
+  border-radius: 50%;
+  background: currentColor;
+  -webkit-mask: radial-gradient(circle at 66% 32%, transparent 54%, black 55%);
+  mask: radial-gradient(circle at 66% 32%, transparent 54%, black 55%);
+}
+
+/* ---------- hourglass ---------- */
+.gicon-hourglass::before {
+  inset: 6% 18%;
+  background: currentColor;
+  clip-path: polygon(
+    0% 0%, 100% 0%, 100% 10%, 55% 50%, 100% 90%, 100% 100%,
+    0% 100%, 0% 90%, 45% 50%, 0% 10%
+  );
+}
+
+/* ---------- clock ---------- */
+.gicon-clock::before {
+  inset: 4%;
+  border-radius: 50%;
+  border: 0.12em solid currentColor;
+}
+.gicon-clock::after {
+  top: 16%;
+  left: 47%;
+  width: 0.1em;
+  height: 36%;
+  background: currentColor;
+  transform-origin: bottom center;
+  transform: rotate(35deg);
+}
+
+/* ---------- SOS / help ---------- */
+.gicon-help::before {
+  inset: 4%;
+  border-radius: 50%;
+  border: 0.12em solid currentColor;
+}
+.gicon-help::after {
+  top: 22%;
+  left: 40%;
+  width: 20%;
+  height: 20%;
+  border-radius: 50% 50% 50% 0%;
+  border: 0.09em solid currentColor;
+  border-bottom: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+/* ---------- handshake ---------- */
+.gicon-handshake::before {
+  top: 30%;
+  left: 4%;
+  width: 44%;
+  height: 22%;
+  background: currentColor;
+  border-radius: 0.3em 0 0 0.3em;
+  transform: rotate(-8deg);
+}
+.gicon-handshake::after {
+  top: 30%;
+  right: 4%;
+  width: 44%;
+  height: 22%;
+  background: currentColor;
+  border-radius: 0 0.3em 0.3em 0;
+  transform: rotate(8deg);
+}
+
+/* ---------- chat bubble ---------- */
+.gicon-chat::before {
+  inset: 6% 4% 22% 4%;
+  border: 0.11em solid currentColor;
+  border-radius: 0.3em;
+}
+.gicon-chat::after {
+  bottom: 6%;
+  left: 20%;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0.2em 0.16em 0 0.16em;
+  border-color: currentColor transparent transparent transparent;
+}
+
+/* ---------- arrows ---------- */
+.gicon-arrow-up::before {
+  top: 46%;
+  left: 24%;
+  width: 52%;
+  height: 0.13em;
+  background: currentColor;
+  transform: rotate(-90deg);
+}
+.gicon-arrow-up::after {
+  top: 8%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 0.22em 0.3em 0.22em;
+  border-color: transparent transparent currentColor transparent;
+  transform: translateX(-50%);
+}
+.gicon-arrow-down::before {
+  top: 46%;
+  left: 24%;
+  width: 52%;
+  height: 0.13em;
+  background: currentColor;
+  transform: rotate(-90deg);
+}
+.gicon-arrow-down::after {
+  bottom: 8%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0.3em 0.22em 0 0.22em;
+  border-color: currentColor transparent transparent transparent;
+  transform: translateX(-50%);
+}
+
+/* ---------- eagle (stylised wings) ---------- */
+.gicon-eagle::before {
+  inset: 20% 2% 30% 2%;
+  background: currentColor;
+  clip-path: polygon(50% 0%, 0% 85%, 22% 60%, 50% 90%, 78% 60%, 100% 85%);
+}
+
+/* ---------- wolf (stylised head) ---------- */
+.gicon-wolf::before {
+  inset: 10%;
+  background: currentColor;
+  clip-path: polygon(50% 100%, 12% 55%, 2% 8%, 26% 32%, 50% 0%, 74% 32%, 98% 8%, 88% 55%);
+}
+
+/* ---------- dragon (stylised coil) ---------- */
+.gicon-dragon::before {
+  inset: 6%;
+  background: currentColor;
+  clip-path: polygon(
+    8% 90%, 30% 58%, 8% 38%, 34% 18%, 55% 40%,
+    40% 55%, 62% 68%, 92% 48%, 74% 18%, 96% 6%
+  );
+}
+
+/* ---------- trophy ---------- */
+.gicon-trophy::before {
+  top: 6%;
+  left: 22%;
+  width: 56%;
+  height: 50%;
+  background: currentColor;
+  clip-path: polygon(10% 0%, 90% 0%, 78% 100%, 22% 100%);
+}
+.gicon-trophy::after {
+  bottom: 4%;
+  left: 32%;
+  width: 36%;
+  height: 14%;
+  background: currentColor;
+}
+
+/* ---------- note / document ---------- */
+.gicon-note::before {
+  inset: 8% 18%;
+  border: 0.1em solid currentColor;
+  border-radius: 0.08em;
+}
+.gicon-note::after {
+  top: 30%;
+  left: 32%;
+  width: 36%;
+  height: 0.1em;
+  background: currentColor;
+  box-shadow: 0 0.18em 0 0 currentColor, 0 0.36em 0 0 currentColor;
+}
+
+/* ---------- party / celebration (confetti) ---------- */
+.gicon-party::before {
+  top: 40%;
+  left: 40%;
+  width: 20%;
+  height: 20%;
+  background: currentColor;
+  border-radius: 50%;
+  box-shadow:
+    -0.36em -0.3em 0 0 currentColor,
+    0.36em -0.32em 0 0 currentColor,
+    -0.3em 0.36em 0 0 currentColor,
+    0.32em 0.3em 0 0 currentColor;
+}
+
+/* ---------- skull (stylised) ---------- */
+.gicon-skull::before {
+  inset: 10% 14% 26% 14%;
+  border-radius: 50% 50% 42% 42%;
+  background: currentColor;
+  -webkit-mask-image:
+    radial-gradient(circle at 32% 48%, transparent 13%, black 14%),
+    radial-gradient(circle at 68% 48%, transparent 13%, black 14%);
+  mask-image:
+    radial-gradient(circle at 32% 48%, transparent 13%, black 14%),
+    radial-gradient(circle at 68% 48%, transparent 13%, black 14%);
+}
+.gicon-skull::after {
+  bottom: 6%;
+  left: 34%;
+  width: 32%;
+  height: 16%;
+  background: currentColor;
+  border-radius: 0 0 0.15em 0.15em;
+}

@@ -2,6 +2,12 @@
    UNIFIED GAME THEME — ใช้ร่วมกันทุกหน้า (game/shop/upgrade/gacha/boss/inf)
    ============================================================ */
 
+/* ตัวอักษร: "Chakra Petch" (ไทย, ทรงเหลี่ยม-เทคโน) ใช้กับหัวข้อ/ปุ่ม/ตัวเลข ให้ความรู้สึก
+   HUD ของเกมแทคติก, "Prompt" (ไทยเช่นกัน, อ่านง่าย) ใช้กับเนื้อหา — เดิมหน้าเว็บพึ่ง
+   font ของระบบเครื่องล้วนๆ (ไม่เคยโหลด webfont จริง) เลยหน้าตาเป็น default ของ
+   browser ทั่วไป ไม่มีคาแรกเตอร์ของเกมเลย */
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Prompt:wght@400;500;600&display=swap');
+
 /* กันกดค้างแล้วเด้งเมนู "คัดลอก/แชร์" ของเบราว์เซอร์ + กันลากเลือกข้อความในเกมโดยไม่ตั้งใจ
    (viewport meta ในแต่ละหน้าใส่ maximum-scale=1,user-scalable=no กันซูมด้วยนิ้วบีบไปแล้ว
    ส่วน touch-action:manipulation ตรงนี้กันซูมจากการแตะรัวๆ/double-tap ซ้ำอีกชั้น) */
@@ -29,6 +35,7 @@ input, textarea{
   --bg-2:#121a26;
   --panel:#141d2b;
   --panel-soft:rgba(255,255,255,.04);
+  --panel-edge:rgba(255,255,255,.14);
   --border:rgba(255,255,255,.08);
   --text:#e8edf5;
   --muted:#93a1b5;
@@ -48,7 +55,8 @@ input, textarea{
   --radius:14px;
   --radius-sm:9px;
   --shadow:0 8px 24px rgba(0,0,0,.45);
-  --font: "Segoe UI", "Prompt", "Noto Sans Thai", sans-serif;
+  --font-display: "Chakra Petch", "Prompt", "Noto Sans Thai", sans-serif;
+  --font: "Prompt", "Noto Sans Thai", "Segoe UI", sans-serif;
 }
 
 *{ box-sizing:border-box; }
@@ -59,7 +67,9 @@ html{
   background:
     radial-gradient(1100px 600px at 8% -10%, #131c33 0%, transparent 60%),
     radial-gradient(900px 500px at 100% 0%, #1a0f2e 0%, transparent 55%),
+    radial-gradient(700px 500px at 50% 110%, #0d1a2e 0%, transparent 60%),
     linear-gradient(180deg,var(--bg-0),var(--bg-1) 40%,var(--bg-0));
+  background-attachment:fixed;
 }
 
 body{
@@ -71,14 +81,21 @@ body{
   color:var(--text);
   font-family:var(--font);
   overflow-x:hidden;
+  animation:pageFadeIn .35s ease both;
+}
+@keyframes pageFadeIn{ from{ opacity:0; transform:translateY(4px); } to{ opacity:1; transform:none; } }
+@media (prefers-reduced-motion:reduce){
+  body{ animation:none; }
 }
 
-h1,h2,h3{ font-family:var(--font); letter-spacing:.2px; margin:0 0 8px; overflow-wrap:break-word; }
+h1,h2,h3{ font-family:var(--font-display); font-weight:600; letter-spacing:.3px; margin:0 0 8px; overflow-wrap:break-word; }
 p, div, span{ overflow-wrap:break-word; }
 hr{ border:none; border-top:1px solid var(--border); margin:16px 0; }
 
 ::-webkit-scrollbar{ height:8px; width:8px; }
 ::-webkit-scrollbar-thumb{ background:#283246; border-radius:8px; }
+
+button, a > button, .mode-button, input, select{ font-family:var(--font-display); letter-spacing:.2px; }
 
 /* ---------------- TOP BAR ---------------- */
 .topbar, header, header.panel{
@@ -93,9 +110,28 @@ hr{ border:none; border-top:1px solid var(--border); margin:16px 0; }
   box-shadow:var(--shadow);
   margin:0 0 14px;
   position:relative;
+  overflow:hidden;
+}
+/* เส้นพลังงานบางๆ ใต้ topbar ทุกหน้า — เป็น "ลายเซ็น" เดียวที่ใช้ซ้ำทุกที่แทนการ
+   ประดับหลายจุด ให้ความรู้สึกเป็น HUD ของเกมแทคติก ไม่ใช่หน้าเว็บทั่วไป */
+.topbar::after, header.panel::after{
+  content:"";
+  position:absolute; left:0; right:0; bottom:0; height:2px;
+  background:linear-gradient(90deg, transparent, var(--accent-2), var(--accent), transparent);
+  background-size:200% 100%;
+  animation:energySeam 5s linear infinite;
+  opacity:.75;
+}
+@media (prefers-reduced-motion:reduce){
+  .topbar::after, header.panel::after{ animation:none; background-position:50% 0; }
+}
+@keyframes energySeam{
+  0%{ background-position:200% 0; }
+  100%{ background-position:-200% 0; }
 }
 .topbar h1, header h1{
   font-size:19px !important;
+  font-weight:700 !important;
   margin:0 !important;
   flex:1 1 auto;
   display:flex;
@@ -131,11 +167,11 @@ header button[onclick*="goBack"]:hover, .back-btn:hover{
   background:linear-gradient(135deg,#2a2210,#1a1608);
   border:1px solid rgba(255,213,79,.35);
   color:var(--gold) !important;
-  font-weight:800;
+  font-weight:700;
   font-size:15px;
   padding:8px 16px;
   border-radius:999px;
-  box-shadow:0 0 14px rgba(255,213,79,.15);
+  box-shadow:0 0 14px rgba(255,213,79,.15), inset 0 1px 0 rgba(255,255,255,.08);
   margin:0 0 14px;
 }
 
@@ -168,10 +204,17 @@ header button[onclick*="goBack"]:hover, .back-btn:hover{
   font-size:13px;
 }
 
-h3{ font-size:15px; color:var(--accent-2); margin-top:18px; }
+h3{
+  font-size:15px; color:var(--accent-2); margin-top:18px;
+  display:flex; align-items:center; gap:8px;
+}
+h3::before{
+  content:""; width:4px; height:14px; border-radius:2px; flex:0 0 auto;
+  background:linear-gradient(180deg,var(--accent-2),var(--accent));
+}
 
 /* ---------------- NAV / MODE BUTTONS ---------------- */
-.mode-buttons, .gacha-actions,
+.mode-buttons,
 body > div[style*="flex-wrap:wrap"]{
   display:grid;
   grid-template-columns:repeat(2,1fr);
@@ -179,12 +222,28 @@ body > div[style*="flex-wrap:wrap"]{
   margin:0 0 16px;
 }
 @media (min-width:480px){
-  .mode-buttons, .gacha-actions{ grid-template-columns:repeat(3,1fr); }
+  .mode-buttons{ grid-template-columns:repeat(3,1fr); }
 }
 @media (min-width:768px){
-  .mode-buttons, .gacha-actions{ grid-template-columns:repeat(4,1fr); }
+  .mode-buttons{ grid-template-columns:repeat(4,1fr); }
 }
 .mode-buttons a{ display:block; }
+
+/* ตู้สุ่ม (การ์ด/อุปกรณ์) มีปุ่มตายตัว 3 ปุ่มเสมอ (สุ่ม 1 / 3 / 10) — เดิมใช้กริดร่วมกับ
+   .mode-buttons ซึ่งเริ่มที่ 2 คอลัมน์บนจอมือถือ ปุ่มที่ 3 (สุ่ม 10) เลยตกไปอยู่แถวใหม่
+   ชิดซ้ายเดี่ยวๆ ไม่ตรงกลาง — ใช้ flex-wrap แทนกริด ปุ่มที่ล้นแถวจะจัดกึ่งกลางเองเสมอ
+   ไม่ว่าจอจะกว้างแค่ไหน */
+.gacha-actions{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:8px;
+  margin:0 0 16px;
+}
+.gacha-actions button{
+  flex:1 1 140px;
+  max-width:220px;
+}
 
 a > button, .mode-button, button{
   font-family:var(--font);
@@ -217,6 +276,11 @@ a > button, .mode-button, button{
   color:#fff;
   transform:translateY(-2px);
   box-shadow:0 6px 16px rgba(92,139,255,.35);
+}
+.topbar + div a button:active,
+.mode-buttons a button:active,
+.mode-button:active{
+  transform:translateY(0) scale(.97);
 }
 
 /* current-page nav button: highlighted + inert (clicking it does nothing — already here) */
@@ -254,12 +318,13 @@ a{ text-decoration:none; }
 
 /* ---------------- GENERIC PANEL ---------------- */
 .panel{
-  background:var(--panel) !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.025), transparent 40%), var(--panel) !important;
   border:1px solid var(--border) !important;
   border-radius:var(--radius) !important;
   padding:14px !important;
-  box-shadow:var(--shadow);
+  box-shadow:var(--shadow), inset 0 1px 0 var(--panel-edge);
   margin:0 0 14px;
+  position:relative;
 }
 
 section{ margin:0 0 16px; }
@@ -277,6 +342,7 @@ button{
   transition:.15s;
 }
 button:hover{ background:rgba(255,255,255,.1); transform:translateY(-1px); }
+button:active{ transform:translateY(0) scale(.97); }
 button:disabled, button[disabled]{
   opacity:.45; cursor:not-allowed; transform:none;
 }
@@ -913,7 +979,12 @@ body.no-scroll{ overflow:hidden; height:100%; }
 .ui-popup-overlay{
   position:fixed;
   inset:0;
-  z-index:9999;
+  /* ต้องสูงกว่าทุก overlay อื่นในเกมเสมอ เพราะ uiConfirm/uiAlert/uiPrompt ถูกเรียกจาก
+     "ข้างใน" popup อื่นได้ตลอด (เช่น กดลบจดหมายจากในป๊อปอัปจดหมาย, กดออกจากระบบจาก
+     เมนู nav-fab) เดิมตั้งไว้แค่ 9999 ซึ่งต่ำกว่าป๊อปอัปจดหมาย (10040) และเมนู
+     nav-fab (10050) เลยโผล่มาซ้อน "ใต้" popup ที่เรียกมันแทนที่จะอยู่บนสุด —
+     ต่ำกว่าแค่กล่อง login แบบบังคับของ auth-ui.js (99999-100000) เท่านั้น */
+  z-index:20000;
   display:flex;
   align-items:center;
   justify-content:center;
