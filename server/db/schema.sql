@@ -181,6 +181,43 @@ ALTER TABLE players ADD COLUMN IF NOT EXISTS status_reason TEXT;
 ALTER TABLE players ADD COLUMN IF NOT EXISTS status_changed_at TIMESTAMPTZ;
 ALTER TABLE players ADD COLUMN IF NOT EXISTS suspended_until TIMESTAMPTZ;
 
+-- Achievement badges the player has chosen to display on their account page
+-- (see game-data/badges-data.js). Always a JSON array of at most
+-- MAX_EQUIPPED_BADGES badge keys — which badges are actually UNLOCKED is
+-- never stored, only derived live from real stats (routes/players.js GET
+-- /api/players/badges), so this column can only ever hold keys the player
+-- legitimately earned at the time they equipped them.
+ALTER TABLE players ADD COLUMN IF NOT EXISTS equipped_badges JSONB NOT NULL DEFAULT '[]';
+
+-- Profile cosmetics: "ปก" (avatar icon) + "กรอบปก" (avatar frame) shown on the
+-- account page and anywhere else a player's profile is displayed.
+-- (see game-data/cosmetics-data.js)
+--   avatar_icon     — freely choosable, always a key from AVATAR_CATALOG.
+--   equipped_frame  — at most ONE frame at a time, NULL = no frame equipped.
+--                      Must be a key the player has either unlocked via
+--                      achievement (derived live from stats, same pattern as
+--                      badges) OR owns outright (see owned_frames below).
+--   owned_frames    — frames bought with contribution points in the guild
+--                      shop (game-data/guild-data.js GUILD_SHOP_CATALOG
+--                      rewardFrameKey items). Unlike achievement frames these
+--                      ARE stored, since owning one is a one-time purchase,
+--                      not something re-derivable from current stats — a
+--                      player who leaves the guild that sold it still keeps it.
+ALTER TABLE players ADD COLUMN IF NOT EXISTS avatar_icon TEXT NOT NULL DEFAULT 'shield';
+ALTER TABLE players ADD COLUMN IF NOT EXISTS equipped_frame TEXT;
+ALTER TABLE players ADD COLUMN IF NOT EXISTS owned_frames JSONB NOT NULL DEFAULT '[]';
+
+-- Guest/temporary accounts: created via POST /api/auth/guest, no username/PIN chosen
+-- by the player, no way to recover the account if local storage is cleared (see
+-- routes/auth.js). Can't join/create guilds or add/be-added-as friends (routes/guilds.js,
+-- routes/players.js) — only admins can see who's a guest (routes/admin.js).
+ALTER TABLE players ADD COLUMN IF NOT EXISTS is_guest BOOLEAN NOT NULL DEFAULT false;
+
+-- Last time this player made an authenticated request (see middleware/auth.js).
+-- Used to show an "online" / "offline for X" indicator on the friends and
+-- guild-members lists — not a precise presence system, just a cheap proxy.
+ALTER TABLE players ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;
+
 -- One row per mail. A mail can carry money and/or one bag currency as a reward;
 -- the player claims it from the mailbox popup, which credits player_economy the
 -- same server-authoritative way every other reward path does (see routes/mailbox.js).
@@ -435,6 +472,14 @@ CREATE TABLE IF NOT EXISTS guild_donations (
   created_at            TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_guild_donations_player_recent ON guild_donations (player_id, created_at DESC);
+
+-- Guild EXP actually credited for this donation (after the daily EXP cap is
+-- applied) — kept separate from contribution_awarded so the daily-cap sums
+-- in routes/guilds.js POST /donate stay accurate even if the
+-- contribution->EXP rate ever changes. Defaults to 0 for old rows predating
+-- this column, which is fine since those donations already granted their
+-- EXP at the time (nothing to re-credit).
+ALTER TABLE guild_donations ADD COLUMN IF NOT EXISTS guild_exp_awarded BIGINT NOT NULL DEFAULT 0;
 
 -- One row per guild-shop redemption. `cycle` is the weekly clock from
 -- currentGuildCycle() — per-item weekly purchase limits are enforced by
