@@ -149,7 +149,7 @@ const EQUIP_GACHA_POOLS = {
       { name: "Celestial Plate", type: "Armor",     stat: "def", base: 250, mode: "flat",    rarity: "Epic",      rate: 1.00 },
       { name: "Aegis Shield",    type: "Armor",     stat: "def", base: 300, mode: "flat",    rarity: "Legendary", rate: 0.40 },
       { name: "Divine Armor",    type: "Armor",     stat: "def", base: 350, mode: "flat",    rarity: "Legendary", rate: 0.25 },
-      { name: "Apocalypse Plate",type: "Armor",     stat: "def", base: 400, mode: "flat",    rarity: "Legendary", rate: 0.10 },
+      { name: "Apocalypse Plate",type: "Armor",     stat: "def", base: 40000, mode: "flat",    rarity: "Legendary", rate: 0.10 },
       { name: "Guardian Shield", type: "Armor",     stat: "def", base: 5,   mode: "percent", rarity: "Rare",      rate: 2.00 },
       { name: "Dragon Mail",     type: "Armor",     stat: "def", base: 7,   mode: "percent", rarity: "Epic",      rate: 1.20 },
       { name: "Infinity Aegis",  type: "Armor",     stat: "def", base: 19,  mode: "percent", rarity: "Legendary", rate: 0.10 },
