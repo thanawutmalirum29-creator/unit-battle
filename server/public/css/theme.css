@@ -623,8 +623,11 @@ button.upgrade-btn:disabled{ background:#3a3f4a; color:#9aa1ab; }
   background:rgba(12,17,26,.97) !important;
   border-top:1px solid var(--border) !important;
   border-radius:var(--radius) var(--radius) 0 0 !important;
-  max-height:42%; overflow-y:auto; z-index:1000;
+  max-height:30%; overflow-y:auto; z-index:1000;
   box-shadow:0 -10px 30px rgba(0,0,0,.5);
+  /* กันข้อความ/ปุ่มโดนลูกบอลลอย (นำทาง/จดหมาย มุมขวาล่าง, z-index สูงกว่านี้เสมอ)
+     บังทับซ้อน — เว้นที่ว่างด้านขวาให้เท่ากับความกว้างที่ลูกบอลกินจริง */
+  padding-right:78px !important;
 }
 
 /* ---------------- BATTLEFIELD ---------------- */

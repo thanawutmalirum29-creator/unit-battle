@@ -2,8 +2,22 @@
    ICON SYSTEM — drawn entirely in CSS (no emoji, no images)
    Usage: <span class=gicon-gear></span>  (single unquoted class, no spaces —
    safe to drop straight into any JS string, single- or double-quoted)
-   Icons scale with font-size (1em square) and inherit color
-   via `currentColor`, so just set color/font-size on a parent.
+   Icons scale with font-size (1em square).
+
+   COLOR: most icons still inherit `currentColor` from whatever text they
+   sit next to (gear, user, card, sword, arrows, etc.) — that's intentional,
+   it's how an icon glued onto a button/header label should behave, and it's
+   how rarity-colored text (Legendary/Epic/...) tints its icons correctly.
+
+   A smaller set of icons has a *fixed* real-world color baked directly into
+   the rule instead (coin/gem = currency, star/crown/trophy/medal =
+   gold, check/check-circle/unlock/handshake = green, warning/block = hazard
+   colors, fire/snowflake/moon/dragon/wolf/eagle/skull = their natural
+   color). Those never need — and must never get — a different color
+   depending on where they're dropped in, so baking it in here means every
+   page automatically matches without a manual color:... wrapper, and a
+   future currentColor context (white text, a colored button, a dark popup)
+   can't turn a coin white or a warning triangle blue by accident.
    ========================================================= */
 
 /* Each icon uses ONE unquoted class token in markup, e.g. <span class=gicon-shield></span>
@@ -125,10 +139,13 @@
 }
 
 /* ---------- coin / money ---------- */
+/* Money is always gold, regardless of the surrounding text color (buttons,
+   alerts, logs, white UI text, etc.) — bake the color into the icon itself
+   instead of relying on currentColor so every gicon-coin usage matches. */
 .gicon-coin::before {
   inset: 4%;
   border-radius: 50%;
-  background: currentColor;
+  background: var(--gold, #ffd54f);
 }
 .gicon-coin::after {
   inset: 20%;
@@ -137,10 +154,21 @@
 }
 
 /* ---------- gem / diamond ---------- */
+/* Second currency (memory shards / contribution points) — always cyan-blue,
+   like the coin above, so it doesn't need a manual color:var(--accent-2)
+   wrapper wherever it's used. */
 .gicon-gem::before {
   inset: 14%;
-  background: currentColor;
+  background: var(--accent-2, #7bd6ff);
   clip-path: polygon(50% 0%, 100% 35%, 50% 100%, 0% 35%);
+}
+.gicon-gem::after {
+  top: 14%;
+  left: 30%;
+  width: 40%;
+  height: 22%;
+  background: rgba(255, 255, 255, 0.5);
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
 }
 
 /* ---------- close / x ---------- */
@@ -165,13 +193,14 @@
 }
 
 /* ---------- check / checkmark ---------- */
+/* Success is always green. */
 .gicon-check::before {
   top: 22%;
   left: 16%;
   width: 55%;
   height: 30%;
-  border-left: 0.14em solid currentColor;
-  border-bottom: 0.14em solid currentColor;
+  border-left: 0.14em solid var(--good, #10b981);
+  border-bottom: 0.14em solid var(--good, #10b981);
   transform: rotate(-45deg);
 }
 
@@ -179,15 +208,15 @@
 .gicon-check-circle::before {
   inset: 3%;
   border-radius: 50%;
-  border: 0.1em solid currentColor;
+  border: 0.1em solid var(--good, #10b981);
 }
 .gicon-check-circle::after {
   top: 30%;
   left: 24%;
   width: 42%;
   height: 22%;
-  border-left: 0.12em solid currentColor;
-  border-bottom: 0.12em solid currentColor;
+  border-left: 0.12em solid var(--good, #10b981);
+  border-bottom: 0.12em solid var(--good, #10b981);
   transform: rotate(-45deg);
 }
 
@@ -199,12 +228,13 @@
 }
 
 /* ---------- lock ---------- */
+/* Restricted/locked — always muted grey. */
 .gicon-lock::before {
   top: 8%;
   left: 24%;
   width: 52%;
   height: 40%;
-  border: 0.11em solid currentColor;
+  border: 0.11em solid var(--muted, #93a1b5);
   border-bottom: none;
   border-radius: 0.5em 0.5em 0 0;
 }
@@ -213,17 +243,18 @@
   left: 12%;
   width: 76%;
   height: 50%;
-  background: currentColor;
+  background: var(--muted, #93a1b5);
   border-radius: 0.12em;
 }
 
 /* ---------- unlocked padlock (for "unlock" states) ---------- */
+/* Open/available — always green. */
 .gicon-unlock::before {
   top: 4%;
   left: 10%;
   width: 52%;
   height: 40%;
-  border: 0.11em solid currentColor;
+  border: 0.11em solid var(--good, #10b981);
   border-bottom: none;
   border-radius: 0.5em 0.5em 0 0;
   transform: rotate(-18deg);
@@ -233,7 +264,7 @@
   left: 12%;
   width: 76%;
   height: 50%;
-  background: currentColor;
+  background: var(--good, #10b981);
   border-radius: 0.12em;
 }
 
@@ -259,10 +290,11 @@
 }
 
 /* ---------- mailbox / envelope ---------- */
+/* Communication — always the same accent blue. */
 .gicon-mail::before,
 .gicon-mailbox::before {
   inset: 20% 5%;
-  border: 0.1em solid currentColor;
+  border: 0.1em solid var(--accent, #5c8bff);
   border-radius: 0.08em;
 }
 .gicon-mail::after,
@@ -273,7 +305,7 @@
   height: 0;
   border-left: 0.45em solid transparent;
   border-right: 0.45em solid transparent;
-  border-top: 0.32em solid currentColor;
+  border-top: 0.32em solid var(--accent, #5c8bff);
 }
 
 /* ---------- card (game card) ---------- */
@@ -308,20 +340,22 @@
 }
 
 /* ---------- medal / badge ---------- */
+/* Gold medal, red ribbon — always, like a real achievement medal. */
 .gicon-medal::before {
   bottom: 4%;
   left: 22%;
   width: 56%;
   height: 56%;
   border-radius: 50%;
-  border: 0.11em solid currentColor;
+  border: 0.11em solid var(--gold, #ffd54f);
+  background: rgba(255, 213, 79, 0.15);
 }
 .gicon-medal::after {
   top: 0;
   left: 36%;
   width: 28%;
   height: 34%;
-  background: currentColor;
+  background: var(--bad, #ef4444);
   clip-path: polygon(0 0, 100% 0, 68% 100%, 50% 65%, 32% 100%);
 }
 
@@ -549,9 +583,10 @@
 }
 
 /* ---------- warning ---------- */
+/* Hazard amber, always. */
 .gicon-warning::before {
   inset: 4%;
-  background: currentColor;
+  background: #ffb020;
   clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
 }
 .gicon-warning::after {
@@ -565,24 +600,27 @@
 }
 
 /* ---------- block / suspended ---------- */
+/* Danger red, always. */
 .gicon-block::before {
   inset: 4%;
   border-radius: 50%;
-  border: 0.14em solid currentColor;
+  border: 0.14em solid var(--bad, #ef4444);
 }
 .gicon-block::after {
   top: 50%;
   left: 8%;
   width: 84%;
   height: 0.14em;
-  background: currentColor;
+  background: var(--bad, #ef4444);
   transform: rotate(45deg);
 }
 
 /* ---------- star ---------- */
+/* Rating/quality bullet — always gold with a soft glow, like a real game star. */
 .gicon-star::before {
   inset: 2%;
-  background: currentColor;
+  background: var(--gold, #ffd54f);
+  filter: drop-shadow(0 0 0.08em rgba(255, 213, 79, 0.65));
   clip-path: polygon(
     50% 0%, 63% 35%, 100% 38%, 72% 60%,
     82% 96%, 50% 75%, 18% 96%, 28% 60%,
@@ -591,19 +629,20 @@
 }
 
 /* ---------- crown ---------- */
+/* Royal gold, always — with a slightly darker band so the points pop. */
 .gicon-crown::before {
   bottom: 10%;
   left: 6%;
   width: 88%;
   height: 24%;
-  background: currentColor;
+  background: #e0a800;
 }
 .gicon-crown::after {
   bottom: 30%;
   left: 6%;
   width: 88%;
   height: 46%;
-  background: currentColor;
+  background: var(--gold, #ffd54f);
   clip-path: polygon(
     0% 100%, 0% 40%, 20% 65%, 32% 10%,
     50% 45%, 68% 10%, 80% 65%, 100% 40%, 100% 100%
@@ -618,9 +657,11 @@
 }
 
 /* ---------- fire / flame ---------- */
+/* Always a warm flame gradient — this icon sits next to real 🔥 emoji in
+   the guild emblem picker, so it needs real fire color, not currentColor. */
 .gicon-fire::before {
   inset: 4%;
-  background: currentColor;
+  background: linear-gradient(180deg, #ff7a3d, #ff3d3d);
   border-radius: 45% 45% 45% 45% / 60% 60% 40% 40%;
   clip-path: polygon(50% 0%, 90% 45%, 90% 80%, 50% 100%, 10% 80%, 10% 45%);
 }
@@ -634,27 +675,30 @@
 }
 
 /* ---------- snowflake ---------- */
+/* Icy cyan, always — sits next to plain colors in the emblem picker too. */
 .gicon-snowflake::before {
   inset: 0;
   border-radius: 50%;
-  background: repeating-conic-gradient(currentColor 0deg 3deg, transparent 3deg 60deg);
+  background: repeating-conic-gradient(#a8e6ff 0deg 3deg, transparent 3deg 60deg);
   -webkit-mask: radial-gradient(circle, transparent 6%, black 7%);
   mask: radial-gradient(circle, transparent 6%, black 7%);
 }
 
 /* ---------- moon (crescent) ---------- */
+/* Pale moonlight silver, always. */
 .gicon-moon::before {
   inset: 8%;
   border-radius: 50%;
-  background: currentColor;
+  background: #dfe6f5;
   -webkit-mask: radial-gradient(circle at 66% 32%, transparent 54%, black 55%);
   mask: radial-gradient(circle at 66% 32%, transparent 54%, black 55%);
 }
 
 /* ---------- hourglass ---------- */
+/* Time/cooldown — always the same warm amber. */
 .gicon-hourglass::before {
   inset: 6% 18%;
-  background: currentColor;
+  background: #e8b34d;
   clip-path: polygon(
     0% 0%, 100% 0%, 100% 10%, 55% 50%, 100% 90%, 100% 100%,
     0% 100%, 0% 90%, 45% 50%, 0% 10%
@@ -662,17 +706,18 @@
 }
 
 /* ---------- clock ---------- */
+/* Same warm amber as the hourglass — both mean "time". */
 .gicon-clock::before {
   inset: 4%;
   border-radius: 50%;
-  border: 0.12em solid currentColor;
+  border: 0.12em solid #e8b34d;
 }
 .gicon-clock::after {
   top: 16%;
   left: 47%;
   width: 0.1em;
   height: 36%;
-  background: currentColor;
+  background: #e8b34d;
   transform-origin: bottom center;
   transform: rotate(35deg);
 }
@@ -696,12 +741,13 @@
 }
 
 /* ---------- handshake ---------- */
+/* Cooperation/helper — always green, matching accept/positive actions. */
 .gicon-handshake::before {
   top: 30%;
   left: 4%;
   width: 44%;
   height: 22%;
-  background: currentColor;
+  background: var(--good, #10b981);
   border-radius: 0.3em 0 0 0.3em;
   transform: rotate(-8deg);
 }
@@ -710,7 +756,7 @@
   right: 4%;
   width: 44%;
   height: 22%;
-  background: currentColor;
+  background: var(--good, #10b981);
   border-radius: 0 0.3em 0.3em 0;
   transform: rotate(8deg);
 }
@@ -770,23 +816,26 @@
 }
 
 /* ---------- eagle (stylised wings) ---------- */
+/* Amber-brown plumage, always. */
 .gicon-eagle::before {
   inset: 20% 2% 30% 2%;
-  background: currentColor;
+  background: #c98a3d;
   clip-path: polygon(50% 0%, 0% 85%, 22% 60%, 50% 90%, 78% 60%, 100% 85%);
 }
 
 /* ---------- wolf (stylised head) ---------- */
+/* Slate grey-blue, always. */
 .gicon-wolf::before {
   inset: 10%;
-  background: currentColor;
+  background: #8291a8;
   clip-path: polygon(50% 100%, 12% 55%, 2% 8%, 26% 32%, 50% 0%, 74% 32%, 98% 8%, 88% 55%);
 }
 
 /* ---------- dragon (stylised coil) ---------- */
+/* Crimson — a dragon should look like a dragon, not plain white text. */
 .gicon-dragon::before {
   inset: 6%;
-  background: currentColor;
+  background: #d1453b;
   clip-path: polygon(
     8% 90%, 30% 58%, 8% 38%, 34% 18%, 55% 40%,
     40% 55%, 62% 68%, 92% 48%, 74% 18%, 96% 6%
@@ -794,12 +843,13 @@
 }
 
 /* ---------- trophy ---------- */
+/* Always gold — the base a shade darker than the cup for a bit of depth. */
 .gicon-trophy::before {
   top: 6%;
   left: 22%;
   width: 56%;
   height: 50%;
-  background: currentColor;
+  background: var(--gold, #ffd54f);
   clip-path: polygon(10% 0%, 90% 0%, 78% 100%, 22% 100%);
 }
 .gicon-trophy::after {
@@ -807,7 +857,7 @@
   left: 32%;
   width: 36%;
   height: 14%;
-  background: currentColor;
+  background: #e0a800;
 }
 
 /* ---------- note / document ---------- */
@@ -841,10 +891,11 @@
 }
 
 /* ---------- skull (stylised) ---------- */
+/* Bone white, always. */
 .gicon-skull::before {
   inset: 10% 14% 26% 14%;
   border-radius: 50% 50% 42% 42%;
-  background: currentColor;
+  background: #e8e2d0;
   -webkit-mask-image:
     radial-gradient(circle at 32% 48%, transparent 13%, black 14%),
     radial-gradient(circle at 68% 48%, transparent 13%, black 14%);
@@ -857,6 +908,6 @@
   left: 34%;
   width: 32%;
   height: 16%;
-  background: currentColor;
+  background: #e8e2d0;
   border-radius: 0 0 0.15em 0.15em;
 }
