@@ -219,7 +219,7 @@ function updateTimer(){
     ? `<span class=gicon-clock></span> รีการ์ดใหม่อีก ${min}:${sec.toString().padStart(2,'0')} นาที`
     : "<span class=gicon-refresh></span> กำลังรีการ์ดใหม่...";
   const timerEl = document.getElementById("refresh-timer");
-  if (timerEl) timerEl.textContent = text;
+  if (timerEl) timerEl.innerHTML = text;
 }
 setInterval(updateTimer, 1000);
 updateTimer();
