@@ -168,6 +168,56 @@
     .acct-settings-reset{
       width:100%; margin-top:14px; background:rgba(255,255,255,.05); border:1px solid var(--border); font-size:13px;
     }
+
+    /* ---------------- AVATAR RING — clickable hint ---------------- */
+    #acctAvatarRing{ cursor:pointer; position:relative; }
+    #acctAvatarRing:hover{ opacity:.85; }
+    #acctAvatarRing::after{
+      content:"✏️"; position:absolute; bottom:-4px; right:-4px;
+      font-size:12px; line-height:1;
+    }
+    /* ---------------- BADGE AREA — clickable ---------------- */
+    #acctEquippedBadges, #acctNoBadgesHint{ cursor:pointer; }
+    /* ---------------- COSMETICS / BADGE POPUP SHEET ---------------- */
+    .acct-popup-overlay{
+      position:fixed; inset:0; z-index:300; display:flex; align-items:flex-end; justify-content:center;
+      background:rgba(3,6,12,.72); padding:0;
+    }
+    .acct-popup-sheet{
+      width:100%; max-width:480px; max-height:82vh;
+      background:var(--panel-bg,#0e1526); border:1px solid var(--border);
+      border-radius:18px 18px 0 0; padding:0 0 24px;
+      box-shadow:0 -8px 40px rgba(0,0,0,.6);
+      display:flex; flex-direction:column;
+    }
+    .acct-popup-handle{
+      width:36px; height:4px; border-radius:2px; background:var(--border);
+      margin:10px auto 0;
+    }
+    .acct-popup-header{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px 16px 0; flex-shrink:0;
+    }
+    .acct-popup-header h3{ margin:0; font-size:16px; }
+    .acct-popup-close{
+      width:28px; height:28px; padding:0; border-radius:50%; font-size:14px;
+      background:rgba(255,255,255,.05); border:1px solid var(--border);
+      display:flex; align-items:center; justify-content:center; cursor:pointer;
+    }
+    .acct-popup-tabs{
+      display:flex; margin:10px 16px 0; border-radius:8px; overflow:hidden;
+      border:1px solid var(--border); flex-shrink:0;
+    }
+    .acct-popup-tab{
+      flex:1; padding:8px 0; font-size:13px; font-weight:700; text-align:center;
+      background:transparent; border:none; color:var(--muted); cursor:pointer;
+      transition:background .15s, color .15s;
+    }
+    .acct-popup-tab.active{ background:var(--accent); color:#fff; }
+    .acct-popup-body{
+      flex:1 1 auto; overflow-y:auto; padding:12px 16px 0;
+      -webkit-overflow-scrolling:touch;
+    }
   </style>
 </head>
 <body>
@@ -231,28 +281,50 @@
   <h3>ทรัพยากรของฉัน</h3>
   <div class="acct-row"><span class="label"><span class=gicon-coin></span> เงิน</span><span class="value" id="acctMoney">0</span></div>
   <div class="acct-row"><span class="label"><span class=gicon-card></span> การ์ดในเด็ค</span><span class="value" id="acctDeckCount">0</span></div>
-  <div class="acct-row"><span class="label"><span class=gicon-shield></span> อุปกรณ์ในกระเป๋า</span><span class="value" id="acctEquipCount">0</span></div>
 </section>
 
-<section class="panel" id="acctBagPanel" style="display:none">
-  <h3><span class=gicon-bag></span> กระเป๋า</h3>
-  <div id="acctBag"></div>
-</section>
 
-<section class="panel" id="acctBadgePanel" style="display:none">
-  <h3><span class=gicon-medal></span> เหรียญความสำเร็จ</h3>
-  <p id="acctBadgeHint">แตะเพื่อติด/ถอดเหรียญที่ปลดล็อกแล้ว — เลือกโชว์ได้สูงสุด <span id="acctBadgeMax">3</span> เหรียญ (<span id="acctBadgeCount">0</span>/<span id="acctBadgeMax2">3</span>)</p>
-  <div id="acctBadgeCategories"></div>
-</section>
 
-<section class="panel" id="acctCosmeticsPanel" style="display:none">
-  <h3><span class=gicon-frame></span> ปกและกรอบปก</h3>
-  <p id="acctFrameHint">เลือกปกได้อิสระ ส่วนกรอบปกต้องปลดล็อกจากความสำเร็จในเกม (ยิ่งยากยิ่งเท่) หรือซื้อได้ในร้านค้ากิลด์</p>
-  <div class="acct-badge-category-label">เลือกปก</div>
-  <div id="acctAvatarGrid"></div>
-  <div class="acct-badge-category-label" style="margin-top:16px">กรอบปก (<span id="acctFrameEquippedName">ไม่มี</span>)</div>
-  <div class="acct-badge-grid" id="acctFrameGrid"></div>
-</section>
+
+
+<!-- ══ POPUP: เลือกปก + กรอบ (เปิดด้วยการกดรูปโปรไฟล์) ══ -->
+<div id="acctCosmeticsOverlay" class="acct-popup-overlay" style="display:none" role="dialog" aria-modal="true">
+  <div class="acct-popup-sheet">
+    <div class="acct-popup-handle"></div>
+    <div class="acct-popup-header">
+      <h3><span class=gicon-frame></span> ปกและกรอบปก</h3>
+      <button class="acct-popup-close" id="acctCosmeticsCloseBtn"><span class=gicon-close></span></button>
+    </div>
+    <div class="acct-popup-tabs">
+      <button class="acct-popup-tab active" id="acctTabAvatar" onclick="switchCosTab('avatar')">🎨 เลือกปก</button>
+      <button class="acct-popup-tab" id="acctTabFrame" onclick="switchCosTab('frame')">🖼️ กรอบปก (<span id="acctFrameEquippedName">ไม่มี</span>)</button>
+    </div>
+    <div class="acct-popup-body">
+      <div id="acctCosTabAvatar">
+        <div id="acctAvatarGrid"></div>
+      </div>
+      <div id="acctCosTabFrame" style="display:none">
+        <p id="acctFrameHint" style="font-size:12.5px;color:var(--muted);margin:0 0 10px">กรอบปกต้องปลดล็อกจากความสำเร็จในเกม หรือซื้อได้ในร้านค้ากิลด์</p>
+        <div class="acct-badge-grid" id="acctFrameGrid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ POPUP: เหรียญความสำเร็จ (เปิดด้วยการกดพื้นที่ยศ) ══ -->
+<div id="acctBadgeOverlay" class="acct-popup-overlay" style="display:none" role="dialog" aria-modal="true">
+  <div class="acct-popup-sheet">
+    <div class="acct-popup-handle"></div>
+    <div class="acct-popup-header">
+      <h3><span class=gicon-medal></span> เหรียญความสำเร็จ</h3>
+      <button class="acct-popup-close" id="acctBadgeCloseBtn"><span class=gicon-close></span></button>
+    </div>
+    <div class="acct-popup-body">
+      <p id="acctBadgeHint" style="font-size:12.5px;color:var(--muted);margin:0 0 12px">แตะเพื่อติด/ถอดเหรียญที่ปลดล็อกแล้ว — เลือกโชว์ได้สูงสุด <span id="acctBadgeMax">3</span> เหรียญ (<span id="acctBadgeCount">0</span>/<span id="acctBadgeMax2">3</span>)</p>
+      <div id="acctBadgeCategories"></div>
+    </div>
+  </div>
+</div>
 
 <script src="../js/core/api.js"></script>
 <script src="../js/core/auth-ui.js"></script>
@@ -304,9 +376,6 @@
     document.getElementById("acctRenameBtn").style.display = loggedIn ? "inline-block" : "none";
     document.getElementById("acctLoggedOutMsg").style.display = loggedIn ? "none" : "block";
     document.getElementById("acctEconomyPanel").style.display = loggedIn ? "block" : "none";
-    document.getElementById("acctBagPanel").style.display = loggedIn ? "block" : "none";
-    document.getElementById("acctBadgePanel").style.display = loggedIn ? "block" : "none";
-    document.getElementById("acctCosmeticsPanel").style.display = loggedIn ? "block" : "none";
     document.getElementById("acctMailboxHint").style.display = loggedIn ? "block" : "none";
     document.getElementById("acctPublicIdWrap").style.display = loggedIn ? "block" : "none";
 
@@ -622,6 +691,45 @@
     } else {
       alert(result?.error === "username already taken" ? "ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น" : (result?.error || "เปลี่ยนชื่อไม่สำเร็จ ลองใหม่อีกครั้ง"));
     }
+  });
+
+
+  // ════════════ POPUP: ปก + กรอบ ════════════
+  function openCosmeticsPopup() {
+    if (!window.GameAPI || !GameAPI.isLoggedIn || !GameAPI.isLoggedIn()) return;
+    document.getElementById("acctCosmeticsOverlay").style.display = "flex";
+    switchCosTab("avatar");
+    if (!_cosmeticsState) loadAndRenderCosmetics();
+  }
+  function closeCosmeticsPopup() {
+    document.getElementById("acctCosmeticsOverlay").style.display = "none";
+  }
+  function switchCosTab(tab) {
+    document.getElementById("acctCosTabAvatar").style.display = tab === "avatar" ? "" : "none";
+    document.getElementById("acctCosTabFrame").style.display  = tab === "frame"  ? "" : "none";
+    document.getElementById("acctTabAvatar").classList.toggle("active", tab === "avatar");
+    document.getElementById("acctTabFrame").classList.toggle("active", tab === "frame");
+  }
+  document.getElementById("acctAvatarRing").addEventListener("click", openCosmeticsPopup);
+  document.getElementById("acctCosmeticsCloseBtn").addEventListener("click", closeCosmeticsPopup);
+  document.getElementById("acctCosmeticsOverlay").addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) closeCosmeticsPopup();
+  });
+
+  // ════════════ POPUP: เหรียญความสำเร็จ ════════════
+  function openBadgePopup() {
+    if (!window.GameAPI || !GameAPI.isLoggedIn || !GameAPI.isLoggedIn()) return;
+    document.getElementById("acctBadgeOverlay").style.display = "flex";
+    if (!_badgeState) loadAndRenderBadges();
+  }
+  function closeBadgePopup() {
+    document.getElementById("acctBadgeOverlay").style.display = "none";
+  }
+  document.getElementById("acctEquippedBadges").addEventListener("click", openBadgePopup);
+  document.getElementById("acctNoBadgesHint").addEventListener("click", openBadgePopup);
+  document.getElementById("acctBadgeCloseBtn").addEventListener("click", closeBadgePopup);
+  document.getElementById("acctBadgeOverlay").addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) closeBadgePopup();
   });
 
   // auth-ui.js เด้งกล่อง login เองอัตโนมัติถ้ายังไม่ล็อกอิน (ดู DOMContentLoaded ใน auth-ui.js)
