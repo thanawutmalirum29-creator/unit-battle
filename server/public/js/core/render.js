@@ -234,7 +234,7 @@ const stats = getRenderStats(card);
   const header = document.getElementById("deckHeader");
   if (header) {
     header.innerHTML = `เด็คของฉัน — เลือกการ์ดเป็นทีม (${deck.length}/100) 
-      <button id="sellAllBtn" style="margin-left:10px; padding:4px 8px; font-size:12px;">💰 ขายทั้งหมด</button>
+      <button id="sellAllBtn" style="margin-left:10px; padding:4px 8px; font-size:12px;"><span class=gicon-coin></span> ขายทั้งหมด</button>
       <button id="clearSelectionBtn" style="margin-left:6px; padding:4px 8px; font-size:12px;">🧹 เคลียร์ทีม</button>`;
 
     document.getElementById("sellAllBtn").onclick = sellAllUnlocked;

@@ -287,7 +287,7 @@
     let rewardHtml = "";
     if (mail.reward) {
       const parts = [];
-      if (mail.reward.money > 0) parts.push(`💰 ${mail.reward.money}`);
+      if (mail.reward.money > 0) parts.push(`<span class=gicon-coin></span> ${mail.reward.money}`);
       if (mail.reward.bagKey) parts.push(`${typeof itemIconHTML === "function" ? itemIconHTML(mail.reward.bagKey) : ""}${BAG_LABELS[mail.reward.bagKey] || mail.reward.bagKey} × ${mail.reward.bagQty}`);
       if (mail.reward.card) parts.push(`🧑‍🤝‍🧑 ${escapeHtml(mail.reward.card.name)} (${escapeHtml(mail.reward.card.rarity)})`);
       if (mail.reward.equip) parts.push(`🗡️ ${escapeHtml(mail.reward.equip.name)} (${escapeHtml(mail.reward.equip.rarity)})`);

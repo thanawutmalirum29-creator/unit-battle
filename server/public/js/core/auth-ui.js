@@ -204,6 +204,19 @@
     });
   }
 
+  // ป๊อปอัปตอนโดน "เบียด" ออกจากระบบ — มีการล็อกอินบัญชีเดียวกันจากเครื่อง/เบราว์เซอร์
+  // อื่น (เกมรองรับแค่ 1 เซสชันต่อบัญชี ล็อกอินใหม่ = token เก่าใช้ไม่ได้ทันที)
+  // GameAPI.js ตรวจจับ 401 ที่เกิดจากกรณีนี้แล้วเรียก handler นี้ผ่าน setSessionKickedHandler
+  function showSessionKickedModal() {
+    const notify = window.uiAlert
+      ? uiAlert("มีการเข้าสู่ระบบบัญชีนี้จากอุปกรณ์หรือเบราว์เซอร์อื่น ระบบจึงออกจากระบบเครื่องนี้ให้อัตโนมัติ", { icon: "🔒" })
+      : Promise.resolve(window.alert("มีการเข้าสู่ระบบบัญชีนี้จากอุปกรณ์หรือเบราว์เซอร์อื่น ระบบจึงออกจากระบบเครื่องนี้ให้อัตโนมัติ"));
+    notify.then(() => location.reload());
+  }
+  if (window.GameAPI && GameAPI.setSessionKickedHandler) {
+    GameAPI.setSessionKickedHandler(showSessionKickedModal);
+  }
+
   // เรียกอัตโนมัติเมื่อโหลดสคริปต์นี้ ถ้ายังไม่มี session
   document.addEventListener("DOMContentLoaded", async () => {
     if (!window.GameAPI) { console.warn("[auth-ui] ต้องโหลด api.js ก่อน auth-ui.js"); return; }

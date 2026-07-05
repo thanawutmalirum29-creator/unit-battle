@@ -17,7 +17,7 @@ function handleDeath(victim, killer) {
     }
 
     if (reward > 0) {
-      log(`💰 สังหาร ${victim.name} ได้ ${reward} เหรียญ`, "system");
+      log(`<span class=gicon-coin></span> สังหาร ${victim.name} ได้ ${reward} เหรียญ`, "system");
     }
     victim._rewarded = true;
   }

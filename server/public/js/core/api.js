@@ -11,10 +11,35 @@ const GameAPI = (() => {
   let bossRunId = null;
   let bossRunToken = null;
 
+  // ---- ตรวจจับ "เซสชันถูกยกเลิก" (ล็อกอินเครื่อง/เบราว์เซอร์อื่นทับ) ----
+  // ผู้เล่นมี session_token แค่ค่าเดียวต่อบัญชี — พอมีการล็อกอินที่ไหนก็ตาม เซิร์ฟเวอร์
+  // จะออก token ใหม่ทับของเดิมทันที (ดู routes/auth.js) เครื่องเก่าเลยพก token ที่ใช้
+  // ไม่ได้แล้วโดยอัตโนมัติ — ทุกคำขอที่แนบ token (auth=true) แล้วโดน 401 กลับมาทั้งที่
+  // เรา "มี" token อยู่ (ไม่ใช่กรณีไม่ได้ล็อกอิน) แปลว่าโดนเซสชันอื่นเบียดออกไปแล้ว
+  let sessionKickedTriggered = false;
+  let sessionKickedHandler = null;
+
+  // เรียกโดย auth-ui.js เพื่อผูก UI (โชว์ป๊อปอัป + เด้งออก) เข้ากับจุดตรวจจับนี้
+  function setSessionKickedHandler(fn) { sessionKickedHandler = fn; }
+
+  function handleUnauthorizedResponse(sentAuth, status) {
+    if (!sentAuth || status !== 401) return;
+    if (sessionKickedTriggered) return;
+    if (!isLoggedIn()) return; // ยังไม่เคยล็อกอินอยู่แล้ว ไม่ใช่การถูกเบียด
+    sessionKickedTriggered = true;
+    playerId = null; authToken = null;
+    localStorage.removeItem("playerId");
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("publicId");
+    localStorage.removeItem("isGuest");
+    if (typeof sessionKickedHandler === "function") sessionKickedHandler();
+  }
+
   async function post(path, body, auth) {
+    const sentAuth = !!(auth && authToken);
     try {
       const headers = { "Content-Type": "application/json" };
-      if (auth && authToken) headers["Authorization"] = "Bearer " + authToken;
+      if (sentAuth) headers["Authorization"] = "Bearer " + authToken;
       const res = await fetch(BASE + path, {
         method: "POST",
         headers,
@@ -30,6 +55,7 @@ const GameAPI = (() => {
       const data = await res.json().catch(() => null);
       if (!res.ok) {
         console.warn("[GameAPI] request failed:", path, res.status, data?.error);
+        handleUnauthorizedResponse(sentAuth, res.status);
         return { ...(data || {}), error: data?.error || `http ${res.status}`, status: res.status };
       }
       return data;
@@ -40,11 +66,15 @@ const GameAPI = (() => {
   }
 
   async function get(path, auth) {
+    const sentAuth = !!(auth && authToken);
     try {
       const headers = {};
-      if (auth && authToken) headers["Authorization"] = "Bearer " + authToken;
+      if (sentAuth) headers["Authorization"] = "Bearer " + authToken;
       const res = await fetch(BASE + path, { headers });
-      if (!res.ok) return null;
+      if (!res.ok) {
+        handleUnauthorizedResponse(sentAuth, res.status);
+        return null;
+      }
       return await res.json();
     } catch (err) {
       console.warn("[GameAPI] network error:", err);
@@ -58,12 +88,16 @@ const GameAPI = (() => {
   // used where that detail actually matters (account-status check below);
   // every other GET keeps using the plain get() above unchanged.
   async function getRaw(path, auth) {
+    const sentAuth = !!(auth && authToken);
     try {
       const headers = {};
-      if (auth && authToken) headers["Authorization"] = "Bearer " + authToken;
+      if (sentAuth) headers["Authorization"] = "Bearer " + authToken;
       const res = await fetch(BASE + path, { headers });
       const data = await res.json().catch(() => null);
-      if (!res.ok) return { ...(data || {}), status: res.status };
+      if (!res.ok) {
+        handleUnauthorizedResponse(sentAuth, res.status);
+        return { ...(data || {}), status: res.status };
+      }
       return data;
     } catch (err) {
       console.warn("[GameAPI] network error:", err);
@@ -166,7 +200,10 @@ const GameAPI = (() => {
         body: JSON.stringify({ username: newUsername }),
       });
       const data = await res.json().catch(() => null);
-      if (!res.ok) return { error: data?.error || `http ${res.status}` };
+      if (!res.ok) {
+        handleUnauthorizedResponse(true, res.status);
+        return { error: data?.error || `http ${res.status}` };
+      }
       localStorage.setItem("username", data.username);
       return data;
     } catch (err) {
@@ -791,7 +828,17 @@ return {
     guildChatFetch, guildChatSend, guildDonate, guildShopStatus, guildShopBuy, guildBossStatus, guildBossAttack, guildExpandCapacity,
     fetchBadges, setEquippedBadges,
     fetchCosmetics, setAvatar, setEquippedFrame,
+    setSessionKickedHandler,
   };
 })();
+
+// ตรวจสถานะเซสชันเป็นระยะ (ทุก 20 วิ) แม้ระหว่างนั้นผู้เล่นจะไม่ได้กดอะไรที่ยิง API
+// เลยก็ตาม (เช่น อ่านหน้ากิลด์เฉยๆ) — ให้รู้ตัวว่าโดนล็อกอินเครื่องอื่นเบียดออกโดยไว
+// (ไม่ต้องรอให้บังเอิญกดอะไรสักอย่างก่อนถึงจะเจอ 401)
+setInterval(() => {
+  if (window.GameAPI && GameAPI.isLoggedIn && GameAPI.isLoggedIn() && GameAPI.checkAccountStatus) {
+    GameAPI.checkAccountStatus();
+  }
+}, 20000);
 
 window.GameAPI = GameAPI;

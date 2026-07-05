@@ -23,7 +23,6 @@
     { href: "equip.html", icon: "🛡️", label: "สวมอุปกรณ์" },
     { href: "friends.html", icon: "👥", label: "เพื่อน" },
     { href: "guild.html", icon: "🛡️", label: "กิลด์" },
-    { href: "account.html", icon: "👤", label: "บัญชี" },
   ];
 
   const BALL_SIZE = 56;
