@@ -275,10 +275,13 @@ function injectBagStyles() {
   border-color:transparent;
   color:#fff;
 }
+.bag-panel{ contain:layout paint style; }
 .bag-collapse{
   display:grid;
   grid-template-rows:1fr;
-  transition:grid-template-rows .22s ease;
+  transition:grid-template-rows .18s ease;
+  will-change:grid-template-rows;
+  contain:layout paint;
 }
 .bag-collapse.collapsed{ grid-template-rows:0fr; }
 .bag-collapse-inner{ overflow:hidden; min-height:0; }
@@ -353,7 +356,17 @@ function renderBagPanel() {
         toggleBtn.setAttribute("aria-expanded", String(!collapsed));
     }
 
+    // กันกดรัวๆ: ถ้าแอนิเมชันเปิด/ปิดกำลังเล่นอยู่ (ยังไม่ transitionend) จะไม่รับคลิกใหม่
+    // เพราะการสั่งสลับ state ซ้ำระหว่างที่ transition เดิมยังไม่จบ ทำให้ browser ต้อง
+    // คำนวณ layout ซ้อนกันหลายรอบ (transition ถูกขัดจังหวะแล้วเริ่มใหม่ทับ) จนเกิดอาการหน่วง/กระตุก
+    let bagAnimating = false;
+    collapseWrap.addEventListener("transitionend", (e) => {
+        if (e.target === collapseWrap) bagAnimating = false;
+    });
+
     toggleBtn.addEventListener("click", () => {
+        if (bagAnimating) return;
+        bagAnimating = true;
         const collapsed = !collapseWrap.classList.contains("collapsed");
         applyCollapsed(collapsed);
         setBagCollapseState(collapsed);
