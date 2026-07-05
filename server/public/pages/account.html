@@ -424,7 +424,8 @@
     document.getElementById("moneyWindow").innerHTML = "<span class=gicon-coin></span> " + money;
     document.getElementById("acctMoney").textContent = money;
     document.getElementById("acctDeckCount").textContent = Array.isArray(state.deck) ? state.deck.length : 0;
-    document.getElementById("acctEquipCount").textContent = Array.isArray(state.equip_bag) ? state.equip_bag.length : 0;
+    const acctEquipCountEl = document.getElementById("acctEquipCount");
+    if (acctEquipCountEl) acctEquipCountEl.textContent = Array.isArray(state.equip_bag) ? state.equip_bag.length : 0;
 
     const bag = state.bag || {};
     const bagFields = {
