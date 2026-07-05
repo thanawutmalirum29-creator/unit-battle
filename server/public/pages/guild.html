@@ -683,16 +683,9 @@
   document.getElementById("chatInput").addEventListener("keydown", (e) => { if (e.key === "Enter") sendChat(); });
 
   // ================= ร้านค้ากิลด์ =================
-  async function renderShop() {
-    const grid = document.getElementById("shopGrid");
-    grid.innerHTML = '<p class="empty-hint">กำลังโหลด…</p>';
-    const data = await GameAPI.guildShopStatus();
-    if (!data) { grid.innerHTML = '<p class="empty-hint">โหลดร้านค้าไม่สำเร็จ</p>'; return; }
-    document.getElementById("shopMyBalance").textContent = fmtNum(data.myBalance);
-    document.getElementById("shopGuildLevel").textContent = data.guildLevel;
-    document.getElementById("shopCycleEnds").textContent = fmtDate(data.cycleEndsAt);
-    grid.innerHTML = data.catalog.map((item) => `
-      <div class="shop-item">
+  function shopItemCardHTML(item, myBalance) {
+    return `
+      <div class="shop-item" data-key="${item.key}">
         <div class="shop-item-name">${item.rewardFrameKey ? "<span class=gicon-frame></span> " : ""}${escapeHtml(item.name)}</div>
         <div class="shop-item-cost"><span class=gicon-gem></span> ${item.cost}</div>
         ${item.owned
@@ -702,16 +695,48 @@
           : item.rewardFrameKey
           ? `<div class="shop-item-left">กรอบปกถาวร — ซื้อได้ครั้งเดียว</div>`
           : `<div class="shop-item-left">เหลือ ${item.remaining}/${item.limit} สัปดาห์นี้</div>`}
-        <button ${item.owned || item.locked || item.remaining <= 0 || data.myBalance < item.cost ? "disabled" : ""} onclick="buyShopItem('${item.key}')">${item.owned ? "มีแล้ว" : "แลก"}</button>
+        <button ${item.owned || item.locked || item.remaining <= 0 || myBalance < item.cost ? "disabled" : ""} onclick="buyShopItem('${item.key}')">${item.owned ? "มีแล้ว" : "แลก"}</button>
       </div>
-    `).join("");
+    `;
+  }
+
+  async function renderShop() {
+    const grid = document.getElementById("shopGrid");
+    grid.innerHTML = '<p class="empty-hint">กำลังโหลด…</p>';
+    const data = await GameAPI.guildShopStatus();
+    if (!data) { grid.innerHTML = '<p class="empty-hint">โหลดร้านค้าไม่สำเร็จ</p>'; return; }
+    document.getElementById("shopMyBalance").textContent = fmtNum(data.myBalance);
+    document.getElementById("shopGuildLevel").textContent = data.guildLevel;
+    document.getElementById("shopCycleEnds").textContent = fmtDate(data.cycleEndsAt);
+    grid.innerHTML = data.catalog.map((item) => shopItemCardHTML(item, data.myBalance)).join("");
   }
   async function buyShopItem(key) {
     const r = await GameAPI.guildShopBuy(key);
     if (r?.error) return alert(r.error);
     await syncMoneyFromServer();
     await refreshGuildData();
-    await renderShop();
+
+    // ดึงยอดแต้ม/โควตาล่าสุดจากเซิร์ฟเวอร์ (source of truth) แต่ไม่รื้อทั้งกริดร้านค้าใหม่ —
+    // อัปเดตเฉพาะการ์ดไอเทมที่เพิ่งซื้อ ส่วนการ์ดอื่นแค่ปรับปุ่ม disabled ตามยอดแต้มที่เหลือใหม่
+    const data = await GameAPI.guildShopStatus();
+    if (data) {
+      document.getElementById("shopMyBalance").textContent = fmtNum(data.myBalance);
+      document.getElementById("shopGuildLevel").textContent = data.guildLevel;
+      document.getElementById("shopCycleEnds").textContent = fmtDate(data.cycleEndsAt);
+
+      const grid = document.getElementById("shopGrid");
+      data.catalog.forEach((item) => {
+        const card = grid.querySelector(`.shop-item[data-key="${item.key}"]`);
+        if (!card) return;
+        if (item.key === key) {
+          card.outerHTML = shopItemCardHTML(item, data.myBalance);
+        } else {
+          const btn = card.querySelector("button");
+          if (btn) btn.disabled = item.owned || item.locked || item.remaining <= 0 || data.myBalance < item.cost;
+        }
+      });
+    }
+
     alert(r.frame ? "ได้กรอบปกใหม่แล้ว! ไปเลือกใส่ได้ที่หน้าบัญชีของฉัน <span class=gicon-frame></span>" : "แลกไอเทมสำเร็จ!");
   }
 
