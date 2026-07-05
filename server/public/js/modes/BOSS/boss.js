@@ -41,7 +41,7 @@ function addBossDamage(dmg){
           if (result && result.ok) {
             applyServerMoney(result.money);
             applyServerBag(result.bag);
-            log(`💰 ได้ ${result.moneyGain} เหรียญ`, "system");
+            log(`<span class=gicon-coin></span> ได้ ${result.moneyGain} เหรียญ`, "system");
             for (const [key, amount] of Object.entries(result.drops || {})) {
               log(`🎁 ได้ ${amount}x ${key}`, "system");
             }
@@ -267,7 +267,7 @@ function buildBossInfoOverlay(){
 
       row.innerHTML =
         `<b>Stage ${idx + 1}</b> (ดาเมจสะสม ${stage.dmg.toLocaleString()}+) ` +
-        `→ 💰 ${moneyText} <br>` +
+        `→ <span class=gicon-coin></span> ${moneyText} <br>` +
         `<span class="boss-info-drops">🎁 ${dropsText}</span>`;
       entry.appendChild(row);
     });
