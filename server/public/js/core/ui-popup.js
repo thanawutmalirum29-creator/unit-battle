@@ -55,7 +55,9 @@
     box.appendChild(inputEl);
     box.appendChild(btnRow);
     overlay.appendChild(box);
-    document.body.appendChild(overlay);
+    // แปะไว้ใต้ <html> โดยตรง ไม่ใช่ <body> — กันไม่ให้ UI scale (zoom ที่ <body>)
+    // ทำให้ป๊อปอัปเลื่อนตำแหน่งหนีจากกึ่งกลางจอจริง
+    document.documentElement.appendChild(overlay);
 
     // คลิกพื้นหลังมืด ๆ = ปิดแบบเดียวกับกด "ยกเลิก"
     overlay.addEventListener("click", (e) => {

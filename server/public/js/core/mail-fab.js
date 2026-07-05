@@ -397,8 +397,10 @@
     injectStyles();
     const ball = buildBall();
     const overlay = buildModal();
-    document.body.appendChild(ball);
-    document.body.appendChild(overlay);
+    // แปะไว้ใต้ <html> โดยตรง ไม่ใช่ <body> — เหตุผลเดียวกับ nav-fab.js (กัน UI scale
+    // ที่สเกลเฉพาะ <body> ไปกระทบตำแหน่งลูกบอลนี้)
+    document.documentElement.appendChild(ball);
+    document.documentElement.appendChild(overlay);
     setupTap(ball, overlay);
 
     refreshBadge();

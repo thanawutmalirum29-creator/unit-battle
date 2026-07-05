@@ -114,7 +114,8 @@
         <button id="authui-guest">🎮 เล่นแบบไม่ล็อกอิน (ชั่วคราว)</button>
       </div>
     `;
-    document.body.appendChild(overlay);
+    // แปะใต้ <html> ไม่ใช่ <body> กันโดน UI scale (zoom ที่ <body>) ดันตำแหน่งเพี้ยน
+    document.documentElement.appendChild(overlay);
 
     const title = overlay.querySelector("#authui-title");
     const submitBtn = overlay.querySelector("#authui-submit");
@@ -258,7 +259,8 @@
         <button id="acctblock-exit">🚪 ออกจากเกม</button>
       </div>
     `;
-    document.body.appendChild(overlay);
+    // แปะใต้ <html> ไม่ใช่ <body> เหตุผลเดียวกับกล่อง login ด้านบน
+    document.documentElement.appendChild(overlay);
 
     document.getElementById("acctblock-exit").addEventListener("click", (e) => {
       window.close();

@@ -326,8 +326,12 @@
     injectStyles();
     const ball = buildBall();
     const overlay = buildModal();
-    document.body.appendChild(ball);
-    document.body.appendChild(overlay);
+    // แปะไว้ใต้ <html> โดยตรง (ไม่ใช่ <body>) เพราะการปรับขนาด UI (ui-scale.js) ใช้
+    // zoom ที่ <body> — ถ้าลูกบอลนี้เป็นลูกของ <body> จะโดนสเกลครอบตำแหน่งไปด้วย
+    // (กลายเป็นยึดกับความสูงทั้งหน้าแทนจอจริง) การอยู่นอก <body> ทำให้ position:fixed
+    // อ้างอิงกับจอที่เห็นเสมอ ไม่ว่าจะปรับขนาด UI เป็นเท่าไหร่หรือหน้ายาวแค่ไหนก็ตาม
+    document.documentElement.appendChild(ball);
+    document.documentElement.appendChild(overlay);
     setupTap(ball, overlay);
     injectGuestBanner();
   }
