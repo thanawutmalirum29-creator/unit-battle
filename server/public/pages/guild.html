@@ -534,7 +534,7 @@
     if (!confirm(`ยืนยันใช้เงินคลังกิลด์ ${fmtNum(GUILD_CAPACITY_EXPANSION_COST)} เพื่อขยายจำนวนสมาชิกสูงสุด?`)) return;
     const r = await GameAPI.guildExpandCapacity();
     if (r?.error) return alert(r.error);
-    await loadGuildState();
+    await refreshGuildData();
     alert("ขยายจำนวนสมาชิกสำเร็จ!");
   });
 
@@ -545,7 +545,7 @@
     if (r?.error) return alert(r.error);
     document.getElementById("donateAmountInput").value = "";
     await syncMoneyFromServer();
-    await loadGuildState();
+    await refreshGuildData();
     let msg = `บริจาคสำเร็จ ได้รับ ${r.contribution} แต้มบริจาค`;
     if (r.contributionCapped) msg += `\n(ได้แต้ม/EXP กิลด์ครบโควตาวันนี้แล้ว เงินที่เกินเข้าคลังกิลด์ตามปกติ)`;
     if (r.leveledUp) msg += `\n<span class=gicon-party></span> กิลด์เลื่อนเป็นเลเวล ${r.guildLevel}!`;
@@ -612,7 +612,7 @@
     if (!confirm("ยืนยันโอนตำแหน่งหัวหน้ากิลด์ให้คนนี้? คุณจะกลายเป็นรองหัวหน้าแทน")) return;
     const r = await GameAPI.guildTransferLeadership(id);
     if (r?.error) return alert(r.error);
-    await loadGuildState();
+    await refreshGuildData();
     switchTab("members");
   }
 
@@ -644,7 +644,7 @@
       </div>
     `).join("");
   }
-  async function acceptJoinRequest(id) { const r = await GameAPI.guildAcceptRequest(id); if (r?.error) return alert(r.error); renderIncomingRequests(); loadGuildState(); }
+  async function acceptJoinRequest(id) { const r = await GameAPI.guildAcceptRequest(id); if (r?.error) return alert(r.error); renderIncomingRequests(); refreshGuildData(); }
   async function rejectJoinRequest(id) { const r = await GameAPI.guildRejectRequest(id); if (r?.error) return alert(r.error); renderIncomingRequests(); }
 
   // ================= แชท =================
@@ -710,7 +710,7 @@
     const r = await GameAPI.guildShopBuy(key);
     if (r?.error) return alert(r.error);
     await syncMoneyFromServer();
-    await loadGuildState();
+    await refreshGuildData();
     await renderShop();
     alert(r.frame ? "ได้กรอบปกใหม่แล้ว! ไปเลือกใส่ได้ที่หน้าบัญชีของฉัน <span class=gicon-frame></span>" : "แลกไอเทมสำเร็จ!");
   }
@@ -761,6 +761,17 @@
         <div>${fmtNum(g.totalContribution)}</div>
       </div>
     `).join("") || '<p class="empty-hint">ยังไม่มีกิลด์</p>';
+  }
+
+  // เบากว่า loadGuildState(): ใช้ตอนแค่ต้องการข้อมูลกิลด์ล่าสุดหลังทำ action
+  // (ซื้อของ/บริจาค/ขยายกิลด์/โอนตำแหน่ง ฯลฯ) โดยไม่ต้องซ่อน-โชว์ทั้งแผง ไม่ต้อง
+  // reset chat poll timer และไม่ต้องสลับแท็บกลับ — กันอาการ "รีทั้งหน้า" ทุกครั้งที่กด
+  async function refreshGuildData() {
+    const data = await GameAPI.guildMine();
+    if (!data || !data.guild) { await loadGuildState(); return; } // เผื่อกรณีหลุดจากกิลด์ระหว่างทาง (เช่นโดนเตะ)
+    myGuildState = data;
+    myGuildState.myPlayerId = GameAPI.isLoggedIn() ? localStorage.getItem("playerId") : null;
+    renderOverview();
   }
 
   // ================= โหลดสถานะหลัก =================
