@@ -183,9 +183,9 @@ function renderEquipGachaBoxes() {
         </div>
       </div>
       <div class="gacha-actions">
-        <button onclick="gachaEquipPull('${key}', 1)">สุ่ม 1 (${formatMoney(cost1)}💰)</button>
-        <button onclick="gachaEquipPull('${key}', 3)">สุ่ม 3 (${formatMoney(cost3)}💰)</button>
-        <button onclick="gachaEquipPull('${key}', 10)">สุ่ม 10 (${formatMoney(cost10)}💰)</button>
+        <button onclick="gachaEquipPull('${key}', 1)">สุ่ม 1 (${formatMoney(cost1)}<span class=gicon-coin></span>)</button>
+        <button onclick="gachaEquipPull('${key}', 3)">สุ่ม 3 (${formatMoney(cost3)}<span class=gicon-coin></span>)</button>
+        <button onclick="gachaEquipPull('${key}', 10)">สุ่ม 10 (${formatMoney(cost10)}<span class=gicon-coin></span>)</button>
       </div>
     `;
     wrap.appendChild(box);

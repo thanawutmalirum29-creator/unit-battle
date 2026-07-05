@@ -205,7 +205,7 @@ const successRate = Math.max(1, (SUCCESS_RATE_TABLE[card.level] ?? 50) - (card.s
         const shardIcon = typeof itemIconHTML === "function" ? itemIconHTML(shardKey) : "";
 
         extraHTML = `
-          <div class="meta">💰 Cost: ${cost} | 🎯 Success: ${successRate}%</div>
+          <div class="meta"><span class=gicon-coin></span> Cost: ${cost} | 🎯 Success: ${successRate}%</div>
           <div class="meta">: HP → ${sim.next.hp} | ATK → ${sim.next.atk} | DEF → ${sim.next.def}${maxNote}</div>
           <div class="progress-bar"><div id="progress-${idx}" class="progress-fill"></div></div>
           <button id="upgrade-btn-${idx}" onclick="upgradeCard(${idx})" ${cantAffordMoney ? "disabled title=\"เงินไม่พอ\"" : ""}>⬆️ อัพเกรด</button>
