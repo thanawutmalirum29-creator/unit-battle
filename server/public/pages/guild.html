@@ -179,14 +179,13 @@
     </section>
     <section class="panel">
       <h3><span class=gicon-coin></span> บริจาคเข้ากิลด์</h3>
-      <p class="empty-hint">ทุก 100 เงิน = 1 แต้มบริจาค (ใช้ซื้อของในร้านค้ากิลด์ได้) · บริจาคได้สูงสุด <span id="donationLimitLabel">10</span> ครั้ง/วัน และไม่เกิน <b id="donationMoneyCapLabel">1,000,000</b> เงิน/วัน</p>
-      <p class="empty-hint">ได้รับแต้มบริจาคสูงสุด <b id="donationContribCapLabel">500</b> แต้ม/วัน และ EXP กิลด์สูงสุด <b id="donationExpCapLabel">500</b>/วัน (รีเซ็ตทุกวันตอนตี 4)</p>
+      <p class="empty-hint">ทุก 100 เงิน = <span class=gicon-gem></span> 1 แต้มบริจาค (ใช้ซื้อของในร้านค้ากิลด์ได้)</p>
       <div class="searchbar">
         <input id="donateAmountInput" type="number" min="100" step="100" placeholder="จำนวนเงิน" />
         <button id="donateBtn">บริจาค</button>
       </div>
-      <p class="empty-hint">วันนี้บริจาคไปแล้ว <b id="donationMoneyTodayLabel">0</b>/<span id="donationMoneyCapLabel2">1,000,000</span> เงิน · ได้แต้ม <b id="donationContribTodayLabel">0</b>/<span id="donationContribCapLabel2">500</span> · ได้ EXP กิลด์ <b id="donationExpTodayLabel">0</b>/<span id="donationExpCapLabel2">500</span></p>
-      <p class="empty-hint">แต้มบริจาคของฉัน: <b id="myContribBalance">0</b> (สะสมทั้งหมด <b id="myContribLifetime">0</b>)</p>
+      <p class="empty-hint">เหลือโควตาบริจาควันนี้ <b id="donationLeftLabel">10</b> ครั้ง · รีเซ็ตในอีก <b id="donationResetCountdown">-</b></p>
+      <p class="empty-hint"><span class=gicon-gem></span> แต้มบริจาคของฉัน: <b id="myContribBalance">0</b> · สะสมทั้งหมด <b id="myContribLifetime">0</b></p>
     </section>
     <section class="panel" id="leaderSettingsPanel" style="display:none">
       <h3><span class=gicon-gear></span> ตั้งค่ากิลด์ (หัวหน้าเท่านั้น)</h3>
@@ -244,7 +243,7 @@
   <div class="guild-tab-panel" data-panel="shop">
     <section class="panel">
       <h3><span class=gicon-store></span> ร้านค้ากิลด์</h3>
-      <p class="empty-hint">แต้มบริจาคของฉัน: <b id="shopMyBalance">0</b> · กิลด์เลเวล <b id="shopGuildLevel">1</b> · โควตารีเซ็ตทุกสัปดาห์ (<span id="shopCycleEnds">-</span>)</p>
+      <p class="empty-hint"><span class=gicon-gem></span> แต้มบริจาคของฉัน: <b id="shopMyBalance">0</b> · กิลด์เลเวล <b id="shopGuildLevel">1</b> · โควตารีเซ็ตทุกสัปดาห์ (<span id="shopCycleEnds">-</span>)</p>
       <div class="shop-grid" id="shopGrid"></div>
     </section>
   </div>
@@ -288,6 +287,22 @@
   let selectedEmblem = GUILD_EMBLEMS[0];
   let selectedJoinMode = 'apply';
   let editSelectedJoinMode = 'apply';
+  let _donationResetAt = null; // Date เวลาที่โควตาบริจาควันนี้จะรีเซ็ต — ใช้ทำตัวนับถอยหลัง
+
+  function formatCountdown(ms) {
+    if (!Number.isFinite(ms) || ms <= 0) return "0:00:00";
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  function updateDonationCountdown() {
+    const el = document.getElementById("donationResetCountdown");
+    if (!el || !_donationResetAt) return;
+    el.textContent = formatCountdown(_donationResetAt.getTime() - Date.now());
+  }
+  setInterval(updateDonationCountdown, 1000); // เดินนาฬิกาเองทุกวินาที ไม่ต้องรอ re-render
 
   function escapeHtml(s) {
     const d = document.createElement("div");
@@ -490,16 +505,9 @@
 
     const dt = myGuildState.myDonationToday;
     if (dt) {
-      document.getElementById("donationLimitLabel").textContent = dt.donationsCountCap;
-      document.getElementById("donationMoneyCapLabel").textContent = fmtNum(dt.moneyCap);
-      document.getElementById("donationContribCapLabel").textContent = fmtNum(dt.contributionCap);
-      document.getElementById("donationExpCapLabel").textContent = fmtNum(dt.guildExpCap);
-      document.getElementById("donationMoneyTodayLabel").textContent = fmtNum(dt.money);
-      document.getElementById("donationMoneyCapLabel2").textContent = fmtNum(dt.moneyCap);
-      document.getElementById("donationContribTodayLabel").textContent = fmtNum(dt.contribution);
-      document.getElementById("donationContribCapLabel2").textContent = fmtNum(dt.contributionCap);
-      document.getElementById("donationExpTodayLabel").textContent = fmtNum(dt.guildExp);
-      document.getElementById("donationExpCapLabel2").textContent = fmtNum(dt.guildExpCap);
+      document.getElementById("donationLeftLabel").textContent = Math.max(0, dt.donationsCountCap - dt.donationsCount);
+      _donationResetAt = dt.resetsAt ? new Date(dt.resetsAt) : null;
+      updateDonationCountdown();
     }
 
     const expandPanel = document.getElementById("expandCapacityPanel");
