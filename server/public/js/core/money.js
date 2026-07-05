@@ -64,7 +64,7 @@ function addMoney(amount) {
 function updateMoneyUI(money) {
     if(money === undefined) money = loadMoney();
     const el = document.getElementById("moneyWindow");
-    if(el) el.innerText = "💰 " + formatMoney(money);
+    if(el) el.innerHTML = '<span class=gicon-coin></span> ' + formatMoney(money);
 }
 
 // ----------------- เริ่มต้น -----------------
