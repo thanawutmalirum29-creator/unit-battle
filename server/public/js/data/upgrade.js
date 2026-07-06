@@ -201,7 +201,9 @@ const successRate = Math.max(1, (SUCCESS_RATE_TABLE[card.level] ?? 50) - (card.s
         const haveShards = bag[shardKey] || 0;
 
         const cantAffordMoney = money < cost;
-        const cantAffordShards = haveShards < needShards;
+        // Guarantee now also costs money (same amount as the normal roll),
+        // on top of the shards — it buys a guaranteed success, not a discount.
+        const cantAffordGuarantee = money < cost || haveShards < needShards;
         const shardIcon = typeof itemIconHTML === "function" ? itemIconHTML(shardKey) : "";
 
         extraHTML = `
@@ -209,7 +211,7 @@ const successRate = Math.max(1, (SUCCESS_RATE_TABLE[card.level] ?? 50) - (card.s
           <div class="meta">: HP → ${sim.next.hp} | ATK → ${sim.next.atk} | DEF → ${sim.next.def}${maxNote}</div>
           <div class="progress-bar"><div id="progress-${idx}" class="progress-fill"></div></div>
           <button id="upgrade-btn-${idx}" onclick="upgradeCard(${idx})" ${cantAffordMoney ? "disabled title=\"เงินไม่พอ\"" : ""}>⬆️ อัพเกรด</button>
-          <button onclick="guaranteeUpgrade(${idx})" ${cantAffordShards ? "disabled title=\"ชาร์ดไม่พอ\"" : ""}>${shardIcon}การันตี (${haveShards}/${needShards})</button>
+          <button onclick="guaranteeUpgrade(${idx})" ${cantAffordGuarantee ? `disabled title="${haveShards < needShards ? "ชาร์ดไม่พอ" : "เงินไม่พอ"}"` : ""}>${shardIcon}การันตี (${haveShards}/${needShards}) — <span class=gicon-coin></span>${cost}</button>
         `;
       }
     } else {
@@ -386,6 +388,12 @@ async function guaranteeUpgrade(i) {
     alert(`❌ ต้องใช้ ${needShards} ${shardKey} แต่มี ${bag[shardKey] || 0}`);
     return;
   }
+  // Guarantee also costs money now (same as the normal roll-based cost).
+  const cost = calcUpgradeCost(c);
+  if (money < cost) {
+    alert(`❌ เงินไม่พอ ต้องใช้ ${cost}`);
+    return;
+  }
 
   setUpgradeButtonsDisabled(i, true);
   const bar = document.getElementById("progress-" + i);
@@ -399,6 +407,7 @@ async function guaranteeUpgrade(i) {
   }
 
   applyServerBag(result.bag);
+  if (typeof result.money === "number") applyServerMoney(result.money);
   if (bar) bar.style.width = "100%";
 
   setTimeout(() => {
