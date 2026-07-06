@@ -12,9 +12,8 @@
 
   // ปลายทางเมนู — เรียงตามลำดับเดิมของแถบปุ่มที่เคยมีในทุกหน้า
   const NAV_ITEMS = [
-    { href: "game.html", icon: "🎴", label: "NORMAL" },
-    { href: "inf.html", icon: "🌀", label: "INF_MODE" },
-    { href: "boss.html", icon: "👹", label: "BOSS" },
+    { href: "game.html", icon: "⚔️", label: "ต่อสู้" },
+    { href: "deck.html", icon: "🃏", label: "จัดเด็ค" },
     { href: "shop.html", icon: "🏪", label: "SHOP" },
     { href: "upgrade.html", icon: "🌟", label: "UPGRADE" },
     { href: "upgradeskills.html", icon: "💪", label: "SKILLS" },

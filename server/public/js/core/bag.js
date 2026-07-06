@@ -150,13 +150,13 @@ const ITEM_ICON_META = {
     memoryEpic:      { color: "var(--c-epic)" },
     memoryLegendary: { color: "var(--c-legend)",    glow: true },
     memoryMythical:  { color: "var(--c-mythical)",  glow: true },
-    memoryCosmic:    { color: "var(--c-cosmic)",    glow: true },
+    memoryCosmic:    { color: "var(--c-rare)",      glow: true },
     shardGray:       { color: "var(--c-common)" },
     shardBlue:       { color: "var(--c-rare)" },
     shardPurple:     { color: "var(--c-epic)" },
     shardGold:       { color: "var(--c-legend)",    glow: true },
-    shardRed:        { color: "var(--bad)" },
-    shardSky:        { color: "var(--accent-2)" },
+    shardRed:        { color: "var(--bad)",         glow: true },
+    shardSky:        { color: "var(--accent-2)",    glow: true },
 };
 
 function itemIconHTML(key) {
@@ -239,69 +239,22 @@ function injectItemIconStyles() {
     document.head.appendChild(style);
 }
 
-const BAG_COLLAPSE_KEY = "bagPanelCollapsed"; // จำสถานะเปิด/ปิดไว้ข้ามหน้า (เหมือนกันทุกหน้าที่มีกระเป๋า)
-
 function injectBagStyles() {
     if (document.getElementById("bagPanelStyles")) return;
     const style = document.createElement("style");
     style.id = "bagPanelStyles";
     style.textContent = `
 .bag-panel{ margin:0 0 14px; }
-.bag-panel-header{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:8px;
-  margin:0 0 8px;
-}
+.bag-panel-header{ margin:0 0 8px; }
 .bag-panel-header h3{ margin:0; }
-.bag-toggle-btn{
-  flex:0 0 auto;
-  width:32px; height:32px;
-  border-radius:50%;
-  border:1px solid var(--border, rgba(255,255,255,.08));
-  background:var(--panel, #141d2b);
-  color:var(--text, #e8edf5);
-  font-size:15px;
-  line-height:1;
-  cursor:pointer;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  transition:background .15s ease, color .15s ease;
-}
-.bag-toggle-btn:hover{
-  background:linear-gradient(135deg,var(--accent,#5c8bff),#3f63d6);
-  border-color:transparent;
-  color:#fff;
-}
-.bag-panel{ contain:layout paint style; }
-.bag-collapse{
-  display:grid;
-  grid-template-rows:1fr;
-  transition:grid-template-rows .18s ease;
-  will-change:grid-template-rows;
-  contain:layout paint;
-}
-.bag-collapse.collapsed{ grid-template-rows:0fr; }
-.bag-collapse-inner{ overflow:hidden; min-height:0; }
 .bag-panel #bag{ margin:0; }
 `;
     document.head.appendChild(style);
 }
 
-function bagCollapseState() {
-    try { return localStorage.getItem(BAG_COLLAPSE_KEY) === "1"; }
-    catch (e) { return false; }
-}
-
-function setBagCollapseState(collapsed) {
-    try { localStorage.setItem(BAG_COLLAPSE_KEY, collapsed ? "1" : "0"); }
-    catch (e) { /* localStorage ไม่พร้อมใช้งาน — แค่ไม่จำสถานะ ไม่กระทบการเล่น */ }
-}
-
 // วาดกระเป๋าลงใน <div id="bagMount"></div> ถ้าหน้านั้นมี — ถ้าไม่มีก็ข้ามเงียบๆ
 // (หน้าที่ include bag.js เพื่อใช้แค่ addToBag/loadBag เช่น shop/gacha จะไม่มี bagMount เลยไม่โชว์แผงนี้)
+// กระเป๋าโชว์เต็มตลอด ไม่มีปุ่มเปิด/ปิดอีกต่อไป (ย้ายไปรวมกับหน้า "จัดเด็ค" หน้าเดียว)
 function renderBagPanel() {
     const mount = document.getElementById("bagMount");
     if (!mount || document.getElementById("bagPanel")) return;
@@ -317,21 +270,7 @@ function renderBagPanel() {
 
     const h3 = document.createElement("h3");
     h3.textContent = "🎒 กระเป๋า";
-
-    const toggleBtn = document.createElement("button");
-    toggleBtn.type = "button";
-    toggleBtn.id = "bagToggleBtn";
-    toggleBtn.className = "bag-toggle-btn";
-    toggleBtn.setAttribute("aria-controls", "bag");
-
     header.appendChild(h3);
-    header.appendChild(toggleBtn);
-
-    const collapseWrap = document.createElement("div");
-    collapseWrap.className = "bag-collapse";
-
-    const inner = document.createElement("div");
-    inner.className = "bag-collapse-inner";
 
     const bagGrid = document.createElement("div");
     bagGrid.id = "bag";
@@ -343,36 +282,9 @@ function renderBagPanel() {
         bagGrid.appendChild(row);
     });
 
-    inner.appendChild(bagGrid);
-    collapseWrap.appendChild(inner);
     panel.appendChild(header);
-    panel.appendChild(collapseWrap);
+    panel.appendChild(bagGrid);
     mount.appendChild(panel);
-
-    function applyCollapsed(collapsed) {
-        collapseWrap.classList.toggle("collapsed", collapsed);
-        toggleBtn.textContent = collapsed ? "▸" : "▾";
-        toggleBtn.setAttribute("aria-label", collapsed ? "เปิดกระเป๋า" : "ปิดกระเป๋า");
-        toggleBtn.setAttribute("aria-expanded", String(!collapsed));
-    }
-
-    // กันกดรัวๆ: ถ้าแอนิเมชันเปิด/ปิดกำลังเล่นอยู่ (ยังไม่ transitionend) จะไม่รับคลิกใหม่
-    // เพราะการสั่งสลับ state ซ้ำระหว่างที่ transition เดิมยังไม่จบ ทำให้ browser ต้อง
-    // คำนวณ layout ซ้อนกันหลายรอบ (transition ถูกขัดจังหวะแล้วเริ่มใหม่ทับ) จนเกิดอาการหน่วง/กระตุก
-    let bagAnimating = false;
-    collapseWrap.addEventListener("transitionend", (e) => {
-        if (e.target === collapseWrap) bagAnimating = false;
-    });
-
-    toggleBtn.addEventListener("click", () => {
-        if (bagAnimating) return;
-        bagAnimating = true;
-        const collapsed = !collapseWrap.classList.contains("collapsed");
-        applyCollapsed(collapsed);
-        setBagCollapseState(collapsed);
-    });
-
-    applyCollapsed(bagCollapseState());
 }
 
 // ----------------- เริ่มต้น -----------------

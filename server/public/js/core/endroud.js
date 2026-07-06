@@ -11,6 +11,11 @@ function endRoundAll() {
     if (actor.statusEffects) {
       let expired = [];
       actor.statusEffects.forEach(eff => {
+        // 🔧 FIX: ต้องเคลียร์ justApplied ที่นี่ (จุดเดียวที่ endRoundAll() ถูกเรียกจริงทุกโหมด)
+        // เดิม flag นี้ถูกเคลียร์เฉพาะใน endTurnStatusDecay() ใน useSkill.js ซึ่งไม่มีใครเรียกเลย
+        // ผลคือ TimeStop.justApplied ค้างเป็น true ตลอดไป -> เช็ค `if (!eff.justApplied)` ใน
+        // applyStatusEffects() ไม่เคยเป็นจริง -> สกิล Time Stop ทุกเลเวลไม่เคยข้ามเทิร์นเป้าหมายจริงๆ
+        eff.justApplied = false;
         eff.turns--;
         if (eff.turns <= 0) {
           expired.push(eff.type);

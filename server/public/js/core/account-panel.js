@@ -64,11 +64,12 @@
 /* ---- ป๊อปอัปหน้าบัญชี (แผ่นเลื่อนขึ้นจากล่าง) ---- */
 .acctp-overlay{
   position:fixed; inset:0; z-index:9500; display:flex; align-items:flex-end; justify-content:center;
-  background:rgba(3,6,12,.72); padding:0; opacity:0; pointer-events:none; transition:opacity .15s ease;
+  background:rgba(3,6,12,.72); padding:0 0 max(56px, env(safe-area-inset-bottom)); opacity:0; pointer-events:none; transition:opacity .15s ease;
+  box-sizing:border-box;
 }
 .acctp-overlay.open{ opacity:1; pointer-events:auto; }
 .acctp-sheet{
-  width:100%; max-width:480px; max-height:88vh;
+  width:100%; max-width:480px; max-height:80vh;
   background:var(--panel-bg,#0e1526); border:1px solid var(--border);
   border-radius:18px 18px 0 0; padding:0 0 22px; box-shadow:0 -8px 40px rgba(0,0,0,.6);
   display:flex; flex-direction:column; transform:translateY(12px); transition:transform .18s ease;
@@ -142,6 +143,17 @@
 .acct-row:last-child{ border-bottom:none; }
 .acct-row .label{ color:var(--muted); display:inline-flex; align-items:center; gap:6px; }
 .acct-row .value{ font-weight:700; }
+#acctTeamRow{ margin-top:8px; }
+#acctTeamEmptyHint{ font-size:12.5px; color:var(--muted); }
+.acct-team-deck{ margin-bottom:14px; }
+.acct-team-deck:last-child{ margin-bottom:0; }
+.acct-team-deck-name{ font-size:12.5px; font-weight:800; color:var(--accent-2); margin-bottom:6px; }
+.acct-team-deck-empty{ font-size:12px; color:var(--muted); margin:0; }
+.acct-team-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:8px; }
+.acct-team-chip{ position:relative; border-radius:var(--radius-sm); padding:8px 6px; text-align:center; border:1.5px solid var(--border); background:rgba(255,255,255,.04); }
+.acct-team-chip .name{ font-weight:700; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.acct-team-chip .stars{ font-size:11px; margin-top:2px; }
+.acct-team-chip .order{ position:absolute; top:3px; left:5px; font-size:10px; font-weight:800; color:var(--accent-2); }
 #acctBadgeHint{ font-size:12.5px; color:var(--muted); margin:2px 0 16px; }
 .acct-badge-category{ margin-bottom:18px; }
 .acct-badge-category:last-child{ margin-bottom:0; }
@@ -260,6 +272,14 @@
             <div class="acct-row"><span class="label"><span class=gicon-card></span> การ์ดในเด็ค</span><span class="value" id="acctDeckCount">0</span></div>
             <div class="acct-row"><span class="label"><span class=gicon-shield></span> อุปกรณ์ในกระเป๋า</span><span class="value" id="acctEquipCount">0</span></div>
             <div id="acctBag"></div>
+          </div>
+
+          <div class="acctp-section" id="acctTeamPanel" style="display:none">
+            <h4><span class=gicon-card></span> ทีมที่จัดไว้</h4>
+            <div id="acctTeamRow">
+              <p id="acctTeamEmptyHint" style="display:none">ยังไม่ได้จัดทีม — ไปที่หน้า "จัดเด็ค" เพื่อเลือกการ์ดเข้าทีม</p>
+              <div id="acctTeamGrid" class="acct-team-grid"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -400,6 +420,62 @@
     }).join("");
   }
 
+  // แสดง "เด็คที่จัดไว้" ทั้ง 5 ชุด (ชื่อที่ตั้งเอง + การ์ดในเด็คนั้น) — อ่านจาก
+  // localStorage "teamDecks" ตรง ๆ (ไม่พึ่ง team-store.js เพราะบางหน้าที่เปิดป๊อปอัป
+  // แอคเคาท์ไม่ได้โหลดไฟล์นั้น) ใช้ deckList (จาก server state ที่ fetch มาแล้ว)
+  // มาจับคู่หาชื่อ/ดาวของแต่ละการ์ดในแต่ละเด็ค
+  function renderAcctTeam(deckList) {
+    const panel = document.getElementById("acctTeamPanel");
+    const grid = document.getElementById("acctTeamGrid");
+    const emptyHint = document.getElementById("acctTeamEmptyHint");
+    if (!panel || !grid || !emptyHint) return;
+    panel.style.display = "block";
+
+    let teamDecks = [];
+    try { teamDecks = JSON.parse(localStorage.getItem("teamDecks") || "[]"); }
+    catch (e) { teamDecks = []; }
+
+    // ข้อมูลเก่าก่อนมีระบบหลายเด็ค (ยังไม่เคยเปิดหน้า "จัดเด็ค" หลังอัปเดต) — เผื่อไว้
+    if (!Array.isArray(teamDecks) || teamDecks.length === 0) {
+      let legacy = [];
+      try { legacy = JSON.parse(localStorage.getItem("selectedIndexes") || "[]"); }
+      catch (e) { legacy = []; }
+      teamDecks = legacy.length > 0 ? [{ name: "เด็ค1", indexes: legacy }] : [];
+    }
+
+    const deck = Array.isArray(deckList) ? deckList : [];
+    const hasAnyCard = teamDecks.some((d) => Array.isArray(d.indexes) && d.indexes.length > 0);
+
+    if (!hasAnyCard) {
+      grid.innerHTML = "";
+      emptyHint.style.display = "block";
+      return;
+    }
+    emptyHint.style.display = "none";
+
+    grid.innerHTML = teamDecks.map((d) => {
+      const cards = (Array.isArray(d.indexes) ? d.indexes : [])
+        .map((id) => deck.find((c) => c && c.id === id))
+        .filter(Boolean);
+
+      const cardsHTML = cards.length > 0
+        ? cards.map((card, i) => {
+            const stars = typeof getStarsDisplay === "function" ? getStarsDisplay(card.stars || 1, card.maxed) : "⭐".repeat(card.stars || 1);
+            return `<div class="acct-team-chip rarity-${card.rarity || "Common"}">
+              <span class="order">${i + 1}</span>
+              <div class="name">${card.name || "-"}</div>
+              <div class="stars">${stars}</div>
+            </div>`;
+          }).join("")
+        : `<p class="acct-team-deck-empty">ยังไม่มีการ์ดในเด็คนี้</p>`;
+
+      return `<div class="acct-team-deck">
+        <div class="acct-team-deck-name">${(d.name || "เด็ค").replace(/</g, "&lt;")}</div>
+        <div class="acct-team-grid">${cardsHTML}</div>
+      </div>`;
+    }).join("");
+  }
+
   // ---------------------------------------------------------------- แถบกลาง (ชื่อ/รูป/สถานะ)
   function renderGlobalBar(loggedIn, username, statusHtml, avatarHtml, frameClass) {
     document.getElementById("gpbUsername").textContent = loggedIn ? username : "ผู้เล่น";
@@ -418,6 +494,7 @@
     document.getElementById("acctRenameBtn").style.display = loggedIn ? "inline-block" : "none";
     document.getElementById("acctLoggedOutMsg").style.display = loggedIn ? "none" : "block";
     document.getElementById("acctEconomyPanel").style.display = loggedIn ? "block" : "none";
+    document.getElementById("acctTeamPanel").style.display = loggedIn ? "block" : "none";
     document.getElementById("acctMailboxHint").style.display = loggedIn ? "block" : "none";
     document.getElementById("acctPublicIdWrap").style.display = loggedIn ? "block" : "none";
 
@@ -473,6 +550,8 @@
       const el = document.getElementById(elId);
       if (el) el.textContent = bag[key] || 0;
     }
+
+    renderAcctTeam(state.deck);
 
     loadAndRenderBadges();
     loadAndRenderCosmetics();

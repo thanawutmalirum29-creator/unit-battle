@@ -380,6 +380,13 @@ const GameAPI = (() => {
     return post("/api/economy/sell-all", { cardIds }, true);
   }
 
+  // บันทึกสถานะ "ล็อคกันขาย" ของการ์ดไว้ที่เซิฟเวอร์ (กันหายตอนล็อกอินใหม่/สลับเครื่อง —
+  // เดิมค่านี้อยู่แค่ localStorage เลยหายทุกครั้งที่ sync เด็คจากเซิฟใหม่)
+  async function setCardLock(cardId, locked) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/economy/card-lock", { cardId, locked }, true);
+  }
+
   // ---- Equipment: gacha roll + equip/unequip/delete are all server-authoritative now. ----
   async function equipGachaRoll(poolId, times, blacklist) {
     if (!isLoggedIn()) return { error: "not logged in" };
@@ -815,7 +822,7 @@ return {
     fetchEconomyState, claimNormalReward, claimInfReward, consumeHelperRound, checkAccountStatus,
     bossRunStart, bossClaimTier, bossRunFinish,
     shopGetCurrent, shopMyStatus, shopBuy, shopBuyWithShard, skillUpgrade, gachaRoll, saveGachaBlacklist, upgradeGuaranteed,
-    upgradePaid, upgradeDuplicate, sellCard, sellAllCards,
+    upgradePaid, upgradeDuplicate, sellCard, sellAllCards, setCardLock,
     equipGachaRoll, equipItemOnCard, unequipItemFromCard, deleteEquip, deleteEquipByRarityServer, saveEquipBlacklist,
     searchPlayers, fetchFriends, removeFriend,
     sendFriendRequest, fetchIncomingFriendRequests, fetchSentFriendRequests,
