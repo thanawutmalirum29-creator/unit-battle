@@ -17,9 +17,11 @@ function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 /* =======================
    Stage Reward by Damage
    ======================= */
-let damageDone = 0;
-let stageRewardGiven = [];
-let roundCount = 1;
+// 🟢 var แทน let/const: หน้ารวมโหมด (game.html) โหลด N-Mode.js/boss.js/inf-mode.js
+// ในเอกสารเดียวกัน ชื่อซ้ำกันประกาศด้วย let/const ข้าม <script> จะ SyntaxError ทันที
+var damageDone = 0;
+var stageRewardGiven = [];
+var roundCount = 1;
 function resetStageRewards(){
   damageDone = 0;
   stageRewardGiven = [];
@@ -45,6 +47,7 @@ function addBossDamage(dmg){
             for (const [key, amount] of Object.entries(result.drops || {})) {
               log(`🎁 ได้ ${amount}x ${key}`, "system");
             }
+            if (window.HubUI) HubUI.addReward(result.moneyGain, result.drops);
           } else {
             console.warn("[Boss] claim tier failed:", result?.error);
           }
@@ -57,12 +60,12 @@ function addBossDamage(dmg){
 /* =======================
    Global State
    ======================= */
-let currentBossKey = null;
-let currentBoss = null;
-let battleRunning = false;
-let playerTeam = [];
-let enemyTeam = [];
-let maxTeamSize = 4;
+var currentBossKey = null;
+var currentBoss = null;
+var battleRunning = false;
+var playerTeam = [];
+var enemyTeam = [];
+var maxTeamSize = 4;
 
 /* =======================
    Team Prep
@@ -341,9 +344,9 @@ function prepareBossBattle(){
   }];
 
   const deck = JSON.parse(localStorage.getItem("deck")||"[]");
-  const selected = JSON.parse(localStorage.getItem("selectedIndexes")||"[]");
+  const selected = loadSelectedTeam("boss"); // เด็คที่เลือกใช้ในหน้านี้ (จัดไว้จากหน้า "จัดเด็ค")
 
-  playerTeam = selectedIndexes.map((cardId, i) => {
+  playerTeam = selected.map((cardId, i) => {
   const originalDeck = JSON.parse(localStorage.getItem("deck") || "[]");
   const found = originalDeck.find(d => d.id === cardId);
   if (!found) return null;
@@ -370,6 +373,7 @@ function prepareBossBattle(){
 }).filter(Boolean);
 
   resetStageRewards();
+  if (window.HubUI) { HubUI.resetDamageStats(); HubUI.resetRewards(); }
 
   logClear?.();
   log(`🐉 เลือกบอส: ${currentBoss.name}`, "system");
@@ -389,6 +393,9 @@ function getFinalStats(actor) {
 async function startBattle(){
   if (!currentBoss || battleRunning) return;
   battleRunning = true;
+  bossResultsShown = false; // 🟢 รีเซ็ตทุกครั้งที่เริ่มสู้ใหม่ กันเคสจบสู้ก่อนหน้าด้วย endBattle() แค่ครั้งเดียว
+                            // (เช่นบอสตายด้วยสกิล ไม่ใช่โจมตีธรรมดา) แล้ว flag เหลือ true ค้างไปสู้ครั้งถัดไป
+  if (window.HubUI) HubUI.enterBattle();
 
   const cancelBtn = document.getElementById("cancelBattleBtn");
   if (cancelBtn){
@@ -396,6 +403,17 @@ async function startBattle(){
     cancelBtn.onclick = async ()=>{
       if (await uiConfirm("❌ ยกเลิกการต่อสู้?")){
         log("⚠️ การต่อสู้ถูกยกเลิก", "system");
+        if (window.HubUI) {
+          HubUI.showResults({
+            win: false,
+            cancelled: true,
+            title: "❌ คุณยกเลิกการต่อสู้",
+            extraNote: "การยกเลิกกลางคันนับเป็นแพ้ — ได้รางวัลตามดาเมจที่ทำได้จริงเท่านั้น",
+            playerTeam: [...playerTeam],
+            enemyTeam: [...enemyTeam],
+          });
+          bossResultsShown = true;
+        }
         endBattle(false);
       }
     };
@@ -487,12 +505,27 @@ function checkWinLose(){
   return false;
 }
 
+var bossResultsShown = false;
 function endBattle(win){
   battleRunning = false;
   const cancelBtn = document.getElementById("cancelBattleBtn");
   if (cancelBtn) cancelBtn.style.display="none";
   renderBossButtons();
   if (window.GameAPI) GameAPI.bossRunFinish();
+
+  // 🟢 ป้องกันโชว์ผลซ้ำ — เส้นทางฆ่าบอสมีจุดเรียก endBattle(true) มากกว่า 1 จุด
+  // (ทั้งจาก handleDeath และจากลูปโจมตีธรรมดาโดยตรง) ส่วนกรณียกเลิกกลางคัน
+  // ตัวปุ่มยกเลิกโชว์ผลของตัวเองไปแล้วก่อนเรียก endBattle(false) จึงข้ามตรงนี้
+  if (bossResultsShown) { bossResultsShown = false; return; }
+  bossResultsShown = true;
+  if (window.HubUI) {
+    HubUI.showResults({
+      win,
+      title: win ? "🎉 คุณชนะ! โค่นบอสสำเร็จ" : "💀 คุณแพ้... ทีมถูกโค่นทั้งหมด",
+      playerTeam: [...playerTeam],
+      enemyTeam: [...enemyTeam],
+    });
+  }
 }
 
 /* =======================
@@ -572,8 +605,8 @@ function handleDeath(unit){
 /* =======================
    Battle Speed Control
    ======================= */
-const SPEEDS = { 1: 1300, 2: 1000, 3: 800 ,4:500};
-let speedMultiplier = parseInt(localStorage.getItem("speedMul") || "1", 10);
+var SPEEDS = { 1: 1300, 2: 1000, 3: 800 ,4:500};
+var speedMultiplier = parseInt(localStorage.getItem("speedMul") || "1", 10);
 
 function getBattleSpeed(){
   return SPEEDS[speedMultiplier] || 1500;
