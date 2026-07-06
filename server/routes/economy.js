@@ -618,6 +618,48 @@ router.post('/gacha/blacklist', requireAuth, asyncHandler(async (req, res) => {
 }));
 
 // ---------------------------------------------------------------------------
+// POST /api/economy/card-lock { cardId, locked } — persists the "ล็อคกันขาย"
+// toggle on a deck card server-side. Previously `locked` only ever lived in
+// localStorage (set by deck-manage.js), so it silently reset to false any
+// time the client resynced its deck from the server (login, or after any
+// sell/upgrade/gacha call that returns a fresh `deck`) — the server copy
+// never carried the flag because nothing ever saved it there.
+// ---------------------------------------------------------------------------
+router.post('/card-lock', requireAuth, asyncHandler(async (req, res) => {
+  const cardId = req.body?.cardId;
+  const locked = req.body?.locked === true;
+  if (!cardId) return res.status(400).json({ error: 'missing cardId' });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const econ = await getOrCreateEconomy(client, req.playerId);
+    const deck = econ.deck;
+    const idx = deck.findIndex(c => c.id === cardId);
+    if (idx === -1) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'card not found in deck' });
+    }
+
+    const newDeck = [...deck];
+    newDeck[idx] = { ...newDeck[idx], locked };
+
+    await client.query(
+      `UPDATE player_economy SET deck = $2, updated_at = now() WHERE player_id = $1`,
+      [req.playerId, JSON.stringify(newDeck)]
+    );
+
+    await client.query('COMMIT');
+    res.json({ ok: true, deck: newDeck });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}));
+
+// ---------------------------------------------------------------------------
 // Card upgrade (the "guaranteed" shard-cost path from public/js/data/upgrade.js —
 // fixed 10 shards of the card's rarity-matched shard type, no RNG, level+1 up to
 // UPGRADE_MAX_LEVEL). The separate money+success-rate upgrade path in upgrade.js
@@ -647,6 +689,15 @@ router.post('/upgrade/guaranteed', requireAuth, asyncHandler(async (req, res) =>
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'already max level' });
     }
+    // BUG FIX: this path used to star-up for free at Lv.10/stars 5-7, letting
+    // players spam this endpoint (shards only, no duplicate cards needed) to
+    // skip straight to 8★ — bypassing the duplicate-card requirement that
+    // /upgrade/paid enforces for the same level/star range. Now consistent:
+    // star-up here requires going through /upgrade/duplicate instead.
+    if (card.level >= UPGRADE_MAX_LEVEL && card.stars >= 5 && card.stars < 8) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'star-up at max level requires duplicate cards — use /upgrade/duplicate' });
+    }
 
     const shardKey = UPGRADE_SHARD_KEY_BY_RARITY[card.rarity] || 'shardGray';
     const have = econ.bag[shardKey] || 0;
@@ -655,11 +706,23 @@ router.post('/upgrade/guaranteed', requireAuth, asyncHandler(async (req, res) =>
       return res.status(400).json({ error: `need ${UPGRADE_SHARDS_NEEDED} ${shardKey}, have ${have}` });
     }
 
+    // UPDATED: guarantee now costs money too, same amount as the normal
+    // roll-based path — the shards buy the guaranteed *success*, not a
+    // discount on the money cost. Normally money pays for a chance (rolled
+    // against successRate); here it pays for the same upgrade with the RNG
+    // removed instead of skipped for free.
+    const cost = calcUpgradeCost(card);
+    if (Number(econ.money) < cost) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: `not enough money (need ${cost})` });
+    }
+
     const newBag = { ...econ.bag, [shardKey]: have - UPGRADE_SHARDS_NEEDED };
+    const newMoney = Number(econ.money) - cost;
 
     // Matches guaranteeUpgrade() in public/js/data/upgrade.js: always succeeds,
-    // level+1 up to UPGRADE_MAX_LEVEL, then star-up (free — the guaranteed path
-    // doesn't require duplicate cards, unlike the paid path), maxed at 8 stars.
+    // level+1 up to UPGRADE_MAX_LEVEL, then free star-up only below 5 stars
+    // (5-7★ star-up is blocked above and must go through /upgrade/duplicate).
     if (card.level < UPGRADE_MAX_LEVEL) {
       card.level += 1;
     } else if (card.stars < 8) {
@@ -676,12 +739,12 @@ router.post('/upgrade/guaranteed', requireAuth, asyncHandler(async (req, res) =>
     newDeck[idx] = card;
 
     await client.query(
-      `UPDATE player_economy SET bag = $2, deck = $3, updated_at = now() WHERE player_id = $1`,
-      [req.playerId, JSON.stringify(newBag), JSON.stringify(newDeck)]
+      `UPDATE player_economy SET money = $2, bag = $3, deck = $4, updated_at = now() WHERE player_id = $1`,
+      [req.playerId, newMoney, JSON.stringify(newBag), JSON.stringify(newDeck)]
     );
 
     await client.query('COMMIT');
-    res.json({ ok: true, card: newDeck[idx], bag: newBag });
+    res.json({ ok: true, card: newDeck[idx], bag: newBag, money: newMoney, cost });
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
