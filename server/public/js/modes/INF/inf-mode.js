@@ -1,13 +1,14 @@
-let deck = JSON.parse(localStorage.getItem("deck") || "[]");
-let selectedIndexes = [];
-const maxTeamSize = 4;
+// 🟢 var แทน let/const: ชื่อพวกนี้ซ้ำกับ N-Mode.js/boss.js ในหน้ารวมโหมด (game.html)
+var deck = JSON.parse(localStorage.getItem("deck") || "[]");
+var selectedIndexes = loadSelectedTeam("inf"); // เด็คที่เลือกใช้ในหน้านี้ (จัดไว้จากหน้า "จัดเด็ค")
+var maxTeamSize = 4;
 
-let currentInfStage = 1;
-let enemyTeam = [];
-let playerTeam = [];
-let battleRunning = false;
-let autoMode = false;
-let roundCount = 1;
+var currentInfStage = 1;
+var enemyTeam = [];
+var playerTeam = [];
+var battleRunning = false;
+var autoMode = false;
+var roundCount = 1;
 
 function startInfAuto(startStage = 1) {
   autoMode = true;
@@ -58,6 +59,7 @@ async function startInfGame(startStage = 1) {
 
   currentInfStage = startStage;
   playerTeam = []; // force a fresh team build at the new starting stage
+  if (window.HubUI) { HubUI.enterBattle(); HubUI.resetDamageStats(); HubUI.resetRewards(); }
   document.getElementById("cancelBattleBtn").style.display = "inline-block";
   setInfStage(currentInfStage);
 }
@@ -65,7 +67,13 @@ async function startInfGame(startStage = 1) {
 function setInfStage(n) {
   if (battleRunning) return;
   currentInfStage = n;
-  document.getElementById("cancelBattleBtn").style.display = "inline-block";
+  const cancelBtn = document.getElementById("cancelBattleBtn");
+  cancelBtn.style.display = "inline-block";
+  cancelBtn.onclick = async () => {
+    if (await uiConfirm("คุณต้องการยกเลิกการต่อสู้หรือไม่?")) {
+      cancelInfBattle();
+    }
+  };
   prepareInfBattle();
   startInfBattle();
 }
@@ -409,6 +417,7 @@ async function startInfBattle() {
               for (const [key, amount] of Object.entries(result.drops || {})) {
                 log(`🎁 ได้ ${amount}x ${key}`, "system");
               }
+              if (window.HubUI) HubUI.addReward(result.moneyGain, result.drops);
             } else {
               console.warn("[INF] claim reward failed:", result?.error);
             }
@@ -437,13 +446,24 @@ function endInfBattle(win = false) {
 
   if (win) {
     if (INF_STAGES[currentInfStage + 1]) {
+      // ยังไม่ใช่จุดจบของรัน (ยังไปต่อได้) — ไปด่านถัดไปเลย ไม่ต้องโชว์สรุปผล
+      // (สถิติดาเมจ/รางวัลสะสมต่อเนื่องไปจนกว่าจะตายจริงหรือกดยกเลิก)
       currentInfStage++;
       setInfStage(currentInfStage);
     } else {
       log("🏆 เคลียร์ครบทุก INF Stage!", "system");
       updateResult("🏆 เคลียร์ครบทุก INF Stage!");
       GameAPI.infRunFinish(); // no more stages left — run is over, lock in the score
-      if (!autoMode) alert("🎉 คุณชนะทุกด่านแล้ว! เกมจบ");
+      if (window.HubUI) {
+        HubUI.showResults({
+          win: true,
+          title: "🏆 เคลียร์ครบทุก INF Stage!",
+          playerTeam: [...playerTeam],
+          enemyTeam: [...enemyTeam],
+        });
+      } else if (!autoMode) {
+        alert("🎉 คุณชนะทุกด่านแล้ว! เกมจบ");
+      }
       setTimeout(() => {
         currentInfStage = 1;
         playerTeam = [];
@@ -453,10 +473,20 @@ function endInfBattle(win = false) {
       }, 2000);
     }
   } else {
-    log("💀 ทีมผู้เล่นพ่ายแพ้...", "system");
+    log("💀 ทีมผู้เล่นพ่ายแพ้ทั้งหมด...", "system");
     updateResult("💀 แพ้... เริ่มใหม่ที่ Stage 1");
     GameAPI.infRunFinish(); // run ends on death — score is whatever max_stage the server already has
-    if (!autoMode) alert("💀 แพ้... เริ่มใหม่ที่ Stage 1");
+    if (window.HubUI) {
+      HubUI.showResults({
+        win: false,
+        title: "💀 คุณแพ้... เริ่มใหม่ที่ Stage 1",
+        extraNote: `ไปได้ถึง INF Stage ${currentInfStage}`,
+        playerTeam: [...playerTeam],
+        enemyTeam: [...enemyTeam],
+      });
+    } else if (!autoMode) {
+      alert("💀 แพ้... เริ่มใหม่ที่ Stage 1");
+    }
     setTimeout(() => {
       currentInfStage = 1;
       playerTeam = [];
@@ -470,17 +500,24 @@ function endInfBattle(win = false) {
 /* ============================
    CANCEL BATTLE
    ============================ */
-document.getElementById("cancelBattleBtn").addEventListener("click", async () => {
-  if (await uiConfirm("คุณต้องการยกเลิกการต่อสู้หรือไม่?")) {
-    cancelInfBattle();
-  }
-});
+// 🟢 การกด cancelBattleBtn ตอนนี้ผูก onclick ไว้ใน setInfStage() แทน (ดูด้านบน)
+// เพราะหน้ารวมโหมดใช้ปุ่มยกเลิกร่วมกันทั้ง 3 โหมด
 
 function cancelInfBattle() {
   battleRunning = false;
   document.getElementById("cancelBattleBtn").style.display = "none";
   log("⚠️ คุณกดยกเลิกการต่อสู้", "system");
   updateResult("❌ การต่อสู้ถูกยกเลิก");
+  if (window.HubUI) {
+    HubUI.showResults({
+      win: false,
+      cancelled: true,
+      title: "❌ คุณยกเลิกการต่อสู้",
+      extraNote: `ไปได้ถึง INF Stage ${currentInfStage} — ได้รางวัลเท่าที่สะสมไว้เท่านั้น`,
+      playerTeam: [...playerTeam],
+      enemyTeam: [...enemyTeam],
+    });
+  }
   GameAPI.infRunFinish(); // cancelled run still gets closed out server-side, scored at current max_stage
   setTimeout(() => {
     currentInfStage = 1;
@@ -532,8 +569,8 @@ async function renderInfCheckpoints() {
 /* ============================
    BATTLE SPEED
    ============================ */
-const SPEEDS = { 1: 1300, 2: 1000, 3: 800, 4: 500 };
-let speedMultiplier = parseInt(localStorage.getItem("speedMul") || "1", 10);
+var SPEEDS = { 1: 1300, 2: 1000, 3: 800, 4: 500 };
+var speedMultiplier = parseInt(localStorage.getItem("speedMul") || "1", 10);
 
 function getBattleSpeed() {
   return SPEEDS[speedMultiplier] || 1200;
@@ -553,6 +590,5 @@ document.querySelectorAll(".speed-btn").forEach(btn => {
 /* ============================
    INIT UI
    ============================ */
-renderDeck();
 updateBagUI();
 renderInfCheckpoints();
