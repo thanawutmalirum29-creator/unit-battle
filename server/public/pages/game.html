@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="utf-8" />
-  <title>(Turn-Based)</title>
+  <title>ต่อสู้</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#0c121b" />
@@ -12,25 +12,64 @@
   <link rel="stylesheet" href="../css/game.css" />
   <link rel="stylesheet" href="../css/skills.css" />
   <link rel="stylesheet" href="../css/theme.css" />
-<link rel="stylesheet" href="../css/icons.css" />
+  <link rel="stylesheet" href="../css/icons.css" />
   <script src="../js/core/ui-popup.js"></script>
+  <style>
+    .mode-tabs{ display:flex; gap:8px; margin:10px 0; flex-wrap:wrap; }
+    .mode-tab-btn{
+      flex:1 1 auto; min-width:100px; padding:10px 12px; border-radius:var(--radius-sm,9px);
+      border:1px solid var(--border,rgba(255,255,255,.12)); background:var(--panel,#141d2b);
+      color:var(--muted,#93a1b5); font-weight:700; cursor:pointer; transition:.15s ease;
+    }
+    .mode-tab-btn.active{
+      background:linear-gradient(135deg,var(--accent,#5c8bff),#3f63d6);
+      color:#fff; border-color:transparent;
+    }
+
+    #resultsOverlay{
+      display:none; position:fixed; inset:0; z-index:10060; align-items:center; justify-content:center;
+      padding:16px; background:rgba(4,6,12,.72); backdrop-filter:blur(3px);
+    }
+    .results-panel{
+      width:100%; max-width:560px; max-height:86vh; overflow-y:auto;
+      background:linear-gradient(180deg, var(--panel,#141d2b), var(--bg-2,#121a26));
+      border:1px solid var(--border, rgba(255,255,255,.08)); border-radius:var(--radius,14px);
+      box-shadow:var(--shadow,0 8px 24px rgba(0,0,0,.45)); padding:20px 18px 18px;
+    }
+    .results-panel h2{ text-align:center; margin:0 0 8px; }
+    .results-panel h2.result-win{ color:#7CFC7C; }
+    .results-panel h2.result-lose{ color:#FF7043; }
+    .results-note{ text-align:center; color:var(--muted,#93a1b5); font-size:13px; margin:0 0 12px; }
+    .results-rewards{
+      background:var(--panel-soft,rgba(255,255,255,.04)); border:1px solid var(--border,rgba(255,255,255,.08));
+      border-radius:var(--radius-sm,9px); padding:10px 12px; margin:0 0 14px;
+    }
+    .results-drops{ list-style:none; margin:6px 0 0; padding:0; font-size:13px; }
+    .results-table{ width:100%; border-collapse:collapse; font-size:13px; margin-bottom:16px; }
+    .results-table th, .results-table td{ border-bottom:1px solid var(--border,rgba(255,255,255,.08)); padding:6px 8px; text-align:left; }
+    .results-table tr.row-player td:first-child{ color:#4FC3F7; }
+    .results-table tr.row-enemy td:first-child{ color:#FF7043; }
+    .results-continue-btn{
+      width:100%; padding:12px; border-radius:999px; border:none; font-weight:800; font-size:15px;
+      background:linear-gradient(135deg,var(--accent,#5c8bff),#3f63d6); color:#fff; cursor:pointer;
+    }
+  </style>
 </head>
 <body>
 <header class="topbar">
-  <h1>🎴 Normal Mode</h1>
+  <h1>⚔️ ต่อสู้</h1>
   <div class="right-group">
     <div id="moneyWindow"><span class=gicon-coin></span> 400</div>
   </div>
 </header>
 
-<div id="bagMount"></div>
+<div class="mode-tabs">
+  <button class="mode-tab-btn" data-mode="normal">🎴 Normal</button>
+  <button class="mode-tab-btn" data-mode="boss">👹 Boss</button>
+  <button class="mode-tab-btn" data-mode="inf">🌀 Infinity</button>
+</div>
 
-<button id="cancelBattleBtn" style="display:none"><span class=gicon-x></span> ยกเลิกการต่อสู้</button>
-
-<section>
-  <h3 id="deckHeader">เด็คของฉัน — เลือกการ์ดเป็นทีม</h3>
-  <div id="deck-wrapper"></div>
-</section>
+<div id="teamSelectorMount" data-page-key="normal"></div>
 
 <div style="margin:8px 0">
   <span class="">ความเร็ว:</span>
@@ -40,28 +79,60 @@
   <button class="speed-btn" data-mul="4">×4</button>
 </div>
 
-<div class="stage-list" id="stageList"></div>
+<!-- ============ NORMAL: mode-select area ============ -->
+<section id="normalSelect">
+  <div class="stage-list" id="stageList"></div>
+  <hr>
+  <div id="stageInfo"></div>
+</section>
 
-<hr>
-<div id="stageInfo"></div>
-
-<div class="right">
-  <div class="panel battlefield-panel">
-    <h3>สนามต่อสู้</h3>
-    <div id="battlefield" style="display:flex; justify-content:space-between; gap:20px;">
-      <div id="playerTeamBox" class="team-box"></div>
-      <div id="enemyTeamBox" class="team-box"></div>
-    </div>
+<!-- ============ BOSS: mode-select area ============ -->
+<section id="bossSelect" style="display:none">
+  <div class="boss-section-header">
+    <h3>เลือก Boss</h3>
+    <button id="bossInfoBtn" type="button" class="boss-info-btn" aria-label="รายละเอียดบอสและของดรอป">❗</button>
   </div>
-  <div class="panel">
-    <h3>Battle Log</h3>
-    <div id="battleLog"></div>
-    <div id="result"></div>
+  <div id="bossList"></div>
+</section>
+
+<!-- ============ INFINITY: mode-select area ============ -->
+<section id="infSelect" style="display:none">
+  <button onclick="startInfGame()">▶️ เริ่มสู้</button>
+  <button onclick="startInfAuto()">▶️ Auto</button>
+  <hr>
+  <h3>INF Stage</h3>
+  <div id="infStageInfo">ยังไม่เริ่ม</div>
+  <h4 style="margin:14px 0 6px">🚩 เริ่มจากจุดเช็คพอยต์</h4>
+  <div class="stage-list" id="infCheckpointList"></div>
+</section>
+
+<!-- ============ SHARED: battle screen — โผล่เฉพาะตอนกำลังต่อสู้เท่านั้น ============ -->
+<div id="battleScreen" style="display:none">
+  <button id="cancelBattleBtn" style="display:none"><span class=gicon-x></span> ยกเลิกการต่อสู้</button>
+
+  <div class="right">
+    <div class="panel battlefield-panel">
+      <h3>สนามต่อสู้</h3>
+      <div id="battlefield" style="display:flex; justify-content:space-between; gap:20px;">
+        <div id="playerTeamBox" class="team-box"></div>
+        <div id="enemyTeamBox" class="team-box"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Battle Log</h3>
+      <div id="battleLog"></div>
+      <div id="result"></div>
+    </div>
   </div>
 </div>
 
+<!-- ============ SHARED: ผลสรุปหลังจบการต่อสู้ ============ -->
+<div id="resultsOverlay"></div>
 
+<!-- ============ Shared core scripts (ใช้ร่วมกันทั้ง 3 โหมด) ============ -->
 <script src="../stages/n-stages.js"></script>
+<script src="../js/modes/BOSS/bossmap.js"></script>
+<script src="../js/data/equip.js"></script>
 <script src="../js/core/drops.js"></script>
 <script src="../js/core/battle.js"></script>
 <script src="../js/core/bag.js"></script>
@@ -70,7 +141,6 @@
 <script src="../js/skills/skillHandlers_partDMG.js"></script>
 <script src="../js/skills/skillHandlers_partHP.js"></script>
 <script src="../js/skills/skillHandlers_partEF1.js"></script>
-
 <script src="../js/skills/skillHandlers_partSummon.js"></script>
 <script src="../js/skills/useSkill.js"></script>
 <script src="../js/skills/attack.js"></script>
@@ -78,14 +148,15 @@
 <script src="../js/core/render.js"></script>
 <script src="../js/core/money.js"></script>
 <script src="../js/core/deck.js"></script>
-
+<script src="../js/core/team-store.js"></script>
+<script src="../js/core/team-select-ui.js"></script>
 <script src="../js/core/log.js"></script>
 <script src="../js/core/endroud.js"></script>
 <script src="../js/core/api.js"></script>
 <script src="../js/core/auth-ui.js"></script>
-<script src="../js/modes/NORMAL/N-Mode.js"></script>
 
-
+<!-- ตัวควบคุมหน้ารวมโหมด — ต้องมาก่อนสคริปต์ของแต่ละโหมด (โหลดแบบ lazy ทีหลัง) -->
+<script src="../js/core/hub-ui.js"></script>
 
 <script src="../js/core/nav-fab.js"></script>
 <script src="../js/core/mail-fab.js"></script>

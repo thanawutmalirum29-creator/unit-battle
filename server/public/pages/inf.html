@@ -1,89 +1,10 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="utf-8" />
-  <title>Infinite Mode</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#0c121b" />
-  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-  <script src="../js/core/ui-scale.js"></script>
-  <script src="../js/core/pwa-register.js" defer></script>
-  <link rel="stylesheet" href="../css/game.css" />
-  <link rel="stylesheet" href="../css/skills.css" />
-  <link rel="stylesheet" href="../css/theme.css" />
-<link rel="stylesheet" href="../css/icons.css" />
-  <script src="../js/core/ui-popup.js"></script>
+<meta charset="utf-8" />
+<title>Infinite Mode</title>
+<meta http-equiv="refresh" content="0; url=game.html?mode=inf" />
+<script>location.replace("game.html?mode=inf");</script>
 </head>
-<body data-mode="inf">
-<header class="topbar">
-  <h1>🌀 Infinite Mode</h1>
-  <div class="right-group">
-    <div id="moneyWindow"><span class=gicon-coin></span> 400</div>
-  </div>
-</header>
-<div id="bagMount"></div>
-
-<button id="cancelBattleBtn" style="display:none"><span class=gicon-x></span> ยกเลิกการต่อสู้</button>
-
-  <section>
-  <h3 id="deckHeader">เด็คของฉัน — เลือกการ์ดเป็นทีม</h3>
-  <div id="deck-wrapper"></div>
-</section>
-
-    <button onclick="startInfGame()">▶️ เริ่มสู้</button>
-<button onclick="startInfAuto()">▶️ Auto</button>
-    <div style="margin:8px 0">
-  <span class="">ความเร็ว:</span>
-  <button class="speed-btn" data-mul="1">×1</button>
-  <button class="speed-btn" data-mul="2">×2</button>
-  <button class="speed-btn" data-mul="3">×3</button>
-    <button class="speed-btn" data-mul="4">×4</button>
-</div>
-    <hr>
-    <h3>INF Stage</h3>
-    <div id="infStageInfo">ยังไม่เริ่ม</div>
-
-    <h4 style="margin:14px 0 6px">🚩 เริ่มจากจุดเช็คพอยต์</h4>
-    <div class="stage-list" id="infCheckpointList"></div>
-
-  <div class="right">
-    <div class="panel battlefield-panel">
-      <h3>สนามต่อสู้</h3>
-      <div id="battlefield" style="display:flex; justify-content:space-between; gap:20px;">
-        <div id="playerTeamBox" class="team-box"></div>
-        <div id="enemyTeamBox" class="team-box"></div>
-      </div>
-    </div>
-    <div class="panel">
-      <h3>Battle Log</h3>
-      <div id="battleLog"></div>
-      <div id="result"></div>
-    </div>
-  </div>
-<script src="../js/data/equip.js"></script>
-<script src="../js/core/render.js"></script>
-
-<script src="../js/core/bag.js"></script>
-
-<script src="../js/core/Hpbar.js"></script>
-<script src="../js/skills/playanimationskill.js"></script>
-<script src="../js/skills/skillHandlers_partDMG.js"></script>
-<script src="../js/skills/skillHandlers_partHP.js"></script>
-<script src="../js/skills/skillHandlers_partEF1.js"></script>
-<script src="../js/skills/Intermediaryfunction.js"></script>
-<script src="../js/core/battle.js"></script>
-<script src="../js/skills/skillHandlers_partSummon.js"></script>
-<script src="../js/skills/useSkill.js"></script>
-<script src="../js/skills/attack.js"></script>
-<script src="../js/core/log.js"></script>
-<script src="../js/core/endroud.js"></script>
-<script src="../js/core/api.js"></script>
-<script src="../js/core/auth-ui.js"></script>
-<script src="../js/modes/INF/inf-mode.js"></script>
-<script src="../js/core/money.js"></script>
-<script src="../js/core/nav-fab.js"></script>
-<script src="../js/core/mail-fab.js"></script>
-<script src="../js/core/account-panel.js"></script>
-</body>
+<body>กำลังพาไปหน้าต่อสู้ (โหมด Infinity)...</body>
 </html>
