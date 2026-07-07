@@ -96,6 +96,7 @@ async function setInfStage(n) {
 
   const startRes = await GameAPI.battleStart("inf", selectedIndexes, { stage: n, runId: currentInfRunId });
   if (!startRes || startRes.error) {
+    window.battleTransitioning = false; // 🔧 กันล็อกค้างถาวรถ้าไปด่านถัดไปไม่สำเร็จ
     alert("❌ " + (startRes?.error || "ไปด่านถัดไปไม่สำเร็จ"));
     return;
   }
@@ -286,6 +287,7 @@ function randomBetween(min, max) {
 async function runInfBattleLoop() {
   if (battleRunning) return;
   battleRunning = true;
+  window.battleTransitioning = false; // เข้าด่านถัดไปจริงแล้ว เลิกใช้ flag คร่อมช่วงทรานซิชัน
   updateResult("");
 
   let turn = 1;
@@ -350,6 +352,8 @@ function endInfBattle(win = false) {
     if (currentInfStage < MAX_INF_STAGE) {
       // ยังไม่ใช่จุดจบของรัน (ยังไปต่อได้) — ไปด่านถัดไปเลย ไม่ต้องโชว์สรุปผล
       // (สถิติดาเมจ/รางวัลสะสมต่อเนื่องไปจนกว่าจะตายจริงหรือกดยกเลิก)
+      // 🔧 FIX: กันหน้าหลุดล็อกระหว่างช่วงนี้ — ดู isBattleRunning() ใน hub-ui.js
+      window.battleTransitioning = true;
       currentInfStage++;
       setInfStage(currentInfStage);
     } else {
