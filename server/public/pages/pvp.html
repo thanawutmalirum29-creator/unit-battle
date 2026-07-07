@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <title><span class=gicon-trophy></span> สมรภูมิจัดอันดับ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0c121b" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <script src="../js/core/ui-scale.js"></script>
+  <script src="../js/core/pwa-register.js" defer></script>
+  <link rel="stylesheet" href="../css/game.css" />
+  <link rel="stylesheet" href="../css/skills.css" />
+  <link rel="stylesheet" href="../css/theme.css" />
+  <link rel="stylesheet" href="../css/icons.css" />
+  <script src="../js/core/ui-popup.js"></script>
+  <style>
+    .pvp-tabs{ display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; margin-bottom:12px; }
+    .pvp-tabs button{ flex:0 0 auto; width:auto; font-size:13px; padding:8px 12px; white-space:nowrap; }
+    .pvp-tab-panel{ display:none; }
+    .pvp-tab-panel.active{ display:block; }
+
+    .season-banner{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding:12px 14px; border-radius:12px; margin-bottom:12px;
+      background:linear-gradient(135deg,rgba(92,139,255,.16),rgba(63,99,214,.08));
+      border:1px solid var(--border);
+    }
+    .season-banner-title{ font-weight:800; font-size:15px; }
+    .season-banner-sub{ color:var(--muted); font-size:12.5px; margin-top:2px; }
+    .season-status-pill{ font-size:11px; padding:3px 9px; border-radius:999px; font-weight:700; white-space:nowrap; }
+    .status-active{ background:rgba(74,222,128,.18); color:#4ade80; }
+    .status-upcoming{ background:rgba(244,185,66,.18); color:#f4b942; }
+    .status-ended{ background:rgba(255,255,255,.08); color:var(--muted); }
+
+    .rank-card{
+      display:flex; align-items:center; gap:14px; padding:14px; border-radius:14px; margin-bottom:12px;
+      background:rgba(255,255,255,.04); border:1px solid var(--border);
+    }
+    .rank-icon{ font-size:40px; line-height:1; }
+    .rank-name{ font-weight:800; font-size:17px; }
+    .rank-sub{ color:var(--muted); font-size:12.5px; margin-top:2px; }
+    .rank-stats{ display:flex; gap:14px; margin-top:8px; font-size:12.5px; color:var(--muted); }
+    .rank-stats b{ color:var(--text); }
+
+    .ticket-bar{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; font-size:13px; }
+    .ticket-dots{ display:flex; gap:4px; }
+    .ticket-dot{ width:10px; height:10px; border-radius:50%; background:rgba(255,255,255,.12); }
+    .ticket-dot.filled{ background:#5c8bff; }
+
+    .opp-card{
+      display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; margin-bottom:8px;
+      background:rgba(255,255,255,.04); border:1px solid var(--border);
+    }
+    .opp-info{ flex:1; min-width:0; }
+    .opp-name{ font-weight:700; font-size:14px; }
+    .opp-meta{ color:var(--muted); font-size:12px; margin-top:2px; }
+    .opp-actions{ flex:0 0 auto; }
+
+    .deck-pick-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px; margin:10px 0; }
+    .pick-card{
+      padding:8px 6px; border-radius:10px; text-align:center; cursor:pointer;
+      border:1.5px solid var(--border); background:var(--panel,#141d2b); position:relative;
+    }
+    .pick-card.selected{ border-color:#5c8bff; box-shadow:0 0 0 2px rgba(92,139,255,.35); }
+    .pick-card-name{ font-weight:700; font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .pick-card-stars{ font-size:10.5px; margin-top:2px; }
+    .pick-order-badge{
+      position:absolute; top:-6px; right:-6px; width:18px; height:18px; border-radius:50%;
+      background:#5c8bff; color:#fff; font-size:10.5px; font-weight:800; display:flex; align-items:center; justify-content:center;
+    }
+
+    .lb-row{ display:flex; align-items:center; gap:10px; padding:9px 6px; border-bottom:1px solid var(--border); font-size:13.5px; }
+    .lb-row.me{ background:rgba(92,139,255,.08); border-radius:8px; }
+    .lb-rank{ width:34px; text-align:center; font-weight:800; color:var(--muted); }
+    .lb-name{ flex:1; font-weight:700; }
+    .lb-rating{ font-weight:800; }
+
+    .hist-row{ display:flex; align-items:center; gap:10px; padding:9px 6px; border-bottom:1px solid var(--border); font-size:13px; }
+    .hist-win{ color:#4ade80; font-weight:800; }
+    .hist-lose{ color:#f87171; font-weight:800; }
+    .hist-delta{ font-weight:700; }
+    .empty-hint{ color:var(--muted); font-size:13px; padding:10px 4px; }
+
+    .battle-log{ max-height:260px; overflow-y:auto; font-size:12.5px; line-height:1.7; padding:10px; border-radius:10px; background:rgba(0,0,0,.2); border:1px solid var(--border); margin-top:8px; }
+    .battle-log .r-hdr{ color:var(--accent-2); font-weight:700; margin-top:6px; }
+  </style>
+</head>
+<body>
+
+<h2><span class=gicon-trophy></span> สมรภูมิจัดอันดับ</h2>
+
+<div class="season-banner">
+  <div>
+    <div class="season-banner-title" id="seasonTitle">กำลังโหลด...</div>
+    <div class="season-banner-sub" id="seasonSub"></div>
+  </div>
+  <span class="season-status-pill" id="seasonPill"></span>
+</div>
+
+<div class="pvp-tabs">
+  <button data-tab="home" class="active">หน้าหลัก</button>
+  <button data-tab="defense">แต่งทีมป้องกัน</button>
+  <button data-tab="attack">โจมตี</button>
+  <button data-tab="leaderboard">ลีดเดอร์บอร์ด</button>
+  <button data-tab="history">ประวัติ</button>
+</div>
+
+<!-- ===================== หน้าหลัก ===================== -->
+<div class="pvp-tab-panel active" data-panel="home">
+  <div class="rank-card">
+    <div class="rank-icon" id="homeRankIcon">🥈</div>
+    <div style="flex:1;">
+      <div class="rank-name" id="homeRankName">—</div>
+      <div class="rank-sub" id="homeRankSub">—</div>
+      <div class="rank-stats">
+        <span>เรตติ้ง: <b id="homeRating">—</b></span>
+        <span>ชนะ: <b id="homeWins">0</b></span>
+        <span>แพ้: <b id="homeLosses">0</b></span>
+        <span>สตรีค: <b id="homeStreak">0</b></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="ticket-bar">
+    <span>ตั๋วโจมตีวันนี้: <b id="ticketText">—</b></span>
+    <div class="ticket-dots" id="ticketDots"></div>
+  </div>
+
+  <div id="homeHint" class="empty-hint"></div>
+</div>
+
+<!-- ===================== แต่งทีมป้องกัน ===================== -->
+<div class="pvp-tab-panel" data-panel="defense">
+  <p style="color:var(--muted); font-size:13px;">
+    เลือกการ์ด 4 ใบเพื่อเป็น "ทีมป้องกัน" — ทีมนี้จะถูกใช้สู้แทนคุณเมื่อผู้เล่นคนอื่นโจมตีคุณ (แม้คุณจะออฟไลน์อยู่ก็ตาม)
+  </p>
+  <div id="defenseDeckGrid" class="deck-pick-grid"></div>
+  <button id="saveDefenseBtn" style="margin-top:10px;">บันทึกทีมป้องกัน</button>
+  <div id="defenseHint" class="empty-hint"></div>
+</div>
+
+<!-- ===================== โจมตี ===================== -->
+<div class="pvp-tab-panel" data-panel="attack">
+  <div id="attackStep1">
+    <p style="color:var(--muted); font-size:13px;">เลือกคู่ต่อสู้ที่เรตติ้งใกล้เคียงกัน (สุ่มจากผู้เล่นในช่วงระดับเดียวกัน)</p>
+    <button id="refreshOpponentsBtn">🔄 หาคู่ต่อสู้ใหม่</button>
+    <div id="opponentsList" style="margin-top:10px;"></div>
+  </div>
+  <div id="attackStep2" style="display:none;">
+    <p style="color:var(--muted); font-size:13px;">เลือกการ์ด 4 ใบสำหรับการโจมตีครั้งนี้</p>
+    <div id="attackDeckGrid" class="deck-pick-grid"></div>
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      <button id="confirmAttackBtn">⚔️ โจมตี!</button>
+      <button id="cancelAttackBtn">ยกเลิก</button>
+    </div>
+  </div>
+  <div id="attackResult" style="display:none; margin-top:14px;">
+    <div class="rank-card" id="attackResultCard"></div>
+    <div class="battle-log" id="attackResultLog"></div>
+    <button id="closeAttackResultBtn" style="margin-top:10px;">ปิด</button>
+  </div>
+</div>
+
+<!-- ===================== ลีดเดอร์บอร์ด ===================== -->
+<div class="pvp-tab-panel" data-panel="leaderboard">
+  <div id="leaderboardList"></div>
+</div>
+
+<!-- ===================== ประวัติ ===================== -->
+<div class="pvp-tab-panel" data-panel="history">
+  <div id="historyList"></div>
+</div>
+
+<script src="../js/core/api.js"></script>
+<script src="../js/core/auth-ui.js"></script>
+<script src="../js/core/money.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  let economyDeck = [];
+  let selectedDefenseIds = [];
+  let selectedAttackIds = [];
+  let currentOpponent = null;
+
+  // ---------------------------------------------------------------- tabs
+  document.querySelectorAll(".pvp-tabs button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".pvp-tabs button").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      const tab = btn.dataset.tab;
+      document.querySelectorAll(".pvp-tab-panel").forEach((p) => p.classList.toggle("active", p.dataset.panel === tab));
+      if (tab === "leaderboard") loadLeaderboard();
+      if (tab === "history") loadHistory();
+      if (tab === "defense") loadDefenseTab();
+      if (tab === "attack") { resetAttackFlow(); loadOpponents(); }
+    });
+  });
+
+  function starsText(n) { return "⭐".repeat(Math.max(1, Number(n) || 1)); }
+
+  function rarityClass(card) {
+    const r = card.rarity || "Common";
+    return `rarity-${r}`;
+  }
+
+  // ---------------------------------------------------------------- season banner + home
+  async function loadStatus() {
+    const s = await GameAPI.pvpStatus();
+    if (!s) return;
+
+    const pill = document.getElementById("seasonPill");
+    const title = document.getElementById("seasonTitle");
+    const sub = document.getElementById("seasonSub");
+
+    if (s.season.status === "upcoming") {
+      title.textContent = `ซีซั่นที่ ${s.season.seasonNumber} ยังไม่เริ่ม`;
+      sub.textContent = "รอเปิดฤดูกาลจากทีมงาน — เข้ามาแต่งทีมป้องกันไว้ก่อนได้เลย";
+      pill.textContent = "ยังไม่เริ่ม"; pill.className = "season-status-pill status-upcoming";
+    } else if (s.season.status === "active") {
+      const end = new Date(s.season.endsAt);
+      const daysLeft = Math.max(0, Math.ceil((end - new Date()) / 86400000));
+      title.textContent = `ซีซั่นที่ ${s.season.seasonNumber} — เหลือ ${daysLeft} วัน`;
+      sub.textContent = `ระยะเวลา ${s.season.durationDays} วัน/ซีซั่น`;
+      pill.textContent = "กำลังแข่งขัน"; pill.className = "season-status-pill status-active";
+    } else {
+      title.textContent = "ไม่มีซีซั่นที่เปิดอยู่";
+      pill.textContent = "จบแล้ว"; pill.className = "season-status-pill status-ended";
+    }
+
+    if (s.rankInfo) {
+      document.getElementById("homeRankIcon").textContent = s.rankInfo.icon;
+      document.getElementById("homeRankName").textContent = s.rankInfo.label;
+      document.getElementById("homeRankSub").textContent = s.globalRank ? `อันดับที่ #${s.globalRank} ของซีซั่นนี้` : "";
+      document.getElementById("homeRating").textContent = s.rating;
+      document.getElementById("homeWins").textContent = s.wins;
+      document.getElementById("homeLosses").textContent = s.losses;
+      document.getElementById("homeStreak").textContent = s.winStreak;
+    } else {
+      document.getElementById("homeRankName").textContent = "ยังไม่มีข้อมูลอันดับ";
+      document.getElementById("homeRankSub").textContent = "";
+    }
+
+    document.getElementById("ticketText").textContent = `${s.attacksRemainingToday ?? 0}/${s.dailyFreeAttacks ?? 5}`;
+    const dotsEl = document.getElementById("ticketDots");
+    dotsEl.innerHTML = "";
+    for (let i = 0; i < (s.dailyFreeAttacks || 5); i++) {
+      const dot = document.createElement("div");
+      dot.className = "ticket-dot" + (i < (s.attacksRemainingToday || 0) ? " filled" : "");
+      dotsEl.appendChild(dot);
+    }
+
+    const hint = document.getElementById("homeHint");
+    if (s.season.status !== "active") {
+      hint.textContent = "";
+    } else if (!s.hasDefenseTeam) {
+      hint.textContent = "⚠️ ยังไม่ได้ตั้งทีมป้องกัน — ไปที่แท็บ \"แต่งทีมป้องกัน\" ก่อนถูกโจมตี!";
+    } else {
+      hint.textContent = "";
+    }
+  }
+
+  // ---------------------------------------------------------------- deck loading (shared)
+  async function ensureDeckLoaded() {
+    if (economyDeck.length) return economyDeck;
+    const econ = await GameAPI.fetchEconomyState();
+    economyDeck = Array.isArray(econ?.deck) ? econ.deck : [];
+    return economyDeck;
+  }
+
+  function renderPickGrid(container, deck, selectedIds, onToggle) {
+    container.innerHTML = "";
+    deck.forEach((card) => {
+      const div = document.createElement("div");
+      const orderIdx = selectedIds.indexOf(card.id);
+      div.className = "pick-card " + rarityClass(card) + (orderIdx >= 0 ? " selected" : "");
+      div.innerHTML = `
+        <div class="pick-card-name">${card.name}</div>
+        <div class="pick-card-stars">${starsText(card.stars)} Lv.${card.level || 1}</div>
+        ${orderIdx >= 0 ? `<div class="pick-order-badge">${orderIdx + 1}</div>` : ""}
+      `;
+      div.addEventListener("click", () => onToggle(card.id));
+      container.appendChild(div);
+    });
+  }
+
+  // ---------------------------------------------------------------- defense tab
+  async function loadDefenseTab() {
+    const deck = await ensureDeckLoaded();
+    const current = await GameAPI.pvpGetDefense();
+    selectedDefenseIds = Array.isArray(current?.cardIds) ? [...current.cardIds] : [];
+    renderDefenseGrid(deck);
+  }
+
+  function renderDefenseGrid(deck) {
+    renderPickGrid(document.getElementById("defenseDeckGrid"), deck, selectedDefenseIds, (cardId) => {
+      const idx = selectedDefenseIds.indexOf(cardId);
+      if (idx >= 0) selectedDefenseIds.splice(idx, 1);
+      else if (selectedDefenseIds.length < 4) selectedDefenseIds.push(cardId);
+      renderDefenseGrid(deck);
+    });
+  }
+
+  document.getElementById("saveDefenseBtn").addEventListener("click", async () => {
+    const hint = document.getElementById("defenseHint");
+    if (selectedDefenseIds.length !== 4) { hint.textContent = "กรุณาเลือกให้ครบ 4 ใบ"; return; }
+    const r = await GameAPI.pvpSetDefense(selectedDefenseIds);
+    hint.textContent = r?.error ? r.error : "✅ บันทึกทีมป้องกันแล้ว";
+    loadStatus();
+  });
+
+  // ---------------------------------------------------------------- attack tab
+  function resetAttackFlow() {
+    document.getElementById("attackStep1").style.display = "";
+    document.getElementById("attackStep2").style.display = "none";
+    document.getElementById("attackResult").style.display = "none";
+    currentOpponent = null;
+    selectedAttackIds = [];
+  }
+
+  async function loadOpponents() {
+    const list = document.getElementById("opponentsList");
+    list.innerHTML = "กำลังค้นหา...";
+    const data = await GameAPI.pvpOpponents();
+    if (!data.seasonActive) { list.innerHTML = `<div class="empty-hint">ยังไม่มีซีซั่นที่เปิดใช้งาน</div>`; return; }
+    if (!data.opponents.length) { list.innerHTML = `<div class="empty-hint">ยังไม่พบคู่ต่อสู้ — ลองใหม่อีกครั้ง</div>`; return; }
+    list.innerHTML = "";
+    data.opponents.forEach((o) => {
+      const div = document.createElement("div");
+      div.className = "opp-card";
+      div.innerHTML = `
+        <div style="font-size:26px;">${o.rankInfo.icon}</div>
+        <div class="opp-info">
+          <div class="opp-name">${o.username}</div>
+          <div class="opp-meta">${o.rankInfo.label} · เรตติ้ง ${o.rating} · ${o.wins}W/${o.losses}L</div>
+        </div>
+        <div class="opp-actions"><button data-id="${o.playerId}">โจมตี</button></div>
+      `;
+      div.querySelector("button").addEventListener("click", () => startAttackFlow(o));
+      list.appendChild(div);
+    });
+  }
+  document.getElementById("refreshOpponentsBtn").addEventListener("click", loadOpponents);
+
+  async function startAttackFlow(opponent) {
+    currentOpponent = opponent;
+    selectedAttackIds = [];
+    const deck = await ensureDeckLoaded();
+    document.getElementById("attackStep1").style.display = "none";
+    document.getElementById("attackStep2").style.display = "";
+    renderAttackGrid(deck);
+  }
+
+  function renderAttackGrid(deck) {
+    renderPickGrid(document.getElementById("attackDeckGrid"), deck, selectedAttackIds, (cardId) => {
+      const idx = selectedAttackIds.indexOf(cardId);
+      if (idx >= 0) selectedAttackIds.splice(idx, 1);
+      else if (selectedAttackIds.length < 4) selectedAttackIds.push(cardId);
+      renderAttackGrid(deck);
+    });
+  }
+
+  document.getElementById("cancelAttackBtn").addEventListener("click", resetAttackFlow);
+
+  document.getElementById("confirmAttackBtn").addEventListener("click", async () => {
+    if (selectedAttackIds.length !== 4) { alert("กรุณาเลือกการ์ดให้ครบ 4 ใบ"); return; }
+    if (!currentOpponent) return;
+    const btn = document.getElementById("confirmAttackBtn");
+    btn.disabled = true; btn.textContent = "กำลังต่อสู้...";
+    const r = await GameAPI.pvpAttack(currentOpponent.playerId, selectedAttackIds);
+    btn.disabled = false; btn.textContent = "⚔️ โจมตี!";
+    if (r?.error) { alert(r.error); return; }
+    showAttackResult(r);
+    loadStatus();
+  });
+
+  function showAttackResult(r) {
+    document.getElementById("attackStep2").style.display = "none";
+    const resultEl = document.getElementById("attackResult");
+    resultEl.style.display = "";
+    const card = document.getElementById("attackResultCard");
+    card.innerHTML = `
+      <div class="rank-icon">${r.win ? "🏆" : "💥"}</div>
+      <div style="flex:1;">
+        <div class="rank-name">${r.win ? "ชนะ!" : "แพ้"}</div>
+        <div class="rank-sub">เรตติ้ง ${r.attackerRatingBefore} → ${r.attackerRatingAfter} (${r.attackerDelta >= 0 ? "+" : ""}${r.attackerDelta})</div>
+        <div class="rank-stats">
+          <span>รางวัล: <b>${r.rewards.money.toLocaleString()} เงิน</b></span>
+          <span><b>${r.rewards.medals}</b> เหรียญสมรภูมิ</span>
+        </div>
+      </div>
+    `;
+    const logEl = document.getElementById("attackResultLog");
+    logEl.innerHTML = r.log.map((rnd) => `
+      <div class="r-hdr">รอบที่ ${rnd.round}</div>
+      ${rnd.entries.map((e) => `<div>${e.msg}</div>`).join("")}
+    `).join("");
+  }
+
+  document.getElementById("closeAttackResultBtn").addEventListener("click", () => { resetAttackFlow(); loadOpponents(); });
+
+  // ---------------------------------------------------------------- leaderboard
+  async function loadLeaderboard() {
+    const list = document.getElementById("leaderboardList");
+    list.innerHTML = "กำลังโหลด...";
+    const data = await GameAPI.pvpLeaderboard(100);
+    if (!data.seasonActive || !data.entries.length) { list.innerHTML = `<div class="empty-hint">ยังไม่มีข้อมูลลีดเดอร์บอร์ด</div>`; return; }
+    list.innerHTML = "";
+    data.entries.forEach((e) => {
+      const row = document.createElement("div");
+      row.className = "lb-row" + (e.isMe ? " me" : "");
+      row.innerHTML = `
+        <div class="lb-rank">#${e.rank}</div>
+        <div style="font-size:20px;">${e.rankInfo.icon}</div>
+        <div class="lb-name">${e.username}${e.isMe ? " (คุณ)" : ""}</div>
+        <div class="lb-rating">${e.rating}</div>
+      `;
+      list.appendChild(row);
+    });
+  }
+
+  // ---------------------------------------------------------------- history
+  async function loadHistory() {
+    const list = document.getElementById("historyList");
+    list.innerHTML = "กำลังโหลด...";
+    const rows = await GameAPI.pvpHistory();
+    if (!rows.length) { list.innerHTML = `<div class="empty-hint">ยังไม่มีประวัติการต่อสู้</div>`; return; }
+    list.innerHTML = "";
+    rows.forEach((h) => {
+      const row = document.createElement("div");
+      row.className = "hist-row";
+      const roleLabel = h.role === "attacker" ? "โจมตี" : "ถูกโจมตีโดย";
+      row.innerHTML = `
+        <div class="${h.won ? "hist-win" : "hist-lose"}">${h.won ? "ชนะ" : "แพ้"}</div>
+        <div style="flex:1;">${roleLabel} ${h.opponentName}</div>
+        <div class="hist-delta">${h.delta >= 0 ? "+" : ""}${h.delta}</div>
+      `;
+      list.appendChild(row);
+    });
+  }
+
+  // ---------------------------------------------------------------- init
+  if (GameAPI.isLoggedIn()) {
+    loadStatus();
+  } else {
+    document.getElementById("seasonTitle").textContent = "กรุณาเข้าสู่ระบบก่อนใช้งานสมรภูมิ";
+  }
+})();
+</script>
+<script src="../js/core/nav-fab.js"></script>
+<script src="../js/core/mail-fab.js"></script>
+<script src="../js/core/daily-fab.js"></script>
+<script src="../js/core/account-panel.js"></script>
+</body>
+</html>

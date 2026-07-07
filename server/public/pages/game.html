@@ -26,6 +26,29 @@
       color:#fff; border-color:transparent;
     }
 
+    /* ============ Battle lock: ระหว่างต่อสู้ให้เหลือแค่ปุ่มยกเลิก/ความเร็ว/สนามต่อสู้/แชท ============ */
+    html.battle-lock-active header.topbar,
+    html.battle-lock-active .mode-tabs,
+    html.battle-lock-active #teamSelectorMount,
+    html.battle-lock-active #guestBanner,
+    html.battle-lock-active #navFabBall,
+    html.battle-lock-active #mailFabBall,
+    html.battle-lock-active #dailyFabBall,
+    html.battle-lock-active #globalProfileBar,
+    html.battle-lock-active .nav-fab-overlay,
+    html.battle-lock-active #mailFabOverlay,
+    html.battle-lock-active #dailyFabOverlay,
+    html.battle-lock-active #acctpOverlay{
+      display:none !important;
+      pointer-events:none !important;
+    }
+    /* กันเผื่อพื้นที่เลือกด่าน/บอส/checkpoint โผล่มาปนระหว่างต่อสู้ */
+    html.battle-lock-active #normalSelect,
+    html.battle-lock-active #bossSelect,
+    html.battle-lock-active #infSelect{
+      display:none !important;
+    }
+
     #resultsOverlay{
       display:none; position:fixed; inset:0; z-index:10060; align-items:center; justify-content:center;
       padding:16px; background:rgba(4,6,12,.72); backdrop-filter:blur(3px);
@@ -90,7 +113,6 @@
 <section id="bossSelect" style="display:none">
   <div class="boss-section-header">
     <h3>เลือก Boss</h3>
-    <button id="bossInfoBtn" type="button" class="boss-info-btn" aria-label="รายละเอียดบอสและของดรอป">❗</button>
   </div>
   <div id="bossList"></div>
 </section>
@@ -109,6 +131,9 @@
 <!-- ============ SHARED: battle screen — โผล่เฉพาะตอนกำลังต่อสู้เท่านั้น ============ -->
 <div id="battleScreen" style="display:none">
   <button id="cancelBattleBtn" style="display:none"><span class=gicon-x></span> ยกเลิกการต่อสู้</button>
+  <div style="font-size:12px; color:var(--muted,#93a1b5); margin:6px 0 2px">
+    🔒 กำลังต่อสู้ — ออกจากหน้านี้ได้เฉพาะกด "ยกเลิกการต่อสู้" หรือรอจนเกมจบเท่านั้น
+  </div>
 
   <div class="right">
     <div class="panel battlefield-panel">
@@ -160,6 +185,7 @@
 
 <script src="../js/core/nav-fab.js"></script>
 <script src="../js/core/mail-fab.js"></script>
+<script src="../js/core/daily-fab.js"></script>
 <script src="../js/core/account-panel.js"></script>
 </body>
 </html>
