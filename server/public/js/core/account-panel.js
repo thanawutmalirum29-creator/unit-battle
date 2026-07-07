@@ -58,8 +58,17 @@
 #gpbUsername{ font-weight:800; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:34vw; }
 #gpbStatusText{ font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:34vw; }
 .gpb-spacer{ flex:1 1 auto; }
-#gpbMoneySlot{ flex:0 0 auto; }
+#gpbMoneySlot{ flex:0 0 auto; margin-right:10px; }
 #gpbMoneySlot #moneyWindow{ margin:0; }
+#gpbNavSlot{ flex:0 0 auto; display:flex; align-items:center; }
+/* ลูกบอลเมนูนำทางของ nav-fab.js ถูกย้ายมาไว้ในนี้ (ขวาสุดของแถบ) แทนที่จะลอย
+   คงที่มุมขวาล่างจอแยกต่างหาก — ต้องล้าง position:fixed เดิมทิ้ง ไม่งั้นจะยังลอย
+   ข้ามหน้าบาร์นี้ไปเกาะมุมจอเหมือนเดิม (ดู moveNavBallIntoBar() ด้านล่าง) */
+#globalProfileBar #navFabBall{
+  position:static !important; inset:auto !important;
+  width:34px !important; height:34px !important; font-size:16px !important;
+  box-shadow:none !important; margin:0 !important;
+}
 
 /* ---- ป๊อปอัปหน้าบัญชี (แผ่นเลื่อนขึ้นจากล่าง) ---- */
 .acctp-overlay{
@@ -213,13 +222,30 @@
       </button>
       <div class="gpb-spacer"></div>
       <div id="gpbMoneySlot"></div>
+      <div id="gpbNavSlot"></div>
     `;
     document.body.insertBefore(bar, document.body.firstChild);
 
-    // ย้าย #moneyWindow ตัวจริงของหน้านั้นๆ มาไว้ในแถบกลาง แทนที่จะซ้ำซ้อนสองที่
-    const existingMoney = document.getElementById("moneyWindow");
-    if (existingMoney) {
-      document.getElementById("gpbMoneySlot").appendChild(existingMoney);
+    // 🔧 FIX: เดิมหน้าไหนไม่มี <div id="moneyWindow"> อยู่ในมาร์กอัปของตัวเองมาก่อน
+    // (เช่น equip.html, pvp.html, upgradeskills.html) โค้ดนี้จะหาไม่เจอแล้วข้ามไปเฉยๆ
+    // เงินเลยไม่โผล่เลยในหน้านั้น ทั้งที่ money.js ถูกโหลดอยู่แล้วก็ตาม — ตอนนี้ถ้าหาไม่
+    // เจอให้ "สร้างเอง" แทน (money.js อัปเดตผ่าน id="moneyWindow" อย่างเดียว ไม่สนว่า
+    // ใครเป็นคนสร้าง element นี้ขึ้นมา) เงินเลยโชว์ได้ทุกหน้าที่มีแถบโปรไฟล์นี้เสมอ
+    const moneySlot = document.getElementById("gpbMoneySlot");
+    let moneyEl = document.getElementById("moneyWindow");
+    if (!moneyEl) {
+      moneyEl = document.createElement("div");
+      moneyEl.id = "moneyWindow";
+    }
+    moneySlot.appendChild(moneyEl); // ย้าย/แปะเข้าแถบกลาง แทนที่จะซ้ำซ้อนสองที่
+    if (typeof updateMoneyUI === "function") updateMoneyUI(); // เติมตัวเลขทันที เผื่อ money.js โหลดเสร็จไปก่อนหน้านี้แล้ว
+
+    // 🔧 ย้ายลูกบอลเมนูนำทาง (สร้างโดย nav-fab.js ซึ่งโหลดก่อนไฟล์นี้เสมอทุกหน้า) เข้ามา
+    // ไว้ในแถบโปรไฟล์ ขวาสุด แทนที่จะลอยคงที่มุมขวาล่างจอแยกต่างหากเหมือนเดิม
+    // (ตัว listener เดิมของลูกบอล/โมดัลเมนูยังติดไปกับ element เดิมเป๊ะ ไม่ต้องสร้างใหม่)
+    const navBall = document.getElementById("navFabBall");
+    if (navBall) {
+      document.getElementById("gpbNavSlot").appendChild(navBall);
     }
 
     document.getElementById("gpbIdentity").addEventListener("click", openAccountPopup);
