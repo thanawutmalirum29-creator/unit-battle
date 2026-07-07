@@ -736,3 +736,12 @@ const STAGES = {
     { name:"Astralthrone Warlock X", hp:77870, atk:4564, def:1505, skill:"Time Stop L3" }
   ],
 };
+// ============================================================
+// โหลดได้ทั้ง client (<script>, กลายเป็น global ตามเดิม) และ server
+// (require('.../public/stages/n-stages')) — เพิ่มตอนย้าย battle resolution
+// ไปรันที่เซิฟ (server/battle/*) จะได้ใช้ STAGE ชุดเดียวกับที่ client แสดงผล
+// ไม่ต้องคัดลอกข้อมูล 145 ด่านไปไว้อีกที่ (เสี่ยงข้อมูลสองชุดไม่ตรงกัน)
+// ============================================================
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { STAGES };
+}
