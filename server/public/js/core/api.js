@@ -579,17 +579,30 @@ const GameAPI = (() => {
     return post("/api/helpers/borrow", { lenderId }, true);
   }
 
-  // Call once on page load. Falls back to a local guest name if username not set yet.
+  // 🔧 FIX: บั๊ก "1 เครื่อง กลายเป็น 2 บัญชี (จริง 1 + ขยะ 1)"
+  //
+  // เดิมฟังก์ชันนี้ถ้ายังไม่มี playerId จะสุ่มชื่อ "guest-xxxxxx" เอาเอง แล้วยิง
+  // POST /api/players/identify สร้างแถวใหม่ในตาราง players ทันที — โดยไม่รอให้ผู้เล่น
+  // ได้เลือกก่อนเลยว่าจะสมัครบัญชีจริง หรือกด "เล่นแบบไม่ล็อกอิน (ชั่วคราว)" ผ่าน modal
+  // ของ auth-ui.js ปัญหาคือ ensurePlayer() ถูกเรียกจาก fetchNormalProgress()/
+  // fetchInfProgress() ที่รันทันทีตอนเข้าเกมครั้งแรก (ก่อนผู้เล่นกดปุ่มไหนใน modal เลือก
+  // บัญชีด้วยซ้ำ) พอมันสร้างบัญชีสุ่มนี้ไปก่อนแล้ว ผู้เล่นค่อยกด "สมัคร" (บัญชีจริง) ทีหลัง
+  // ระบบ auth (/api/auth/register, routes/auth.js) จะสร้างแถวใหม่อีกแถวหนึ่งในตาราง
+  // players เดียวกัน (คนละ endpoint คนละ username กับที่ ensurePlayer() สร้างไปก่อนหน้า)
+  // ผลคือทุกเครื่องที่เข้าเกมจะได้ 2 บัญชีเสมอ: บัญชีจริง 1 + บัญชีขยะชื่อสุ่ม
+  // "guest-xxxxxx" อีก 1 ที่ไม่มีใครใช้ แต่ไปกินโควตาบัญชีที่แอดมินให้มาแบบเสียเปล่า
+  //
+  // แก้โดยไม่สุ่มสร้างบัญชีเองอีกต่อไป ให้รอผ่านการล็อกอินจริงจาก auth-ui.js ก่อนเท่านั้น
+  // (login/register/guest/google ทุกทางจะ set playerId ให้เองอยู่แล้วเมื่อสำเร็จ — บรรทัด
+  // "if (playerId) return playerId" ด้านบนจะ return ค่าจริงทันทีหลัง reload) ถ้ายังไม่
+  // ล็อกอิน ให้ถือว่า "ยังไม่มี player" ไปก่อน (เหมือนออฟไลน์) — ผู้เรียกทุกจุด
+  // (reportNormalClear/fetchNormalProgress/infRunStart/fetchInfProgress) รองรับ
+  // !playerId อยู่แล้ว (return ค่าออฟไลน์แบบปลอดภัย ไม่บล็อกการเล่น รอ sync ทีหลังตอน
+  // ล็อกอินจริงแล้ว reload หน้า)
   async function ensurePlayer() {
     if (playerId) return playerId;
-    const username = localStorage.getItem("username") || ("guest-" + Math.random().toString(36).slice(2, 8));
-    localStorage.setItem("username", username);
-    const data = await post("/api/players/identify", { username });
-    if (data?.id) {
-      playerId = data.id;
-      localStorage.setItem("playerId", playerId);
-    }
-    return playerId;
+    if (!authToken) return null; // ยังไม่ได้เลือก/ยืนยันบัญชีผ่าน modal ของ auth-ui.js เลย
+    return null;
   }
 
   // ---- NORMAL mode: stages are picked individually, so we just report each clear ----
