@@ -193,7 +193,7 @@ router.post('/start', requireAuth, asyncHandler(async (req, res) => {
       refKey = String(stage);
     }
 
-    const state = { playerTeam, enemyTeam, mode, bossDamageDealt: 0 };
+    const state = { playerTeam, enemyTeam, mode, bossDamageDealt: 0, damageStats: {} };
     const session = await client.query(
       `INSERT INTO battle_sessions (player_id, mode, ref_key, run_id, round, state, status)
        VALUES ($1, $2, $3, $4, 0, $5, 'active') RETURNING id`,
@@ -201,7 +201,10 @@ router.post('/start', requireAuth, asyncHandler(async (req, res) => {
     );
 
     await client.query('COMMIT');
-    res.json({ battleId: session.rows[0].id, runId, round: 0, bossDamageDealt: state.bossDamageDealt || 0, ...snapshot(state) });
+    res.json({
+      battleId: session.rows[0].id, runId, round: 0, bossDamageDealt: state.bossDamageDealt || 0,
+      damageStats: state.damageStats, ...snapshot(state),
+    });
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
@@ -236,9 +239,42 @@ router.post('/:battleId/turn', requireAuth, asyncHandler(async (req, res) => {
 
     const state = session.state;
     const logEntries = [];
+    // 📊 ก่อนหน้านี้ ctx.trackDamage เป็น no-op ว่างเปล่า — ฝั่งเซิฟไม่เคยเก็บสถิติดาเมจ
+    // "ทำ/รับ" ต่อหน่วยเลย (หน้าสรุปผลเลยโชว์ 0/0 ทุกตัวเสมอ ดู hub-ui.js showResults) และ
+    // ไม่มีข้อมูลเหตุการณ์การตีให้ client เล่นแอนิเมชันโจมตีได้ (เดิมทำที่ client เองทั้งหมด
+    // ผ่าน skills/attack.js แต่พอย้ายมารันจริงที่เซิฟ โค้ดชุดนั้นไม่ถูกเรียกอีกต่อไปแล้ว)
+    // ตรงนี้ใช้ hook เดิมที่ battle/engine.js เรียกอยู่แล้วทุกครั้งที่มี applyDamage จริง
+    // (ดู server/battle/engine.js บรรทัด ctx.trackDamage(attacker, target, dmg)) มาทำสองอย่าง:
+    //   1) สะสมลง state.damageStats (คงอยู่ข้าม turn ทั้งไฟต์ — ส่งกลับให้ client โชว์ตอนจบ)
+    //   2) เก็บ hitEvents ของ turn นี้ไว้ส่งกลับให้ client เล่นแอนิเมชันโจมตี/ตัวเลขดาเมจ
+    if (!state.damageStats) state.damageStats = {};
+    const damageStats = state.damageStats;
+    function ensureStatEntry(unit) {
+      if (!unit || !unit.instanceId) return null;
+      if (!damageStats[unit.instanceId]) {
+        damageStats[unit.instanceId] = { name: unit.name || '?', isEnemy: !!unit.isEnemy, dealt: 0, taken: 0 };
+      }
+      damageStats[unit.instanceId].name = unit.name || damageStats[unit.instanceId].name;
+      damageStats[unit.instanceId].isEnemy = !!unit.isEnemy;
+      return damageStats[unit.instanceId];
+    }
+    const hitEvents = [];
     const ctx = {
       log: (msg, side) => logEntries.push({ msg, side }),
-      trackDamage: () => {},
+      trackDamage: (attacker, target, dmg) => {
+        if (!Number.isFinite(dmg) || dmg <= 0) return;
+        const a = ensureStatEntry(attacker);
+        const t = ensureStatEntry(target);
+        if (a) a.dealt += dmg;
+        if (t) t.taken += dmg;
+        hitEvents.push({
+          attackerId: attacker?.instanceId || null,
+          attackerClass: attacker?.class || null,
+          attackerIsEnemy: !!attacker?.isEnemy,
+          targetId: target?.instanceId || null,
+          dmg,
+        });
+      },
       addBossDamage: (dmg) => { state.bossDamageDealt = (state.bossDamageDealt || 0) + dmg; },
     };
 
@@ -281,8 +317,8 @@ router.post('/:battleId/turn', requireAuth, asyncHandler(async (req, res) => {
     await client.query('COMMIT');
     res.json({
       battleId, round: newRound, finished, win,
-      log: logEntries, rewards, bossDamageDealt: state.bossDamageDealt || 0,
-      ...snapshot(state),
+      log: logEntries, events: hitEvents, rewards, bossDamageDealt: state.bossDamageDealt || 0,
+      damageStats: state.damageStats, ...snapshot(state),
     });
   } catch (err) {
     await client.query('ROLLBACK');
