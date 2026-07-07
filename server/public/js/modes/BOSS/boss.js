@@ -11,50 +11,18 @@ function toNum(v, fallback=0){
 function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
 /* =======================
-   Rewards (จำนวนจริงมาจากเซิฟผ่าน GameAPI.bossClaimTier เท่านั้น — ดู addBossDamage)
-   ======================= */
-
-/* =======================
    Stage Reward by Damage
+   🔧 เดิม addBossDamage() ตรงนี้เป็นคนยิง GameAPI.bossClaimTier เอง ทุกครั้งที่ดาเมจสะสม
+   ข้ามเกณฑ์ — ตอนนี้ routes/battle.js (payoutBossTiers) จ่ายให้อัตโนมัติทุกเทิร์นแล้ว
+   (ดู turnRes.rewards ใน startBattle() ด้านล่าง) เหลือแค่ resetStageRewards() ไว้เคลียร์
+   ตัวแปรแสดงผล damageDone/stageRewardGiven ตอนเริ่มสู้บอสตัวใหม่
    ======================= */
-// 🟢 var แทน let/const: หน้ารวมโหมด (game.html) โหลด N-Mode.js/boss.js/inf-mode.js
-// ในเอกสารเดียวกัน ชื่อซ้ำกันประกาศด้วย let/const ข้าม <script> จะ SyntaxError ทันที
 var damageDone = 0;
 var stageRewardGiven = [];
 var roundCount = 1;
 function resetStageRewards(){
   damageDone = 0;
   stageRewardGiven = [];
-}
-
-function addBossDamage(dmg){
-  damageDone += dmg;
-
-  const boss = BOSSES[currentBossKey];
-  if (!boss || !boss.stages) return;
-
-  boss.stages.forEach((stage, idx)=>{
-    if (damageDone >= stage.dmg && !stageRewardGiven[idx]){
-      stageRewardGiven[idx] = true; // กันยิงซ้ำฝั่ง client; เซิฟก็กันซ้ำอีกชั้นด้วย UNIQUE constraint
-      log(`🏆 ผ่าน Stage ${idx+1} ของ ${boss.name} (ดาเมจสะสม ${stage.dmg}+ )`, "system");
-
-      if (window.GameAPI) {
-        GameAPI.bossClaimTier(idx, damageDone).then((result) => {
-          if (result && result.ok) {
-            applyServerMoney(result.money);
-            applyServerBag(result.bag);
-            log(`<span class=gicon-coin></span> ได้ ${result.moneyGain} เหรียญ`, "system");
-            for (const [key, amount] of Object.entries(result.drops || {})) {
-              log(`🎁 ได้ ${amount}x ${key}`, "system");
-            }
-            if (window.HubUI) HubUI.addReward(result.moneyGain, result.drops);
-          } else {
-            console.warn("[Boss] claim tier failed:", result?.error);
-          }
-        });
-      }
-    }
-  });
 }
 
 /* =======================
@@ -314,25 +282,22 @@ function setupBossInfoButton(){
 }
 
 async function setBoss(key){
-
   if (battleRunning){ alert("กำลังสู้บอสอยู่"); return; }
   currentBossKey = key;
   currentBoss = BOSSES[key];
-  if (window.GameAPI) await GameAPI.bossRunStart(key); // ต้องรอ runId ก่อน ไม่งั้น claim reward tier แรกจะพลาด
   prepareBossBattle();
   startBattle();
 }
 
+// 🔧 หมายเหตุ: enemyTeam/playerTeam ตรงนี้เป็นแค่ "พรีวิว" ให้เห็นก่อนกดสู้ — พอ startBattle()
+// เรียก GameAPI.battleStart() จริง ทีมจริง (stat จากเด็ค+อุปกรณ์ที่เซิฟเก็บเอง) จะมาทับตรงนี้
 function prepareBossBattle(){
   if (!currentBoss) return;
 
-  // บอสมี HP จริง → สามารถตายได้
   enemyTeam = [{
     name: currentBoss.name,
     atk: toNum(currentBoss.atk, 0),
-    defBase: toNum(currentBoss.def, 0),
-    tempDef: 0,
-    get def(){ return toNum(this.defBase,0) + toNum(this.tempDef,0); },
+    def: toNum(currentBoss.def, 0),
     hp: toNum(currentBoss.hp, 100000),
     maxHp: toNum(currentBoss.hp, 100000),
     skill: currentBoss.skill,
@@ -342,35 +307,6 @@ function prepareBossBattle(){
     cooldown: 0,
     statusEffects: []
   }];
-
-  const deck = JSON.parse(localStorage.getItem("deck")||"[]");
-  const selected = loadSelectedTeam("boss"); // เด็คที่เลือกใช้ในหน้านี้ (จัดไว้จากหน้า "จัดเด็ค")
-
-  playerTeam = selected.map((cardId, i) => {
-  const originalDeck = JSON.parse(localStorage.getItem("deck") || "[]");
-  const found = originalDeck.find(d => d.id === cardId);
-  if (!found) return null;
-  const c = deepClone(found);
-
-  // 🟢 คำนวณค่าสุดท้ายจากอุปกรณ์
-  const finalStats = getFinalStats(c);
-  c.hp = finalStats.hp;
-  c.atk = finalStats.atk;
-  c.def = finalStats.def;
-
-  // 🟢 กัน skill หาย
-  c.skill = found.skill || c.skill || null;
-
-  c.instanceId = c.instanceId || ("P-" + i + "-" + Date.now());
-  c.maxHp = c.hp;
-  c.defBase = c.def;
-  c.tempDef = 0;
-  c.cooldown = 0;
-  c.usedSkill = false;
-  c.isEnemy = false;
-  c.statusEffects = [];
-  return c;
-}).filter(Boolean);
 
   resetStageRewards();
   if (window.HubUI) { HubUI.resetDamageStats(); HubUI.resetRewards(); }
@@ -388,14 +324,31 @@ function getFinalStats(actor) {
   };
 }
 /* =======================
-   Battle Loop
+   Battle Loop — เซิฟรันผลจริงทีละเทิร์น (ดู routes/battle.js, server/battle/engine.js)
+   ก่อนหน้านี้ตีธรรมดาใส่บอสโดนหักเลือด/นับดาเมจซ้ำ 2 รอบ (ผ่าน normalAttack() ปกติ
+   แล้วมีโค้ดอีกก้อนคำนวณ atk-def หัก HP อีกรอบ) ผลคือบอสตายเร็วกว่าที่ควรเท่าตัว และ
+   ระบบ tier reward ก็รับดาเมจเข้าไป 2 เท่าด้วย — เซิฟรุ่นใหม่คำนวณครั้งเดียวถูกต้อง
    ======================= */
 async function startBattle(){
   if (!currentBoss || battleRunning) return;
+
+  const selected = loadSelectedTeam("boss");
+  const cardIds = selected.slice(0, maxTeamSize);
+  const startRes = await GameAPI.battleStart("boss", cardIds, { bossKey: currentBossKey });
+  if (!startRes || startRes.error) {
+    alert("เริ่มสู้บอสไม่สำเร็จ: " + (startRes?.error || "ไม่ทราบสาเหตุ (เช็คอินเทอร์เน็ต/ล็อกอิน)"));
+    return;
+  }
+  const battleId = startRes.battleId;
+  currentBossRunId = startRes.runId;
+
   battleRunning = true;
   bossResultsShown = false; // 🟢 รีเซ็ตทุกครั้งที่เริ่มสู้ใหม่ กันเคสจบสู้ก่อนหน้าด้วย endBattle() แค่ครั้งเดียว
-                            // (เช่นบอสตายด้วยสกิล ไม่ใช่โจมตีธรรมดา) แล้ว flag เหลือ true ค้างไปสู้ครั้งถัดไป
   if (window.HubUI) HubUI.enterBattle();
+
+  playerTeam = startRes.playerTeam;
+  enemyTeam = startRes.enemyTeam;
+  renderBattlefield();
 
   const cancelBtn = document.getElementById("cancelBattleBtn");
   if (cancelBtn){
@@ -403,6 +356,7 @@ async function startBattle(){
     cancelBtn.onclick = async ()=>{
       if (await uiConfirm("❌ ยกเลิกการต่อสู้?")){
         log("⚠️ การต่อสู้ถูกยกเลิก", "system");
+        GameAPI.battleForfeit(battleId); // fire-and-forget
         if (window.HubUI) {
           HubUI.showResults({
             win: false,
@@ -423,54 +377,41 @@ async function startBattle(){
   while (battleRunning){
     log(`--- เทิร์น ${turn} ---`, "system");
 
-    for (let actor of [...playerTeam, ...enemyTeam]){
-      if (!battleRunning) break;
-      if (!actor || actor.hp<=0) continue;
-
-      const allies  = actor.isEnemy ? enemyTeam : playerTeam;
-      const enemies = actor.isEnemy ? playerTeam : enemyTeam;
-
-      // 🟣 Passive ของบอส
-      tryMiniBossPassive(actor, allies);
-      tryMidBossPassive(actor, allies);
-      tryBigBossPassive(actor, allies);
-      tryUltraBossPassive(actor, allies);
-      tryPhantomBossPassive(actor);
-      await tryFoxBossPassive(actor, allies, enemies); // 🦊 เพิ่มตรงนี้
-
-      // 🟢 ใช้สกิลหรือโจมตี
-      if (!useSkill?.(actor, allies, enemies)) {
-        if (isHealer?.(actor)){
-          healerIdle?.(actor);
-        } else {
-          normalAttack?.(actor, enemies);
-
-          // ✅ ถ้าเป็นฝั่งผู้เล่นโจมตีบอส → ลด HP จริง + เก็บดาเมจสะสม
-          if (!actor.isEnemy && enemies[0] && enemies[0].instanceId === "BOSS"){
-            const dmg = Math.max(1, actor.atk - enemies[0].def);
-            enemies[0].hp = Math.max(0, enemies[0].hp - dmg);
-
-            if (!enemies[0].isSummon) {
-              addBossDamage(dmg);
-            }
-
-            if (enemies[0].hp <= 0){
-              handleDeath(enemies[0]); // บอสตายได้
-              endBattle(true);
-              return;
-            }
-          }
-        }
-      }
-
-      updateAllHpBars();
-      if (checkWinLose()) return;
-
-      await sleep(getBattleSpeed());
+    const turnRes = await GameAPI.battleTurn(battleId);
+    if (!turnRes || turnRes.error) {
+      log(`⚠️ เชื่อมต่อเซิฟไม่ได้ (${turnRes?.error || "network"}) — หยุดการต่อสู้`, "system");
+      endBattle(false);
+      return;
     }
 
-endRoundAll();
-renderBattlefield(); // ⏳ ให้ตัวเลขคูลดาวน์บนการ์ดอัปเดตทันทีตอนจบเทิร์นใหญ่
+    for (const entry of (turnRes.log || [])) {
+      log(entry.msg, entry.side);
+      await sleep(Math.max(120, getBattleSpeed() * 0.25));
+    }
+
+    playerTeam = turnRes.playerTeam;
+    enemyTeam = turnRes.enemyTeam;
+    damageDone = turnRes.bossDamageDealt || 0;
+    if (window.HubUI) HubUI.setDamageDone?.(damageDone);
+    renderBattlefield();
+    updateAllHpBars();
+
+    // 🎯 รางวัลไล่ tier ที่เซิฟจ่ายจริงระหว่างสู้ (ทุกเทิร์นที่ดาเมจสะสมข้ามเกณฑ์ใหม่)
+    if (turnRes.rewards) {
+      applyServerMoney(turnRes.rewards.money);
+      applyServerBag(turnRes.rewards.bag);
+      if (turnRes.rewards.moneyGain) log(`<span class=gicon-coin></span> ได้ ${turnRes.rewards.moneyGain} เหรียญ`, "system");
+      for (const [key, amount] of Object.entries(turnRes.rewards.drops || {})) {
+        log(`🎁 ได้ ${amount}x ${key}`, "system");
+      }
+      if (window.HubUI) HubUI.addReward(turnRes.rewards.moneyGain, turnRes.rewards.drops);
+    }
+
+    if (turnRes.finished) {
+      log(turnRes.win ? "🎉 โค่นบอสสำเร็จ!" : "💀 ทีมผู้เล่นพ่ายแพ้...", "system");
+      endBattle(turnRes.win);
+      return;
+    }
 
     turn++;
     await sleep(300);
@@ -506,12 +447,14 @@ function checkWinLose(){
 }
 
 var bossResultsShown = false;
+var currentBossRunId = null;
 function endBattle(win){
   battleRunning = false;
   const cancelBtn = document.getElementById("cancelBattleBtn");
   if (cancelBtn) cancelBtn.style.display="none";
   renderBossButtons();
-  if (window.GameAPI) GameAPI.bossRunFinish();
+  // 🔧 เดิมเรียก GameAPI.bossRunFinish() ตรงนี้ แต่ตอนนี้ routes/battle.js ปิด run ให้เองแล้ว
+  // ทุกครั้งที่ไฟต์จบ (ชนะ/แพ้/ยกเลิก) ไม่ต้องมีจุดเรียกซ้ำจาก client อีก
 
   // 🟢 ป้องกันโชว์ผลซ้ำ — เส้นทางฆ่าบอสมีจุดเรียก endBattle(true) มากกว่า 1 จุด
   // (ทั้งจาก handleDeath และจากลูปโจมตีธรรมดาโดยตรง) ส่วนกรณียกเลิกกลางคัน
