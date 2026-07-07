@@ -521,3 +521,27 @@ CREATE TABLE IF NOT EXISTS guild_boss_attacks (
   attacked_at   TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_guild_boss_attacks_player_recent ON guild_boss_attacks (player_id, attacked_at DESC);
+
+-- ============================================================================
+-- Server-authoritative battle resolution (see server/battle/*, routes/battle.js)
+-- Before this, NORMAL/BOSS/INF combat ran entirely client-side (public/js/skills/*,
+-- modes/*) and the client just told the server "I won stage N" / "I dealt X damage" —
+-- the server only sanity-checked timing (MIN_MS_PER_STAGE / BOSS_MAX_DPS), it never
+-- actually knew whether the fight happened or who really won. One row here = one
+-- in-progress or finished fight the server itself simulated, turn by turn, via
+-- POST /api/battle/start then POST /api/battle/:id/turn.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS battle_sessions (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  player_id     UUID NOT NULL REFERENCES players(id),
+  mode          TEXT NOT NULL CHECK (mode IN ('normal', 'boss', 'inf')),
+  ref_key       TEXT NOT NULL,             -- stage number (normal/inf) or boss key (boss)
+  run_id        UUID REFERENCES runs(id),  -- ties boss/inf fights into the existing runs/leaderboard tables
+  round         INT NOT NULL DEFAULT 0,
+  state         JSONB NOT NULL,            -- { playerTeam, enemyTeam, bossDamageDealt }
+  status        TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'won', 'lost', 'forfeited')),
+  created_at    TIMESTAMPTZ DEFAULT now(),
+  updated_at    TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_battle_sessions_player ON battle_sessions (player_id, status);
