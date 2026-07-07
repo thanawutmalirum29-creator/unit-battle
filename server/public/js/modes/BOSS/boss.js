@@ -47,6 +47,10 @@ function renderBossButtons(){
   const keys = Object.keys(BOSSES || {});
   keys.forEach((key, i) => {
     const b = BOSSES[key];
+
+    const card = document.createElement("div");
+    card.className = "boss-card";
+
     const btn = document.createElement("button");
     btn.className = "boss-btn";
     btn.textContent = `🐉 ${b.name}`;
@@ -56,15 +60,28 @@ function renderBossButtons(){
     btn.style.backgroundColor = `hsl(${hue}, 70%, 50%)`;
     btn.style.color = "white";
 
-    div.appendChild(btn);
+    // ❗ ข้อมูล/ของดรอปของบอสตัวนี้ตัวเดียว — แยกของใครของมัน ไม่รวมกับบอสตัวอื่น
+    const infoBtn = document.createElement("button");
+    infoBtn.type = "button";
+    infoBtn.className = "boss-info-btn boss-card-info-btn";
+    infoBtn.setAttribute("aria-label", `รายละเอียด ${b.name} และของดรอป`);
+    infoBtn.textContent = "❗";
+    infoBtn.onclick = (e) => {
+      e.stopPropagation();
+      openBossInfo(key);
+    };
+
+    card.appendChild(btn);
+    card.appendChild(infoBtn);
+    div.appendChild(card);
   });
 }
 
 /* =======================
-   Boss Info Popup (❗ ปุ่มข้างๆ ปุ่มเลือกบอส)
-   แสดงสเตตัส/สกิล/ของดรอปแต่ละสเตจของบอสทุกตัว อ่านตรงจาก BOSSES
-   (bossmap.js) เลย เพิ่ม/แก้บอสหรือของดรอปที่ไฟล์นั้นไฟล์เดียว
-   popup นี้จะอัปเดตตามอัตโนมัติไม่ต้องมาแก้ที่นี่อีก
+   Boss Info Popup (❗ ปุ่มบนการ์ดของแต่ละบอส)
+   แสดงสเตตัส/สกิล/ของดรอปของ "บอสตัวที่กดเท่านั้น" ของใครของมัน ไม่รวมทุกตัวไว้
+   ในลิสต์เดียว (เดิมรวมหมดยาวเกินไป) อ่านตรงจาก BOSSES (bossmap.js) เลย
+   เพิ่ม/แก้บอสหรือของดรอปที่ไฟล์นั้นไฟล์เดียว popup นี้จะอัปเดตตามอัตโนมัติ
    ======================= */
 
 // ใช้ชื่อ/ไอคอนไอเทมจาก bag.js (BAG_DISPLAY_ITEMS + itemIconHTML) ให้ตรงกับที่โชว์ในกระเป๋า
@@ -110,6 +127,24 @@ function injectBossInfoStyles(){
   background:linear-gradient(135deg,var(--accent,#5c8bff),#3f63d6);
   border-color:transparent;
   color:#fff;
+}
+
+/* การ์ดบอสแต่ละใบในลิสต์ — ปุ่มเลือกสู้ + ปุ่ม❗ข้อมูลของบอสตัวนั้นลอยอยู่มุมเดียวกัน */
+.boss-card{
+  position:relative;
+}
+.boss-card .boss-btn{
+  width:100%;
+  height:100%;
+}
+.boss-card-info-btn{
+  position:absolute;
+  top:4px;
+  right:4px;
+  width:24px;
+  height:24px;
+  font-size:13px;
+  box-shadow:0 2px 6px rgba(0,0,0,.4);
 }
 
 .boss-info-overlay{
@@ -158,6 +193,7 @@ function injectBossInfoStyles(){
   background:var(--panel-soft,rgba(255,255,255,.04));
   padding:10px 12px;
   margin:0 0 10px;
+  color:var(--text,#e8edf5);
 }
 .boss-info-entry h4{
   margin:0 0 4px;
@@ -174,6 +210,7 @@ function injectBossInfoStyles(){
   line-height:1.6;
   padding:5px 0;
   border-top:1px dashed var(--border, rgba(255,255,255,.08));
+  color:var(--text,#e8edf5);
 }
 .boss-info-stage:first-of-type{ border-top:none; }
 .boss-info-stage b{ color:var(--gold,#ffd54f); }
@@ -195,90 +232,102 @@ function injectBossInfoStyles(){
   document.head.appendChild(style);
 }
 
-function buildBossInfoOverlay(){
+// สร้าง "โครง" ป๊อปอัปครั้งเดียวไว้ใช้ซ้ำ — เนื้อหาข้างในถูกเติมใหม่ทุกครั้งที่เปิด
+// ตามบอสตัวที่กด (ดู renderBossInfoPanel) แทนที่จะสร้างของทุกบอสไว้ล่วงหน้าในก้อนเดียว
+let bossInfoOverlayEl = null;
+
+function ensureBossInfoOverlay(){
+  if (bossInfoOverlayEl) return bossInfoOverlayEl;
+
+  injectBossInfoStyles();
+
   const overlay = document.createElement("div");
   overlay.id = "bossInfoOverlay";
   overlay.className = "boss-info-overlay";
 
   const panel = document.createElement("div");
   panel.className = "boss-info-panel";
+  overlay.appendChild(panel);
+
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeOverlay();
+  });
+
+  function openOverlay(){ overlay.classList.add("open"); }
+  function closeOverlay(){ overlay.classList.remove("open"); }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeOverlay();
+  });
+
+  overlay._open = openOverlay;
+  overlay._close = closeOverlay;
+  overlay._panel = panel;
+
+  document.body.appendChild(overlay);
+  bossInfoOverlayEl = overlay;
+  return overlay;
+}
+
+// เติมเนื้อหาป๊อปอัปด้วยข้อมูล "บอสตัวเดียว" ที่ระบุเท่านั้น
+function renderBossInfoPanel(panel, boss, overlay){
+  panel.innerHTML = "";
 
   const title = document.createElement("div");
   title.className = "boss-info-title";
-  title.textContent = "📖 รายละเอียดบอส & ของดรอป";
+  title.textContent = `📖 รายละเอียด & ของดรอป`;
   panel.appendChild(title);
 
-  Object.values(BOSSES || {}).forEach((boss) => {
-    const entry = document.createElement("div");
-    entry.className = "boss-info-entry";
+  const entry = document.createElement("div");
+  entry.className = "boss-info-entry";
 
-    const h4 = document.createElement("h4");
-    h4.textContent = `🐉 ${boss.name}`;
-    entry.appendChild(h4);
+  const h4 = document.createElement("h4");
+  h4.textContent = `🐉 ${boss.name}`;
+  entry.appendChild(h4);
 
-    const stats = document.createElement("div");
-    stats.className = "boss-info-stats";
-    const hp = boss.hp !== undefined ? boss.hp : 100000; // ค่า default เดียวกับตอนสร้างบอสจริง (prepareBossBattle)
-    stats.textContent =
-      `❤️ HP ${hp.toLocaleString()}  ⚔️ ATK ${boss.atk ?? "-"}  🛡️ DEF ${boss.def ?? "-"}` +
-      (boss.skill ? `  ✨ สกิล: ${boss.skill}` : "");
-    entry.appendChild(stats);
+  const stats = document.createElement("div");
+  stats.className = "boss-info-stats";
+  const hp = boss.hp !== undefined ? boss.hp : 100000; // ค่า default เดียวกับตอนสร้างบอสจริง (prepareBossBattle)
+  stats.textContent =
+    `❤️ HP ${hp.toLocaleString()}  ⚔️ ATK ${boss.atk ?? "-"}  🛡️ DEF ${boss.def ?? "-"}` +
+    (boss.skill ? `  ✨ สกิล: ${boss.skill}` : "");
+  entry.appendChild(stats);
 
-    (boss.stages || []).forEach((stage, idx) => {
-      const row = document.createElement("div");
-      row.className = "boss-info-stage";
+  (boss.stages || []).forEach((stage, idx) => {
+    const row = document.createElement("div");
+    row.className = "boss-info-stage";
 
-      const moneyText = Array.isArray(stage.reward?.money)
-        ? `${stage.reward.money[0].toLocaleString()}-${stage.reward.money[1].toLocaleString()}`
-        : "-";
+    const moneyText = Array.isArray(stage.reward?.money)
+      ? `${stage.reward.money[0].toLocaleString()}-${stage.reward.money[1].toLocaleString()}`
+      : "-";
 
-      const dropsText = Object.entries(stage.reward?.items || {})
-        .map(([id, range]) => `${bossItemLabel(id)} x${range[0]}-${range[1]}`)
-        .join(", ") || "—";
+    const dropsText = Object.entries(stage.reward?.items || {})
+      .map(([id, range]) => `${bossItemLabel(id)} x${range[0]}-${range[1]}`)
+      .join(", ") || "—";
 
-      row.innerHTML =
-        `<b>Stage ${idx + 1}</b> (ดาเมจสะสม ${stage.dmg.toLocaleString()}+) ` +
-        `→ <span class=gicon-coin></span> ${moneyText} <br>` +
-        `<span class="boss-info-drops">🎁 ${dropsText}</span>`;
-      entry.appendChild(row);
-    });
-
-    panel.appendChild(entry);
+    row.innerHTML =
+      `<b>Stage ${idx + 1}</b> (ดาเมจสะสม ${stage.dmg.toLocaleString()}+) ` +
+      `→ <span class=gicon-coin></span> ${moneyText} <br>` +
+      `<span class="boss-info-drops">🎁 ${dropsText}</span>`;
+    entry.appendChild(row);
   });
+
+  panel.appendChild(entry);
 
   const closeBtn = document.createElement("button");
   closeBtn.type = "button";
   closeBtn.className = "boss-info-close";
   closeBtn.textContent = "ปิด";
-  closeBtn.addEventListener("click", () => closeBossInfo());
+  closeBtn.addEventListener("click", () => overlay._close());
   panel.appendChild(closeBtn);
-
-  overlay.appendChild(panel);
-  overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) closeBossInfo();
-  });
-
-  function openBossInfo(){ overlay.classList.add("open"); }
-  function closeBossInfo(){ overlay.classList.remove("open"); }
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeBossInfo();
-  });
-
-  overlay._open = openBossInfo;
-  return overlay;
 }
 
-function setupBossInfoButton(){
-  const btn = document.getElementById("bossInfoBtn");
-  if (!btn || btn.dataset.bound === "1") return;
-  btn.dataset.bound = "1";
-
-  injectBossInfoStyles();
-  const overlay = buildBossInfoOverlay();
-  document.body.appendChild(overlay);
-
-  btn.addEventListener("click", () => overlay._open());
+function openBossInfo(bossKey){
+  const boss = (BOSSES || {})[bossKey];
+  if (!boss) return;
+  const overlay = ensureBossInfoOverlay();
+  renderBossInfoPanel(overlay._panel, boss, overlay);
+  overlay._open();
 }
 
 async function setBoss(key){
@@ -710,6 +759,5 @@ async function tryFoxBossPassive(user, allies, enemies) {
    Init
    ======================= */
 renderBossButtons();
-setupBossInfoButton();
 updateBagUI();
 updateMoneyUI();
