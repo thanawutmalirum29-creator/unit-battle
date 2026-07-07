@@ -139,7 +139,14 @@ window.HubUI = (function () {
   }
 
   function isBattleRunning() {
-    return !!window.battleRunning;
+    // 🔧 FIX: เดิมเช็คแค่ window.battleRunning ตัวเดียว — แต่ระหว่างที่โหมด INF
+    // กำลังไปด่านถัดไปอัตโนมัติ (endInfBattle -> setInfStage) จะมีช่วง await
+    // GameAPI.battleStart() ที่ battleRunning เป็น false ชั่วคราว (ยังไม่ทันตั้ง
+    // true กลับใน runInfBattleLoop) ถ้า lockPollTimer มาเช็คพอดีช่วงนั้นจะเข้าใจผิด
+    // ว่าจบการต่อสู้แล้วลืมปลดล็อก เลยสั่ง unlockUI() ทั้งที่จริงๆ กำลังจะไปด่านถัดไป
+    // ผลคือ nav/FAB/tab โผล่ขึ้นมาและไม่มีจุดไหนล็อกกลับให้อีกตลอดด่านถัดไป
+    // ตัวโหมดที่กำลังทรานซิชันต้องตั้ง window.battleTransitioning = true คร่อมช่วงนี้ไว้
+    return !!window.battleRunning || !!window.battleTransitioning;
   }
 
   /* ============================
@@ -295,10 +302,27 @@ window.HubUI = (function () {
       if (u && u.instanceId && !damageStats[u.instanceId]) ensureEntry(u);
     });
 
-    const rows = Object.values(damageStats)
-      .sort((a, b) => (b.isEnemy === a.isEnemy ? b.dealt - a.dealt : a.isEnemy - b.isEnemy))
-      .map(buildRow)
-      .join("");
+    // 🔧 FIX: โหมด INF สะสม damageStats ต่อเนื่องทั้งรัน (ไม่ reset ระหว่างด่าน) และ
+    // instanceId ของศัตรูจะใหม่ทุกด่าน — ถ้าวิ่งรวด 100 ด่านตารางจะมีแถวศัตรูเป็นร้อยๆ
+    // ตัว รวมฝั่งศัตรูทั้งหมดเป็นแถวเดียว "ศัตรูทั้งหมด" (บวก dealt/taken รวมกัน) ส่วน
+    // ฝั่งผู้เล่นยังคงแยกตามตัวละครเหมือนเดิม เพราะ instanceId ผู้เล่นคงที่ทั้งรันอยู่แล้ว
+    const playerEntries = Object.values(damageStats).filter((e) => !e.isEnemy);
+    const enemyEntries = Object.values(damageStats).filter((e) => e.isEnemy);
+
+    const enemySummary = enemyEntries.reduce(
+      (acc, e) => {
+        acc.dealt += e.dealt;
+        acc.taken += e.taken;
+        return acc;
+      },
+      { name: "ศัตรูทั้งหมด", isEnemy: true, dealt: 0, taken: 0 }
+    );
+
+    const rows =
+      playerEntries
+        .sort((a, b) => b.dealt - a.dealt)
+        .map(buildRow)
+        .join("") + (enemyEntries.length ? buildRow(enemySummary) : "");
 
     const dropsList = Object.entries(rewardTotals.drops)
       .map(([k, v]) => `<li>🎁 ${v.toLocaleString()}x ${k}</li>`)
