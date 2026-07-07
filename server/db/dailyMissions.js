@@ -15,9 +15,9 @@ async function bumpMissionProgress(client, playerId, type, amount = 1) {
   for (const m of matching) {
     await client.query(
       `INSERT INTO daily_mission_progress (player_id, day_index, mission_key, progress)
-       VALUES ($1, $2, $3, LEAST($4, $5))
+       VALUES ($1, $2, $3, LEAST($4::int, $5::int))
        ON CONFLICT (player_id, day_index, mission_key)
-       DO UPDATE SET progress = LEAST(daily_mission_progress.progress + $4, $5)`,
+       DO UPDATE SET progress = LEAST(daily_mission_progress.progress + $4::int, $5::int)`,
       [playerId, dayIndex, m.key, amount, m.target]
     );
   }
