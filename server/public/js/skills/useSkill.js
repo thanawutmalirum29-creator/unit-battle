@@ -11,12 +11,12 @@ async function useSkill(user, allies, enemies) {
   // 🎲 base chance 40%
   let skillChance = 0.4;
 
-  // 🎯 Mage ได้พิเศษ 58%
+  // 🎯 Mage ได้พิเศษ 60%
   if (user.class === "Mage") {
     skillChance = 0.60;
   }
 
-  // 🎯 MidBoss ได้พิเศษ 70%
+  // 🎯 MidBoss ได้พิเศษ 60%
   if (user.class === "MidBoss") {
     skillChance = 0.6;
   }
@@ -138,9 +138,24 @@ function applyStatusEffects(actor) {
   renderBattlefield();
 }
 
+// 🔧 FIX: รายชื่อสถานะที่ถือว่าเป็น "ดีบัฟ" — ใช้กันโดย DebuffResist (มาจาก Cleanse L3)
+// เดิม Cleanse L3 ใส่สถานะ "DebuffResist" ให้แต่ไม่มีจุดไหนในเกมเช็คมันเลย (dead status)
+// ผลคือ "กันดีบัฟ 1 เทิร์น" ที่บอกผู้เล่นไม่มีผลจริงอะไรเลย
+const DEBUFF_TYPES = ["Poison", "Burn", "Silence", "SkillBlockChance", "Stun", "TimeStop", "DefenseDown"];
+
 // ✅ ฟังก์ชันเพิ่มสถานะ
 function addStatusEffect(target, newEff) {
   if (!target.statusEffects) target.statusEffects = [];
+
+  // 🔧 FIX: เช็ค DebuffResist ก่อนใส่ดีบัฟใหม่ (ของเดิมไม่เช็คอะไรเลย)
+  if (DEBUFF_TYPES.includes(newEff.type)) {
+    const hasResist = target.statusEffects.some(e => e.type === "DebuffResist");
+    if (hasResist) {
+      log(`🛡️ ${target.name} ต้านทาน ${newEff.type} ได้ (Debuff Resist)`,
+          target.isEnemy ? "enemy" : "player");
+      return;
+    }
+  }
 
   const existing = target.statusEffects.find(e => e.type === newEff.type);
   if (existing) {
@@ -148,6 +163,7 @@ function addStatusEffect(target, newEff) {
     existing.justApplied = true;
     if (newEff.value !== undefined) existing.value = newEff.value;
     if (newEff.damage !== undefined) existing.damage = newEff.damage;
+    if (newEff.power !== undefined) existing.power = newEff.power;
   } else {
     newEff.justApplied = true;
     target.statusEffects.push(newEff);
@@ -155,23 +171,12 @@ function addStatusEffect(target, newEff) {
   renderBattlefield();
 }
 
-// ✅ ฟังก์ชันลดเวลาและเคลียร์สถานะ
-function endTurnStatusDecay() {
-  for (let actor of allActors) {
-    if (!actor.statusEffects) continue;
-    actor.statusEffects = actor.statusEffects.filter(eff => {
-      // เทิร์นต่อไปให้มีผลเต็มที่
-      eff.justApplied = false;
-      eff.turns--;
-      if (eff.turns <= 0) {
-        log(`⏳ Debuff ${eff.type} หมดเวลาแล้ว`,
-            actor.isEnemy ? "enemy" : "player");
-        return false;
-      }
-      return true;
-    });
-  }
-}
+// ⚠️ หมายเหตุ: เดิมมีฟังก์ชัน endTurnStatusDecay() อยู่ตรงนี้ แต่ไม่มีที่ไหนในเกมเรียกใช้เลย
+// (ทุกโหมดเรียก endRoundAll() ใน core/endroud.js แทน) ทำให้ eff.justApplied ไม่เคยถูกเคลียร์
+// เป็น false เลยตลอดเกม — นี่คือสาเหตุที่สกิล Time Stop ทุกเลเวลไม่เคยข้ามเทิร์นเป้าหมายได้จริง
+// (เช็ค `if (!eff.justApplied)` ใน applyStatusEffects() ด้านล่างไม่เคยผ่าน)
+// ลบฟังก์ชันที่ตายแล้วนี้ทิ้ง แล้วย้าย logic เคลียร์ justApplied ไปไว้ใน endRoundAll() แทน
+// (จุดเดียวที่ทุกโหมดเรียกจริง) — ดู core/endroud.js
 function chooseTarget(user, enemies) {
   const alive = enemies.filter(e => e.hp > 0);
   if (alive.length === 0) return null;

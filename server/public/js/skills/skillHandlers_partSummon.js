@@ -101,7 +101,9 @@ window.skillHandlers_partSummon = {
       name: "Summoned Golem",
       hp: Math.floor(user.hp * 1.01),
       maxHp: Math.floor(user.hp * 1.01),
-      atk: Math.floor(user.hp * 0.0),
+      // 🔧 FIX: เดิมเป็น `user.hp * 0.0` (ATK เท่ากับ 0 เสมอ) ทำให้ Golem จาก Summon L2 ต่อยไม่มีดาเมจ
+      // เลยเลยทั้งที่เป็นสกิลเลเวลกลาง (L1=0.08, L3=0.09) — ปรับให้อยู่ระหว่างกลางตามลำดับเลเวล
+      atk: Math.floor(user.hp * 0.085),
       def: Math.floor(user.hp * 0.05),
       defBase: Math.floor(user.hp * 0.05),
       tempDef: 0,
@@ -158,8 +160,10 @@ window.skillHandlers_partSummon = {
 
     const summon = {
       name: "Summoned Golem",
+      // 🔧 FIX: เดิม hp ใช้ตัวคูณ 1.02 แต่ maxHp ใช้ 1.012 → Golem เกิดมาเลือดเกิน maxHp ตัวเองทันที
+      // (แถบ HP/สูตรคำนวณ % ที่อื่นอาจเพี้ยน) ปรับให้ hp กับ maxHp ใช้ตัวคูณเดียวกัน
       hp: Math.floor(user.hp * 1.02),
-      maxHp: Math.floor(user.hp * 1.012),
+      maxHp: Math.floor(user.hp * 1.02),
       atk: Math.floor(user.hp * 0.09),
       def: Math.floor(user.hp * 0.055),
       defBase: Math.floor(user.hp * 0.055),

@@ -90,6 +90,30 @@ if (target.class === "PhantomBoss" && attacker && !attacker.isEnemy) {
 
   target.hp -= dmg;
 
+  // 🔧 FIX: Mirror ("สวนกลับ % ATK") เดิมแค่ addStatusEffect(type:"Mirror") ไว้เฉยๆ
+  // ไม่มีจุดไหนในเกมเช็คสถานะนี้เลย — ผู้เล่นเห็น log "เปิด Mirror" แต่ไม่มีอะไรเกิดขึ้นจริง
+  // ใส่ผลจริงตรงนี้: ถ้าเป้าหมายที่โดนตี (และไม่ได้หลบ ดูเช็ค PhantomBoss ด้านบน) มี Mirror ค้างอยู่
+  // → สะท้อนดาเมจกลับผู้โจมตี ใช้ครั้งเดียวแล้วหมด (consume) กันไม่ให้สะท้อนซ้ำได้ทุกครั้งที่โดนตี
+  if (target.statusEffects && attacker && target !== attacker && dmg > 0) {
+    const mirrorIdx = target.statusEffects.findIndex(e => e.type === "Mirror");
+    if (mirrorIdx !== -1) {
+      const mirror = target.statusEffects[mirrorIdx];
+      target.statusEffects.splice(mirrorIdx, 1); // ใช้แล้วหมดไป (one-shot)
+
+      const reflectDmg = Math.max(1, Math.floor(getFinalAtk(target) * (mirror.power || 1)));
+      log(`🪞 ${target.name} สะท้อนดาเมจกลับ ${attacker.name} -${reflectDmg} HP`,
+          target.isEnemy ? "enemy" : "player");
+
+      // noMove: true กันไม่ให้เล่น animation เดินเข้าฟาดซ้อนกับแอนิเมชันหลักที่กำลังเล่นอยู่
+      await applyDamage(target, attacker, reflectDmg, null, { noMove: true });
+    }
+  }
+
+  // 📊 เก็บสถิติดาเมจ ทำ/รับ ต่อหน่วย ไว้โชว์ในหน้าสรุปผลหลังจบการต่อสู้ (ดู hub-ui.js)
+  if (window.HubUI && typeof HubUI.trackDamage === "function") {
+    HubUI.trackDamage(attacker, target, dmg);
+  }
+
   if (target.instanceId === "BOSS" && !target.isSummon) {
     addBossDamage(dmg);
   }

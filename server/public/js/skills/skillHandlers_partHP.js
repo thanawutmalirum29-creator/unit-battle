@@ -26,33 +26,41 @@ window.skillHandlers_partHP = {
 "Lifesteal Lord": async (user, allies, enemies) => {
   const target = findFirstAlive(enemies);
   if (!target) return false;
-  
-  const atkFinal = user.atk + (user.tempAtk || 0);
-  const defFinal = (target.defBase || 0) + (target.tempDef || 0);
-  
+
+  // 🔧 FIX: เดิมอ่าน user.atk/target.defBase ตรงๆ (ข้าม getFinalAtk/getFinalDef) ทำให้สกิลนี้
+  // ไม่นับ AttackBuffPercent/DefenseBuff จาก statusEffects เหมือนสกิลดาเมจตัวอื่นๆ ทั้งหมดในเกม
+  // ปรับให้ใช้ระบบกลางเดียวกันเพื่อความสอดคล้อง
+  const atkFinal = getFinalAtk(user);
+  const defFinal = getFinalDef(target);
+
   const dmg = Math.max(1, Math.floor(atkFinal - defFinal));
-  const heal = Math.floor(dmg * 1.8); // 0%
-  
-  // ฟื้นฟู
-  user.hp = Math.min(user.maxHp, user.hp + heal);
-  updateHpBar(user);
-  
+  // 🔧 FIX: เดิมดูดเลือด 180% ของดาเมจ (เทียบกับ Lifesteal L1-L3 ปกติที่ 30%/50%/70%) ซึ่งมากเกิน
+  // ไปกว่าลำดับการสเกลปกติเยอะมาก ปรับลงมาที่ 100% ให้ยังแรงกว่า L3 ชัดเจน (สมกับเป็นสกิลระดับ Lord)
+  // แต่ไม่ทำให้ผู้ใช้แทบอมตะเมื่อสลับใช้ทุก 3 เทิร์น — ปรับตัวเลขนี้ได้ตามที่ต้องการบาลานซ์จริง
+  const heal = Math.floor(dmg * 1.0);
+
   // 📝 log
   log(
-    `🩸 ${user.name} (Lifesteal L1) → โจมตี ${target.name} -${dmg} HP และฟื้น +${heal} HP`,
+    `🩸 ${user.name} (Lifesteal Lord) → โจมตี ${target.name} -${dmg} HP และฟื้น +${heal} HP`,
     user.isEnemy ? "enemy" : "player"
   );
-  
+
   // 📌 applyDamage แค่บันทึกผล
   await applyDamage(user, target, dmg);
-  
+
+  // 🔧 FIX: เดิม set user.hp ตรงๆ แล้วเรียก updateHpBar เอง ไม่ผ่าน applyHeal() เหมือนสกิลอื่น
+  // (พลาดโอกาสได้ float number/animation ที่ applyHeal() มีให้ และผิดแพทเทิร์นของทั้งไฟล์นี้)
+  if (heal > 0) {
+    applyHeal(user, user, heal);
+  }
+
   // เอฟเฟกต์ฟื้นเลือด
   const userEl = document.querySelector(`[data-id="${user.instanceId}"]`);
   if (userEl) {
     userEl.classList.add("lifesteal-heal");
     setTimeout(() => userEl.classList.remove("lifesteal-heal"), 1000);
   }
-  
+
   user.cooldown = 3;
   return true;
 },
