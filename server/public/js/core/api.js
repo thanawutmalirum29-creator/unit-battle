@@ -19,6 +19,31 @@ const GameAPI = (() => {
   let sessionKickedTriggered = false;
   let sessionKickedHandler = null;
 
+  // ---- กันข้อมูล "ข้ามบัญชี" ค้างอยู่ในเครื่อง (บั๊ก: ล็อกอินบัญชีเก่าด่าน 30 ->
+  // หลุด/ออกจากระบบ -> สมัคร/ล็อกอินบัญชีใหม่บนเครื่องเดิม -> ยังเห็นด่านที่ปลดล็อค
+  // ของบัญชีเก่าค้างอยู่ (แต่เล่นจริงไม่ได้เพราะเซิร์ฟเวอร์รู้ว่าเป็นบัญชีใหม่) แถม
+  // เด็คที่เคยเลือกไว้ (teamDecks/selectedIndexes) ก็ยังชี้ไปที่การ์ด id ของบัญชีเก่าที่
+  // ไม่มีอยู่ในเด็คใหม่แล้ว ทำให้เลือกทีมต่อสู้ไม่ได้เลยแม้แต่ด่านเก่าๆ)
+  //
+  // ต้นเหตุ: ค่าพวกนี้เก็บใน localStorage แบบ "คีย์เดียวใช้ร่วมกันทุกบัญชีบนเครื่องนี้"
+  // ไม่ได้ผูกกับ playerId เลย ตอนออกจากระบบ/ล็อกอินใหม่ก่อนหน้านี้เคลียร์แค่
+  // playerId/authToken/publicId/isGuest (ตัว auth เอง) แต่ไม่เคยเคลียร์ cache
+  // ฝั่งเกมพวกนี้ — เรียกฟังก์ชันนี้ทุกครั้งที่ auth สำเร็จ (login/register/guest/
+  // google) และตอน logout/โดนเบียดเซสชัน เพื่อบังคับให้หน้าที่โหลดใหม่ (reload
+  // อยู่แล้วทุกครั้ง) ไปดึงค่าจริงจากเซิร์ฟเวอร์ล้วนๆ แทนที่จะเจอ cache ของบัญชีก่อนหน้า
+  function clearLocalGameCache() {
+    const exactKeys = [
+      "deck", "bag", "bag_hash", "deckgame_money", "equipBag",
+      "unlockedStage", "selectedIndexes", "teamDecks", "gacha_blacklist",
+    ];
+    exactKeys.forEach((k) => localStorage.removeItem(k));
+    // "activeDeckSlot:<page>" คีย์มีท้ายชื่อไม่ตายตัว (แล้วแต่หน้า) ต้องไล่หาเอง
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("activeDeckSlot:")) localStorage.removeItem(key);
+    }
+  }
+
   // เรียกโดย auth-ui.js เพื่อผูก UI (โชว์ป๊อปอัป + เด้งออก) เข้ากับจุดตรวจจับนี้
   function setSessionKickedHandler(fn) { sessionKickedHandler = fn; }
 
@@ -32,6 +57,7 @@ const GameAPI = (() => {
     localStorage.removeItem("authToken");
     localStorage.removeItem("publicId");
     localStorage.removeItem("isGuest");
+    clearLocalGameCache();
     if (typeof sessionKickedHandler === "function") sessionKickedHandler();
   }
 
@@ -121,6 +147,7 @@ const GameAPI = (() => {
   async function register(username, pin) {
     const data = await post("/api/auth/register", { username, pin });
     if (data?.token) {
+      clearLocalGameCache();
       playerId = data.playerId; authToken = data.token;
       localStorage.setItem("playerId", playerId);
       localStorage.setItem("authToken", authToken);
@@ -134,6 +161,7 @@ const GameAPI = (() => {
   async function login(username, pin) {
     const data = await post("/api/auth/login", { username, pin });
     if (data?.token) {
+      clearLocalGameCache();
       playerId = data.playerId; authToken = data.token;
       localStorage.setItem("playerId", playerId);
       localStorage.setItem("authToken", authToken);
@@ -150,6 +178,7 @@ const GameAPI = (() => {
   async function loginWithGoogle(credential) {
     const data = await post("/api/auth/google", { credential });
     if (data?.token) {
+      clearLocalGameCache();
       playerId = data.playerId; authToken = data.token;
       localStorage.setItem("playerId", playerId);
       localStorage.setItem("authToken", authToken);
@@ -163,6 +192,7 @@ const GameAPI = (() => {
   async function loginAsGuest() {
     const data = await post("/api/auth/guest", {});
     if (data?.token) {
+      clearLocalGameCache();
       playerId = data.playerId; authToken = data.token;
       localStorage.setItem("playerId", playerId);
       localStorage.setItem("authToken", authToken);
@@ -236,6 +266,7 @@ const GameAPI = (() => {
     localStorage.removeItem("authToken");
     localStorage.removeItem("publicId");
     localStorage.removeItem("isGuest");
+    clearLocalGameCache();
   }
 
   // ---- Mailbox ----
@@ -784,6 +815,59 @@ const GameAPI = (() => {
     return post("/api/guilds/expand-capacity", {}, true);
   }
 
+  // ---- PvP Ranked Arena ("สมรภูมิจัดอันดับ") — see routes/pvp.js ----
+  async function pvpStatus() {
+    if (!isLoggedIn()) return null;
+    return get("/api/pvp/status", true);
+  }
+  async function pvpGetDefense() {
+    if (!isLoggedIn()) return { cardIds: [] };
+    return get("/api/pvp/defense", true);
+  }
+  async function pvpSetDefense(cardIds) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/pvp/defense", { cardIds }, true);
+  }
+  async function pvpOpponents() {
+    if (!isLoggedIn()) return { seasonActive: false, opponents: [] };
+    return get("/api/pvp/opponents", true);
+  }
+  async function pvpAttack(opponentId, cardIds) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/pvp/attack", { opponentId, cardIds }, true);
+  }
+  async function pvpLeaderboard(limit) {
+    if (!isLoggedIn()) return { seasonActive: false, entries: [] };
+    return get(`/api/pvp/leaderboard${limit ? "?limit=" + limit : ""}`, true);
+  }
+  async function pvpHistory() {
+    if (!isLoggedIn()) return [];
+    const data = await get("/api/pvp/history", true);
+    return Array.isArray(data) ? data : [];
+  }
+  async function pvpBattleDetail(battleId) {
+    if (!isLoggedIn()) return null;
+    return get(`/api/pvp/history/${battleId}`, true);
+  }
+
+  // ---- Daily login streak + daily missions (see routes/daily.js) ----
+  async function dailyStatus() {
+    if (!isLoggedIn()) return null;
+    return get("/api/daily/status", true);
+  }
+  async function dailyClaimLogin() {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/daily/login/claim", {}, true);
+  }
+  async function dailyClaimMission(key) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/daily/missions/claim", { key }, true);
+  }
+  async function dailyClaimBonus() {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/daily/missions/claim-bonus", {}, true);
+  }
+
   // ---- Achievement badges (account page) ----
   async function fetchBadges() {
     if (!isLoggedIn()) return null;
@@ -849,8 +933,10 @@ return {
     guildInvite, guildMyInvites, guildAcceptInvite, guildRejectInvite, guildCancelInvite,
     guildMembers, guildLeave, guildDisband, guildKick, guildPromote, guildDemote, guildTransferLeadership,
     guildChatFetch, guildChatSend, guildDonate, guildShopStatus, guildShopBuy, guildBossStatus, guildBossAttack, guildExpandCapacity,
+    pvpStatus, pvpGetDefense, pvpSetDefense, pvpOpponents, pvpAttack, pvpLeaderboard, pvpHistory, pvpBattleDetail,
     fetchBadges, setEquippedBadges,
     fetchCosmetics, setAvatar, setEquippedFrame,
+    dailyStatus, dailyClaimLogin, dailyClaimMission, dailyClaimBonus,
     setSessionKickedHandler,
   };
 })();

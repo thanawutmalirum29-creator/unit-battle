@@ -124,7 +124,7 @@
 .mail-fab-card-top{ display:flex; align-items:center; gap:7px; }
 .mail-dot-sm{ width:8px; height:8px; border-radius:999px; flex-shrink:0; background:#f4b942; }
 .mail-dot-sm.read{ background:transparent; border:1px solid var(--border); }
-.mail-fab-subject{ font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mail-fab-subject{ font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text,#e8edf5); }
 .mail-fab-meta{ font-size:11px; color:var(--muted); margin-top:3px; }
 .mail-fab-tags{ display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; }
 .mail-fab-tag{
@@ -143,9 +143,9 @@
 .mail-fab-detail{ padding:18px; }
 .mail-fab-back{ background:none; border:none; color:var(--muted); font-size:12px; cursor:pointer; padding:0; margin-bottom:12px; }
 .mail-fab-back:hover{ color:var(--text); }
-.mail-fab-detail-subject{ font-weight:700; font-size:16px; margin-bottom:4px; }
+.mail-fab-detail-subject{ font-weight:700; font-size:16px; margin-bottom:4px; color:var(--text,#e8edf5); }
 .mail-fab-detail-meta{ color:var(--muted); font-size:11px; margin-bottom:14px; }
-.mail-fab-detail-body{ font-size:13.5px; line-height:1.7; white-space:pre-wrap; }
+.mail-fab-detail-body{ font-size:13.5px; line-height:1.7; white-space:pre-wrap; color:var(--text,#e8edf5); }
 .mail-fab-reward-box{
   margin-top:16px; display:flex; align-items:center; justify-content:space-between; gap:10px;
   background:rgba(61,218,215,.08); border:1px solid rgba(61,218,215,.3);

@@ -97,6 +97,7 @@ window.HubUI = (function () {
     hideAllSelects();
     if (results) results.style.display = "none";
     if (battleScreen) battleScreen.style.display = "";
+    lockUI();
   }
 
   function exitToSelect() {
@@ -106,6 +107,7 @@ window.HubUI = (function () {
     hideAllSelects();
     const target = selects[currentMode];
     if (target) target.style.display = "";
+    unlockUI();
   }
 
   function loadModeScript(mode) {
@@ -122,6 +124,80 @@ window.HubUI = (function () {
 
   function isBattleRunning() {
     return !!window.battleRunning;
+  }
+
+  /* ============================
+     Battle lock — ล็อกไม่ให้ออกจากหน้าระหว่างต่อสู้
+     ทางออกมีแค่ 2 ทาง: กด "ยกเลิกการต่อสู้" หรือรอเกมจบ (ทั้งคู่ทำให้
+     battleRunning กลายเป็น false) ปุ่มเมนูลอย/ปุ่มย้อนกลับของเบราว์เซอร์/ระบบ
+     (รวมถึงปุ่มย้อนกลับฮาร์ดแวร์บนมือถือ) จะถูกกันไว้ทั้งหมดระหว่างที่ล็อกอยู่
+     ============================ */
+  const BACK_TRAP_MSG = 'ออกจากหน้านี้ระหว่างต่อสู้ไม่ได้ — กด "ยกเลิกการต่อสู้" ก่อนถ้าต้องการออก';
+
+  let backTrapArmed = false;
+  let lockPollTimer = null;
+
+  function onPopState() {
+    if (isBattleRunning()) {
+      // ดันสถานะกลับเข้าไปใหม่ทันที ทำให้ปุ่มย้อนกลับ (รวมถึงปุ่มย้อนกลับฮาร์ดแวร์/เจสเจอร์
+      // บนมือถือ ซึ่งเบราว์เซอร์แปลงเป็น popstate เหมือนกัน) ไม่ได้พาออกจากหน้านี้จริงๆ
+      history.pushState({ battleLock: true }, "", location.href);
+      if (window.uiAlert) uiAlert(BACK_TRAP_MSG);
+      else alert(BACK_TRAP_MSG);
+    } else {
+      disarmBackTrap();
+    }
+  }
+
+  function onBeforeUnload(e) {
+    if (isBattleRunning()) {
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    }
+  }
+
+  function armBackTrap() {
+    if (backTrapArmed) return;
+    backTrapArmed = true;
+    history.pushState({ battleLock: true }, "", location.href);
+    window.addEventListener("popstate", onPopState);
+    window.addEventListener("beforeunload", onBeforeUnload);
+  }
+
+  function disarmBackTrap() {
+    if (!backTrapArmed) return;
+    backTrapArmed = false;
+    window.removeEventListener("popstate", onPopState);
+    window.removeEventListener("beforeunload", onBeforeUnload);
+  }
+
+  function stopLockPoll() {
+    if (lockPollTimer != null) {
+      clearInterval(lockPollTimer);
+      lockPollTimer = null;
+    }
+  }
+
+  // เผื่อโค้ดบางโหมด (เช่น เจอ error เน็ตหลุดกลางเทิร์น) ลืมเรียก showResults/exitToSelect
+  // แต่ battleRunning ถูกเซ็ตเป็น false ไปแล้ว — คอยเช็คเป็นระยะกันเคสล็อกค้าง (soft-lock)
+  function startLockPoll() {
+    stopLockPoll();
+    lockPollTimer = setInterval(() => {
+      if (!isBattleRunning()) unlockUI();
+    }, 300);
+  }
+
+  function lockUI() {
+    document.documentElement.classList.add("battle-lock-active");
+    armBackTrap();
+    startLockPoll();
+  }
+
+  function unlockUI() {
+    document.documentElement.classList.remove("battle-lock-active");
+    disarmBackTrap();
+    stopLockPoll();
   }
 
   function selectMode(mode, opts) {
@@ -194,6 +270,9 @@ window.HubUI = (function () {
     data = data || {};
     const overlay = document.getElementById("resultsOverlay");
     if (!overlay) return;
+
+    // เกมจบแล้ว (ชนะ/แพ้/ยกเลิก) — ปลดล็อกให้ออกจากหน้านี้ได้ตามที่ต้องการ
+    unlockUI();
 
     // เติม entry ให้ครบทุกตัวในทีม แม้ตัวที่ไม่เคยทำ/โดนดาเมจเลยก็ให้โผล่ในตาราง (0/0)
     [...(data.playerTeam || []), ...(data.enemyTeam || [])].forEach((u) => {
