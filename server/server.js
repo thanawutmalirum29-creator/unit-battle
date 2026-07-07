@@ -15,6 +15,7 @@ const mailboxRoute = require('./routes/mailbox');
 const helpersRoute = require('./routes/helpers');
 const guildsRoute = require('./routes/guilds');
 const adminRoute = require('./routes/admin');
+const battleRoute = require('./routes/battle');
 
 const app = express();
 app.set('trust proxy', 1); // Railway sits behind a reverse proxy — required for express-rate-limit
@@ -33,6 +34,7 @@ app.use('/api/economy', apiLimiter, economyRoute);
 app.use('/api/mailbox', apiLimiter, mailboxRoute);
 app.use('/api/helpers', apiLimiter, helpersRoute);
 app.use('/api/guilds', apiLimiter, guildsRoute);
+app.use('/api/battle', apiLimiter, battleRoute);
 // admin router has its own (stricter) rate limiter on /login — see routes/admin.js
 app.use('/api/admin', adminRoute);
 
