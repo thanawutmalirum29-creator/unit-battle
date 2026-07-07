@@ -984,10 +984,11 @@ body.no-scroll{ overflow:hidden; height:100%; }
   inset:0;
   /* ต้องสูงกว่าทุก overlay อื่นในเกมเสมอ เพราะ uiConfirm/uiAlert/uiPrompt ถูกเรียกจาก
      "ข้างใน" popup อื่นได้ตลอด (เช่น กดลบจดหมายจากในป๊อปอัปจดหมาย, กดออกจากระบบจาก
-     เมนู nav-fab) เดิมตั้งไว้แค่ 9999 ซึ่งต่ำกว่าป๊อปอัปจดหมาย (10040) และเมนู
-     nav-fab (10050) เลยโผล่มาซ้อน "ใต้" popup ที่เรียกมันแทนที่จะอยู่บนสุด —
-     ต่ำกว่าแค่กล่อง login แบบบังคับของ auth-ui.js (99999-100000) เท่านั้น */
-  z-index:20000;
+     เมนู nav-fab, กดยืนยันเล่นแบบบัญชีชั่วคราวจากใน authui-overlay) ต้องสูงกว่า
+     กล่อง login แบบบังคับของ auth-ui.js (authui-overlay 99999, acctblock-overlay
+     100000) ด้วย ไม่งั้น uiConfirm ที่เรียกจากปุ่ม "เล่นแบบไม่ล็อกอิน" จะโผล่มา
+     ซ้อน "ใต้" กล่อง login แทนที่จะอยู่บนสุด กดอะไรไม่ติดเลย */
+  z-index:200000;
   display:flex;
   align-items:center;
   justify-content:center;
