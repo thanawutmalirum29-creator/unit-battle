@@ -264,6 +264,67 @@ router.delete('/players/:id', requireAdmin, asyncHandler(async (req, res) => {
       return res.status(404).json({ error: 'player not found' });
     }
 
+    // Guild membership needs special handling before the blanket deletes below,
+    // since leaving a guild as the leader means transferring leadership (or
+    // disbanding, if they're the sole member) rather than a plain row delete —
+    // same rule POST /api/guilds/leave enforces for a player leaving themselves.
+    const membership = await client.query(
+      `SELECT guild_id, role FROM guild_members WHERE player_id = $1 FOR UPDATE`,
+      [playerId]
+    );
+    if (membership.rows.length > 0) {
+      const { guild_id: guildId, role } = membership.rows[0];
+      if (role === 'leader') {
+        const successor = await client.query(
+          `SELECT player_id FROM guild_members
+             WHERE guild_id = $1 AND player_id != $2
+             ORDER BY (role = 'officer') DESC, contribution_lifetime DESC
+             LIMIT 1`,
+          [guildId, playerId]
+        );
+        if (successor.rows.length === 0) {
+          // Sole member — disband the guild entirely.
+          await client.query(`DELETE FROM guild_chat_messages WHERE guild_id = $1`, [guildId]);
+          await client.query(`DELETE FROM guild_donations WHERE guild_id = $1`, [guildId]);
+          await client.query(`DELETE FROM guild_shop_purchases WHERE guild_id = $1`, [guildId]);
+          await client.query(`DELETE FROM guild_boss_attacks WHERE guild_id = $1`, [guildId]);
+          await client.query(`DELETE FROM guild_boss_state WHERE guild_id = $1`, [guildId]);
+          await client.query(`DELETE FROM guild_join_requests WHERE guild_id = $1`, [guildId]);
+          await client.query(`DELETE FROM guild_invites WHERE guild_id = $1`, [guildId]);
+          await client.query(`DELETE FROM guild_members WHERE guild_id = $1`, [guildId]);
+          await client.query(`DELETE FROM guilds WHERE id = $1`, [guildId]);
+        } else {
+          const newLeaderId = successor.rows[0].player_id;
+          await client.query(`UPDATE guild_members SET role = 'leader' WHERE player_id = $1`, [newLeaderId]);
+          await client.query(`UPDATE guilds SET leader_id = $1 WHERE id = $2`, [newLeaderId, guildId]);
+          await client.query(`DELETE FROM guild_members WHERE player_id = $1`, [playerId]);
+        }
+      } else {
+        await client.query(`DELETE FROM guild_members WHERE player_id = $1`, [playerId]);
+      }
+    }
+    await client.query(`DELETE FROM guild_join_requests WHERE player_id = $1`, [playerId]);
+    await client.query(`DELETE FROM guild_invites WHERE inviter_id = $1 OR invitee_id = $1`, [playerId]);
+    await client.query(`DELETE FROM guild_chat_messages WHERE player_id = $1`, [playerId]);
+    await client.query(`DELETE FROM guild_donations WHERE player_id = $1`, [playerId]);
+    await client.query(`DELETE FROM guild_shop_purchases WHERE player_id = $1`, [playerId]);
+    await client.query(`DELETE FROM guild_boss_attacks WHERE player_id = $1`, [playerId]);
+
+    await client.query(`DELETE FROM helper_loans WHERE borrower_id = $1 OR lender_id = $1`, [playerId]);
+    await client.query(`DELETE FROM player_helpers WHERE player_id = $1`, [playerId]);
+    await client.query(`DELETE FROM friend_requests WHERE sender_id = $1 OR receiver_id = $1`, [playerId]);
+    await client.query(`DELETE FROM friendships WHERE player_id = $1 OR friend_id = $1`, [playerId]);
+
+    await client.query(`DELETE FROM pvp_battles WHERE attacker_id = $1 OR defender_id = $1`, [playerId]);
+    await client.query(`DELETE FROM pvp_season_history WHERE player_id = $1`, [playerId]);
+    await client.query(`DELETE FROM pvp_daily WHERE player_id = $1`, [playerId]);
+    await client.query(`DELETE FROM pvp_defense WHERE player_id = $1`, [playerId]);
+    await client.query(`DELETE FROM pvp_ratings WHERE player_id = $1`, [playerId]);
+
+    await client.query(`DELETE FROM daily_mission_progress WHERE player_id = $1`, [playerId]);
+    await client.query(`DELETE FROM daily_login_state WHERE player_id = $1`, [playerId]);
+    await client.query(`DELETE FROM battle_sessions WHERE player_id = $1`, [playerId]);
+
     await client.query(`DELETE FROM mailbox WHERE player_id = $1`, [playerId]);
     await client.query(`DELETE FROM admin_reclaims WHERE player_id = $1`, [playerId]);
     await client.query(`DELETE FROM shop_purchases WHERE player_id = $1`, [playerId]);
@@ -275,6 +336,7 @@ router.delete('/players/:id', requireAdmin, asyncHandler(async (req, res) => {
     );
     await client.query(`DELETE FROM runs WHERE player_id = $1`, [playerId]);
     await client.query(`DELETE FROM normal_progress WHERE player_id = $1`, [playerId]);
+    await client.query(`DELETE FROM inf_progress WHERE player_id = $1`, [playerId]);
     await client.query(`DELETE FROM player_economy WHERE player_id = $1`, [playerId]);
     await client.query(`DELETE FROM players WHERE id = $1`, [playerId]);
 
