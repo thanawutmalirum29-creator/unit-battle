@@ -43,6 +43,12 @@ const BADGE_CATALOG = [
 
   // --- อันดับลีดเดอร์บอร์ด (top-10 finish in any mode, ever) ---
   { key: 'leaderboard_top10', category: 'rank', tier: 1, icon: '🏆', name: 'ตำนานลีดเดอร์บอร์ด', desc: 'เคยติดอันดับ Top 10 ในลีดเดอร์บอร์ดโหมดใดก็ได้', stat: 'leaderboardTop10', min: 1 },
+
+  // --- สมรภูมิจัดอันดับ PvP (lifetime-best rating, never resets even across seasons —
+  // see players.pvp_best_rating_lifetime / routes/pvp.js) ---
+  { key: 'pvp_master', category: 'rank', tier: 2, icon: '🔱', name: 'นักสู้มาสเตอร์', desc: 'เคยไต่เรตติ้งสมรภูมิถึงระดับมาสเตอร์ (1800+)', stat: 'pvpBestRating', min: 1800 },
+  { key: 'pvp_legend', category: 'rank', tier: 3, icon: '👑', name: 'ตำนานสมรภูมิ', desc: 'เคยไต่เรตติ้งสมรภูมิถึงระดับตำนาน (2000+)', stat: 'pvpBestRating', min: 2000 },
+  { key: 'pvp_champion', category: 'rank', tier: 4, icon: '🏆', name: 'แชมป์สมรภูมิ', desc: 'เคยครองอันดับ 1 ของสมรภูมิเมื่อจบซีซั่นใดซีซั่นหนึ่ง', stat: 'pvpChampion', min: 1 },
 ];
 
 function findBadge(key) {
