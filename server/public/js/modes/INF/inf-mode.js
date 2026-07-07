@@ -19,6 +19,9 @@ function startInfAuto(startStage = 1) {
    START GAME
    startStage: 1, or an unlocked checkpoint (25, 50, 75, ...)
    ============================ */
+var currentInfRunId = null;
+var currentInfBattleId = null;
+
 async function startInfGame(startStage = 1) {
   if (selectedIndexes.length === 0) {
     alert("กรุณาเลือกทีมก่อน!");
@@ -45,26 +48,33 @@ async function startInfGame(startStage = 1) {
     return;
   }
 
-  // server times the whole run, validates the checkpoint is unlocked, and
-  // (as a backstop) rejects the run if teamCardIds contains a borrowed card.
-  // runData.status is only set for an actual HTTP error response (see
-  // api.js post()) — a network/offline failure has no status, and gameplay
-  // is still allowed to continue locally in that case, same as before.
-  const runData = await GameAPI.infRunStart(startStage, selectedIndexes);
-  if (runData && runData.error && runData.status) {
-    alert("❌ " + runData.error);
+  // 🔧 เดิมเรียก GameAPI.infRunStart() (routes/runs.js — เช็คแค่จังหวะเวลา ไม่รู้ว่าสู้จริงไหม)
+  // ตอนนี้เซิฟรันการต่อสู้จริงเองทีละเทิร์น (routes/battle.js) — เริ่ม run ใหม่ตรงนี้เลย
+  currentInfRunId = null;
+  currentInfBattleId = null;
+  const startRes = await GameAPI.battleStart("inf", selectedIndexes, { stage: startStage });
+  if (!startRes || startRes.error) {
+    alert("❌ " + (startRes?.error || "เริ่มเกมไม่สำเร็จ (เช็คอินเทอร์เน็ต/ล็อกอิน)"));
     autoMode = false;
     return;
   }
+  currentInfRunId = startRes.runId;
+  currentInfBattleId = startRes.battleId;
+  playerTeam = startRes.playerTeam;
+  enemyTeam = startRes.enemyTeam;
 
   currentInfStage = startStage;
-  playerTeam = []; // force a fresh team build at the new starting stage
   if (window.HubUI) { HubUI.enterBattle(); HubUI.resetDamageStats(); HubUI.resetRewards(); }
   document.getElementById("cancelBattleBtn").style.display = "inline-block";
-  setInfStage(currentInfStage);
+  logClear?.();
+  log(`⚔️ เริ่มสู้ INF Stage ${currentInfStage} !`, "system");
+  renderBattlefield();
+  document.getElementById("infStageInfo").innerText = `Stage ${currentInfStage}`;
+  runInfBattleLoop();
 }
 
-function setInfStage(n) {
+// เข้าด่านถัดไปในรันเดียวกัน (runId เดิม) — ต่างจาก startInfGame ตรงที่ไม่สร้าง run ใหม่
+async function setInfStage(n) {
   if (battleRunning) return;
   currentInfStage = n;
   const cancelBtn = document.getElementById("cancelBattleBtn");
@@ -74,8 +84,22 @@ function setInfStage(n) {
       cancelInfBattle();
     }
   };
-  prepareInfBattle();
-  startInfBattle();
+
+  const startRes = await GameAPI.battleStart("inf", selectedIndexes, { stage: n, runId: currentInfRunId });
+  if (!startRes || startRes.error) {
+    alert("❌ " + (startRes?.error || "ไปด่านถัดไปไม่สำเร็จ"));
+    return;
+  }
+  currentInfRunId = startRes.runId;
+  currentInfBattleId = startRes.battleId;
+  playerTeam = startRes.playerTeam;
+  enemyTeam = startRes.enemyTeam;
+
+  logClear?.();
+  log(`⚔️ เริ่มสู้ INF Stage ${currentInfStage} !`, "system");
+  renderBattlefield();
+  document.getElementById("infStageInfo").innerText = `Stage ${currentInfStage}`;
+  runInfBattleLoop();
 }
 
 const STAGE1_FIXED_STATS = {
@@ -241,197 +265,61 @@ function generateInfShardDrop(stage) {
 /* ============================
    PREPARE BATTLE
    ============================ */
-function prepareInfBattle() {
-  const enemyData = INF_STAGES[currentInfStage];
-  if (!enemyData) {
-    alert("ไม่มีสเตจนี้");
-    return;
-  }
-
-  const stageReward = INF_STAGE_REWARDS[currentInfStage] || 10;
-
-  enemyTeam = enemyData.map((e, i) => {
-    const baseReward = Math.floor(stageReward / enemyData.length);
-    const bounty = Math.floor(baseReward * randomBetween(0.8, 1.2));
-    return {
-      ...e,
-      maxHp: e.hp,
-      defBase: e.def,
-      instanceId: `E-${currentInfStage}-${i}`,
-      tempDef: 0,
-      cooldown: 0,
-      isEnemy: true,
-      statusEffects: [],
-      reward: bounty
-    };
-  });
-
-  if (currentInfStage === 1 || playerTeam.length === 0) {
-    playerTeam = selectedIndexes.map((id, idx) => {
-      const card = deck.find(c => c.id === id);
-      // 🚫 กันเหนียวอีกชั้น: ตัวยืมจากเพื่อนห้ามใช้ในด่าน INF เด็ดขาด (ดูจุดเลือก
-      // ทีมใน render.js และเช็คฝั่งเซิฟใน routes/runs.js POST /start)
-      if (!card || card.borrowed) return null;
-
-      const finalStats = getRenderStats(card);
-
-      return {
-        ...card,
-        hp: finalStats.hp,
-        atk: finalStats.atk,
-        def: finalStats.def,
-        maxHp: finalStats.hp,
-        defBase: finalStats.def,
-        skill: card.skill || null,
-        instanceId: `P-${idx}`,
-        tempDef: 0,
-        cooldown: 0,
-        isEnemy: false,
-        statusEffects: [],
-      };
-    }).filter(c => c !== null);
-  }
-
-  renderBattlefield();
-  log(`🌀 เตรียมทีม — INF Stage ${currentInfStage}`, "system");
-  document.getElementById("infStageInfo").innerText = `Stage ${currentInfStage}`;
-}
+// 🔧 prepareInfBattle() เดิมอยู่ตรงนี้ (สร้าง enemyTeam/playerTeam จาก INF_STAGES ในเครื่อง)
+// ลบออกแล้ว เพราะตอนนี้ GameAPI.battleStart("inf", ...) ให้ทีมที่เซิฟสร้างจริงมาแทน
+// (ดู startInfGame()/setInfStage() ด้านบน)
 
 // ฟังก์ชันช่วยสุ่มเลขทศนิยม
 function randomBetween(min, max) {
   return Math.random() * (max - min) + min;
 }
 
-/* ============================
-   BATTLE LOOP
-   ============================ */
-async function startInfBattle() {
-  if (battleRunning) {
-    alert("การต่อสู้กำลังดำเนินอยู่");
-    return;
-  }
-  if (!playerTeam || playerTeam.length === 0) {
-    alert("ยังไม่ได้เลือกทีม");
-    return;
-  }
-  if (!enemyTeam || enemyTeam.length === 0) {
-    alert("ยังไม่มีศัตรู");
-    return;
-  }
-
-  document.getElementById("battleLog").innerHTML = "";
+async function runInfBattleLoop() {
+  if (battleRunning) return;
   battleRunning = true;
-  log(`⚔️ เริ่มสู้ INF Stage ${currentInfStage} !`, "system");
-  renderBattlefield();
   updateResult("");
-
-  playerTeam.forEach((p) => {
-    p.tempDef = p.tempDef || 0;
-    p.cooldown = p.cooldown || 0;
-  });
-  enemyTeam.forEach((e) => {
-    e.hp = e.hp;
-    e.tempDef = e.tempDef || 0;
-    e.cooldown = e.cooldown || 0;
-  });
 
   let turn = 1;
   while (battleRunning) {
     log(`--- เทิร์น ${turn} ---`, "system");
 
-    let turnOrder = [];
-    let pAlive = playerTeam.filter((p) => p.hp > 0);
-    let eAlive = enemyTeam.filter((e) => e.hp > 0);
-    let maxLen = Math.max(pAlive.length, eAlive.length);
-
-    for (let i = 0; i < maxLen; i++) {
-      if (pAlive[i]) turnOrder.push(pAlive[i]);
-      if (eAlive[i]) turnOrder.push(eAlive[i]);
+    const turnRes = await GameAPI.battleTurn(currentInfBattleId);
+    if (!turnRes || turnRes.error) {
+      log(`⚠️ เชื่อมต่อเซิฟไม่ได้ (${turnRes?.error || "network"}) — หยุดการต่อสู้`, "system");
+      endInfBattle(false);
+      return;
     }
 
-    for (let actor of turnOrder) {
-      if (actor.hp <= 0) continue;
-      let allies = actor.isEnemy ? enemyTeam : playerTeam;
-      let enemies = actor.isEnemy ? playerTeam : enemyTeam;
+    for (const entry of (turnRes.log || [])) {
+      log(entry.msg, entry.side);
+      await delay(Math.max(120, getBattleSpeed() * 0.25));
+    }
 
-      applyStatusEffects(actor);
+    playerTeam = turnRes.playerTeam;
+    enemyTeam = turnRes.enemyTeam;
+    renderBattlefield();
 
-      if (actor.skipTurn) {
-        actor.skipTurn = false;
-        continue;
-      }
-      if (!enemies.some((t) => t.hp > 0)) break;
-
-      if (actor.cooldown && actor.cooldown > 0) {
-        if (isHealer(actor)) {
-          healerIdle(actor);
-        } else {
-          await normalAttack(actor, enemies);
-        }
-      } else {
-        const used = await useSkill(actor, allies, enemies);
-
-        if (used) {
-          const counters = (actor.isEnemy ? playerTeam : enemyTeam).filter(
-            ally => ally.hp > 0 && ally.class === "Counter"
-          );
-
-          for (let counter of counters) {
-            if (Math.random() < 0.3) {
-              const counterDmg = Math.floor((counter.atk + (counter.tempAtk || 0)) * 1.3);
-              log(`🔄 ${counter.name} (Counter) โจมตีสวนกลับใส่ ${actor.name}!`,
-                  counter.isEnemy ? "enemy" : "player");
-
-              await applyDamage(counter, actor, counterDmg,
-                `💥 ${counter.name} โจมตีสวนกลับ → ${actor.name}`);
-            }
-          }
-        } else {
-          if (isHealer(actor)) {
-            healerIdle(actor);
-          } else {
-            await normalAttack(actor, enemies);
-          }
-        }
-      }
-
-      if (!playerTeam.some((p) => p.hp > 0)) {
-        log("💀 ทีมผู้เล่นพ่ายแพ้ทั้งหมด...", "system");
-        updateResult("💀 คุณแพ้... เริ่มใหม่ที่ Stage 1");
-        endInfBattle(false);
-        return;
-      }
-      if (!enemyTeam.some((e) => e.hp > 0)) {
+    if (turnRes.finished) {
+      if (turnRes.win) {
         log("🎉 ทีมศัตรูพ่ายแพ้ทั้งหมด!", "system");
         updateResult("🎉 คุณชนะ!");
-
-        // 💰🧩 เงิน+ดรอปเซิฟเป็นคนคำนวณ ผูกกับ run/stage ที่ผ่าน anti-cheat แล้วเท่านั้น
-        GameAPI.infStageClear(currentInfStage).then(() => {
-          renderInfCheckpoints(); // may have just unlocked a new checkpoint (every 25 stages)
-          const runId = GameAPI.getInfRunId();
-          if (!runId) return;
-          GameAPI.claimInfReward(runId, currentInfStage).then((result) => {
-            if (result && result.ok) {
-              applyServerMoney(result.money);
-              applyServerBag(result.bag);
-              for (const [key, amount] of Object.entries(result.drops || {})) {
-                log(`🎁 ได้ ${amount}x ${key}`, "system");
-              }
-              if (window.HubUI) HubUI.addReward(result.moneyGain, result.drops);
-            } else {
-              console.warn("[INF] claim reward failed:", result?.error);
-            }
-          });
-        });
-        endInfBattle(true);
-        return;
+        renderInfCheckpoints(); // may have just unlocked a new checkpoint (every 25 stages)
+        if (turnRes.rewards) {
+          applyServerMoney(turnRes.rewards.money);
+          applyServerBag(turnRes.rewards.bag);
+          for (const [key, amount] of Object.entries(turnRes.rewards.drops || {})) {
+            log(`🎁 ได้ ${amount}x ${key}`, "system");
+          }
+          if (window.HubUI) HubUI.addReward(turnRes.rewards.moneyGain, turnRes.rewards.drops);
+        }
+      } else {
+        log("💀 ทีมผู้เล่นพ่ายแพ้ทั้งหมด...", "system");
+        updateResult("💀 คุณแพ้... เริ่มใหม่ที่ Stage 1");
       }
-
-      await delay(getBattleSpeed());
+      endInfBattle(turnRes.win);
+      return;
     }
 
-    endRoundAll();
-    renderBattlefield(); // ⏳ ให้ตัวเลขคูลดาวน์บนการ์ดอัปเดตทันทีตอนจบเทิร์นใหญ่
     turn++;
     await delay(400);
   }
@@ -445,7 +333,7 @@ function endInfBattle(win = false) {
   document.getElementById("cancelBattleBtn").style.display = "none";
 
   if (win) {
-    if (INF_STAGES[currentInfStage + 1]) {
+    if (currentInfStage < MAX_INF_STAGE) {
       // ยังไม่ใช่จุดจบของรัน (ยังไปต่อได้) — ไปด่านถัดไปเลย ไม่ต้องโชว์สรุปผล
       // (สถิติดาเมจ/รางวัลสะสมต่อเนื่องไปจนกว่าจะตายจริงหรือกดยกเลิก)
       currentInfStage++;
@@ -453,7 +341,8 @@ function endInfBattle(win = false) {
     } else {
       log("🏆 เคลียร์ครบทุก INF Stage!", "system");
       updateResult("🏆 เคลียร์ครบทุก INF Stage!");
-      GameAPI.infRunFinish(); // no more stages left — run is over, lock in the score
+      // 🔧 เดิมเรียก GameAPI.infRunFinish() ตรงนี้ แต่ routes/battle.js ปิด run ให้เองแล้ว
+      // เมื่อไม่มีด่านถัดไป (ดู hasNextStage ใน turn handler)
       if (window.HubUI) {
         HubUI.showResults({
           win: true,
@@ -475,7 +364,7 @@ function endInfBattle(win = false) {
   } else {
     log("💀 ทีมผู้เล่นพ่ายแพ้ทั้งหมด...", "system");
     updateResult("💀 แพ้... เริ่มใหม่ที่ Stage 1");
-    GameAPI.infRunFinish(); // run ends on death — score is whatever max_stage the server already has
+    // 🔧 เดิมเรียก GameAPI.infRunFinish() ตรงนี้ แต่ routes/battle.js ปิด run ให้เองแล้วตอนแพ้
     if (window.HubUI) {
       HubUI.showResults({
         win: false,
@@ -518,7 +407,7 @@ function cancelInfBattle() {
       enemyTeam: [...enemyTeam],
     });
   }
-  GameAPI.infRunFinish(); // cancelled run still gets closed out server-side, scored at current max_stage
+  GameAPI.battleForfeit(currentInfBattleId); // fire-and-forget — server closes the run at current max_stage
   setTimeout(() => {
     currentInfStage = 1;
     playerTeam = [];
