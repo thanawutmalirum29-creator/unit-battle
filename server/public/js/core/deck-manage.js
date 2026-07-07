@@ -16,8 +16,9 @@ function injectDeckTabStyles() {
 .deck-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; }
 .deck-tab{ display:flex; align-items:center; gap:6px; padding:6px 10px; border-radius:var(--radius-sm); border:1.5px solid var(--border,rgba(255,255,255,.12)); background:rgba(255,255,255,.03); cursor:pointer; }
 .deck-tab.active{ border-color:var(--accent,#5c8bff); box-shadow:0 0 10px rgba(92,139,255,.4); }
-.deck-tab-name{ background:transparent; border:none; color:inherit; font:inherit; font-weight:700; font-size:13px; width:64px; padding:0; }
-.deck-tab-name:focus{ outline:1px solid var(--accent,#5c8bff); border-radius:2px; }
+.deck-tab-name{ font-weight:700; font-size:13px; max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.deck-tab-rename-btn{ background:transparent; border:none; color:var(--muted); font-size:12px; padding:2px 4px; line-height:1; border-radius:4px; cursor:pointer; }
+.deck-tab-rename-btn:hover{ background:rgba(255,255,255,.08); color:var(--text,#e8edf5); }
 .deck-tab-count{ font-size:11.5px; color:var(--muted); white-space:nowrap; }
 `;
   document.head.appendChild(style);
@@ -36,14 +37,15 @@ function renderDeckTabs() {
 
   mount.innerHTML = teamDecks.map((d, i) => `
     <div class="deck-tab${i === activeEditSlot ? " active" : ""}" data-slot="${i}">
-      <input type="text" class="deck-tab-name" data-slot="${i}" value="${escapeHtml(d.name)}" maxlength="12" />
+      <span class="deck-tab-name">${escapeHtml(d.name)}</span>
+      <button type="button" class="deck-tab-rename-btn" data-slot="${i}" title="เปลี่ยนชื่อเด็ค" aria-label="เปลี่ยนชื่อเด็ค">✏️</button>
       <span class="deck-tab-count">${d.indexes.length}/${maxTeamSize}</span>
     </div>
   `).join("");
 
   mount.querySelectorAll(".deck-tab").forEach((tabEl) => {
     tabEl.addEventListener("click", (e) => {
-      if (e.target.classList.contains("deck-tab-name")) return; // กดที่ช่องพิมพ์ชื่อไม่สลับแท็บ
+      if (e.target.classList.contains("deck-tab-rename-btn")) return; // กดปุ่มเปลี่ยนชื่อไม่สลับแท็บ
       const slot = parseInt(tabEl.dataset.slot, 10);
       if (slot === activeEditSlot) return;
       activeEditSlot = slot;
@@ -52,11 +54,16 @@ function renderDeckTabs() {
     });
   });
 
-  mount.querySelectorAll(".deck-tab-name").forEach((inputEl) => {
-    inputEl.addEventListener("click", (e) => e.stopPropagation());
-    inputEl.addEventListener("change", () => {
-      const slot = parseInt(inputEl.dataset.slot, 10);
-      const name = inputEl.value.trim();
+  // ✏️ เปลี่ยนชื่อเด็คผ่านป๊อปอัป (uiPrompt) แทนที่ <input> แบบพิมพ์สดในแท็บ —
+  // ช่องพิมพ์สดเดิมกดสลับหน้า/กดปุ่มย้อนกลับระหว่างพิมพ์ได้ ทำให้ค่าที่พิมพ์ค้าง
+  // หายหรือไม่ถูกบันทึก ป๊อปอัปกันปัญหานี้เพราะต้องกด "ตกลง"/"ยกเลิก" ให้จบก่อน
+  mount.querySelectorAll(".deck-tab-rename-btn").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const slot = parseInt(btn.dataset.slot, 10);
+      const input = await uiPrompt("ตั้งชื่อเด็ค (สูงสุด 12 ตัวอักษร)", teamDecks[slot].name);
+      if (input === null) return; // กดยกเลิก
+      const name = input.trim();
       teamDecks[slot].name = name ? name.slice(0, 12) : defaultDeckName(slot);
       saveTeamDecks(teamDecks);
       renderDeckTabs();

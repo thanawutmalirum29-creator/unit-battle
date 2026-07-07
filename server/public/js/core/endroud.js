@@ -11,12 +11,17 @@ function endRoundAll() {
     if (actor.statusEffects) {
       let expired = [];
       actor.statusEffects.forEach(eff => {
-        // 🔧 FIX: ต้องเคลียร์ justApplied ที่นี่ (จุดเดียวที่ endRoundAll() ถูกเรียกจริงทุกโหมด)
-        // เดิม flag นี้ถูกเคลียร์เฉพาะใน endTurnStatusDecay() ใน useSkill.js ซึ่งไม่มีใครเรียกเลย
-        // ผลคือ TimeStop.justApplied ค้างเป็น true ตลอดไป -> เช็ค `if (!eff.justApplied)` ใน
-        // applyStatusEffects() ไม่เคยเป็นจริง -> สกิล Time Stop ทุกเลเวลไม่เคยข้ามเทิร์นเป้าหมายจริงๆ
-        eff.justApplied = false;
-        eff.turns--;
+        // 🔧 FIX v2 (ยืนยันด้วย smoke-test.js ฝั่ง server): แค่เคลียร์ justApplied อย่างเดียว
+        // (ที่แก้ไว้รอบก่อน) ยังไม่พอ — TimeStop มากับ turns:1 ซึ่งโดนลดเหลือ 0 แล้วลบทิ้งทันที
+        // ที่ endRoundAll ของ "รอบเดียวกับที่ร่าย" ก่อนจะถึงรอบถัดไปที่มันควรจะบล็อกจริงๆ ต้องเลื่อน
+        // การนับ turns ออกไปอีก 1 รอบเฉพาะ TimeStop (ไม่แตะสถานะอื่นเพื่อไม่ให้ระยะเวลาบัพ/ดีบัฟ
+        // ตัวอื่นในเกมเปลี่ยนไปจากเดิม)
+        if (eff.type === "TimeStop" && eff.justApplied) {
+          eff.justApplied = false;
+        } else {
+          eff.justApplied = false;
+          eff.turns--;
+        }
         if (eff.turns <= 0) {
           expired.push(eff.type);
         }

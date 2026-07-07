@@ -84,6 +84,11 @@
 .mail-fab-overlay{
   display:none; position:fixed; inset:0; background:rgba(4,6,10,.72);
   align-items:center; justify-content:center; padding:16px; z-index:10040;
+  /* 🎨 บั๊กสีดำ: overlay นี้ถูก appendChild เข้า <html> โดยตรง (ดูล่างสุดของไฟล์)
+     ไม่ใช่ <body> จึงไม่ได้รับ color:var(--text) จาก body{} ใน theme.css เลย —
+     ตัวอักษรเลยตกไปใช้ค่า default ของเบราว์เซอร์ (ดำ) ซ้อนบนพื้นมืดของกล่องจดหมาย
+     อ่านไม่ออก ต้องตั้ง color ตรงนี้เองแทนการพึ่ง inherit จาก body */
+  color:var(--text,#e8edf5);
 }
 .mail-fab-overlay.open{ display:flex; }
 .mail-fab-modal{

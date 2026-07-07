@@ -73,6 +73,7 @@
   background:var(--panel-bg,#0e1526); border:1px solid var(--border);
   border-radius:18px 18px 0 0; padding:0 0 22px; box-shadow:0 -8px 40px rgba(0,0,0,.6);
   display:flex; flex-direction:column; transform:translateY(12px); transition:transform .18s ease;
+  color:var(--text,#e8edf5); /* ตั้งชัดเจนแทนพึ่ง inherit จาก body — กันข้อความ (เช่นตัวเลขใน .acct-row .value) เพี้ยนเป็นสี default ของเบราว์เซอร์ */
 }
 .acctp-overlay.open .acctp-sheet{ transform:translateY(0); }
 .acctp-handle{ width:36px; height:4px; border-radius:2px; background:var(--border); margin:10px auto 0; flex-shrink:0; }

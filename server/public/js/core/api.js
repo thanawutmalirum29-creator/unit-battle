@@ -285,6 +285,21 @@ const GameAPI = (() => {
     return post("/api/economy/claim/inf", { runId, stage }, true);
   }
 
+  // ---- Server-authoritative battle (see routes/battle.js, server/battle/engine.js) ----
+  // เซิฟเป็นคนรันผลการต่อสู้จริงเอง ทีละเทิร์น แทนที่ client — ใช้ได้ทั้ง 3 โหมด
+  async function battleStart(mode, cardIds, extra) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/battle/start", { mode, cardIds, ...(extra || {}) }, true);
+  }
+  async function battleTurn(battleId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post(`/api/battle/${battleId}/turn`, {}, true);
+  }
+  async function battleForfeit(battleId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post(`/api/battle/${battleId}/forfeit`, {}, true);
+  }
+
   // Call once per battle round a borrowed helper card actually fought in
   // (any mode except INF, where borrowed cards can't be selected at all —
   // see inf-mode.js). Counts cumulatively across every stage; server removes
@@ -560,7 +575,7 @@ const GameAPI = (() => {
   async function fetchNormalProgress() {
     await ensurePlayer();
     if (!playerId) return { maxStage: 0, ok: false };
-    const data = await get(`/api/progress/normal/${playerId}`, false);
+    const data = await get(`/api/progress/normal/${playerId}`, true);
     if (!data) return { maxStage: 0, ok: false };
     return { maxStage: data.maxStage ?? 0, ok: true };
   }
@@ -587,7 +602,7 @@ const GameAPI = (() => {
   async function fetchInfProgress() {
     await ensurePlayer();
     if (!playerId) return { maxStage: 0, ok: false };
-    const data = await get(`/api/progress/inf/${playerId}`, false);
+    const data = await get(`/api/progress/inf/${playerId}`, true);
     if (!data) return { maxStage: 0, ok: false };
     return { maxStage: data.maxStage ?? 0, ok: true };
   }
@@ -820,6 +835,7 @@ return {
     loginAsGuest, isGuest, upgradeGuestAccount,
     getPublicId, refreshMe, fetchMailbox, fetchMailDetail, claimMail, deleteMail,
     fetchEconomyState, claimNormalReward, claimInfReward, consumeHelperRound, checkAccountStatus,
+    battleStart, battleTurn, battleForfeit,
     bossRunStart, bossClaimTier, bossRunFinish,
     shopGetCurrent, shopMyStatus, shopBuy, shopBuyWithShard, skillUpgrade, gachaRoll, saveGachaBlacklist, upgradeGuaranteed,
     upgradePaid, upgradeDuplicate, sellCard, sellAllCards, setCardLock,

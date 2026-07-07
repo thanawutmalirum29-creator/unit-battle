@@ -25,6 +25,13 @@ function applyServerDeck(serverDeck) {
   if (typeof renderDeck === "function") renderDeck();
   if (typeof renderDeckList === "function") renderDeckList(); // equip.html's card grid uses this name instead
   if (typeof updateBagUI === "function") updateBagUI();
+
+  // หน้าต่อสู้ (game.html) มีพรีวิวเด็คใต้ dropdown เลือกเด็ค — ถ้ามี mount อยู่
+  // ให้วาดใหม่ด้วย เผื่อรายการการ์ดเปลี่ยนไปหลัง sync (กันโชว์การ์ดที่ขายไปแล้วค้าง)
+  const teamSelectorMount = document.getElementById("teamSelectorMount");
+  if (teamSelectorMount && typeof renderTeamSelectorUI === "function") {
+    renderTeamSelectorUI(teamSelectorMount, teamSelectorMount.dataset.pageKey || "normal");
+  }
 }
 
 async function syncDeckFromServer() {
