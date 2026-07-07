@@ -65,9 +65,25 @@
    คงที่มุมขวาล่างจอแยกต่างหาก — ต้องล้าง position:fixed เดิมทิ้ง ไม่งั้นจะยังลอย
    ข้ามหน้าบาร์นี้ไปเกาะมุมจอเหมือนเดิม (ดู moveNavBallIntoBar() ด้านล่าง) */
 #globalProfileBar #navFabBall{
-  position:static !important; inset:auto !important;
+  position:relative !important; inset:auto !important;
   width:34px !important; height:34px !important; font-size:16px !important;
   box-shadow:none !important; margin:0 !important;
+}
+
+/* ---- ลูกบอลกล่องจดหมาย + รางวัลรายวัน: ย้ายจากลอยมุมขวาล่าง มาไว้ขวาบนใต้แถบโปรไฟล์ ---- */
+#gpbUtilityStack{
+  position:fixed; right:10px; top:0; /* top ตั้งจริงด้วย JS ใน positionUtilityStack() */
+  display:flex; align-items:center; gap:10px;
+  z-index:9997;
+}
+/* ล้าง position:fixed/right/bottom เดิมของทั้งสองลูกบอลทิ้ง (มาจาก mail-fab.js/daily-fab.js)
+   ให้ไหลอยู่ในแถวปกติภายใน #gpbUtilityStack แทน ซึ่งตัว stack เองเป็นคนคุมตำแหน่งลอยแทน
+   ใช้ position:relative (ไม่ใช่ static) เพราะ #mailFabDot/#dailyFabDot ที่ซ้อนข้างในลูกบอล
+   เป็น position:absolute อิงกับลูกบอลเป็น containing block อยู่ — static จะทำให้ badge
+   หลุดตำแหน่งไปอิงกับ ancestor ที่ positioned ตัวถัดไปแทน */
+#gpbUtilityStack #mailFabBall,
+#gpbUtilityStack #dailyFabBall{
+  position:relative !important; inset:auto !important; margin:0 !important;
 }
 
 /* ---- ป๊อปอัปหน้าบัญชี (แผ่นเลื่อนขึ้นจากล่าง) ---- */
@@ -249,6 +265,42 @@
     }
 
     document.getElementById("gpbIdentity").addEventListener("click", openAccountPopup);
+  }
+
+  // ---------------------------------------------------------------- DOM: ย้ายลูกบอลกล่องจดหมาย + รางวัลรายวัน
+  // เดิมทั้งสองลูกบอล (จาก mail-fab.js / daily-fab.js) ลอยคงที่มุมขวาล่างจอ ซ้อนอยู่เหนือ
+  // navFabBall (ตอนนี้ navFabBall ถูกย้ายเข้าแถบโปรไฟล์ไปแล้ว — ดู buildProfileBar())
+  // ย้ายมาไว้ขวาบนแทน ใต้แถบโปรไฟล์ (#globalProfileBar) โดยยังใช้ element เดิม (listener/
+  // ป๊อปอัปเดิมติดมาด้วยเป๊ะ ไม่ต้องสร้างใหม่) แค่ย้ายตำแหน่งแล้วปิด position:fixed เดิมทิ้ง
+  function positionUtilityStack() {
+    const stack = document.getElementById("gpbUtilityStack");
+    const bar = document.getElementById("globalProfileBar");
+    if (!stack || !bar) return;
+    // เอาความสูงจริงของแถบโปรไฟล์ตอนนั้น (รวมกรณีชื่อผู้เล่นยาวจนขึ้นบรรทัดใหม่ ฯลฯ)
+    // + ระยะห่างเล็กน้อย มาตั้งเป็นตำแหน่ง top ของสแต็กลูกบอล
+    stack.style.top = (bar.getBoundingClientRect().bottom + 10) + "px";
+  }
+
+  function relocateUtilityBalls() {
+    if (document.getElementById("gpbUtilityStack")) return; // กันเรียกซ้ำ
+
+    const stack = document.createElement("div");
+    stack.id = "gpbUtilityStack";
+    // แปะใต้ <html> ไม่ใช่ <body> เหตุผลเดียวกับ navFabBall เดิม — กัน ui-scale.js
+    // (zoom ที่ <body>) ดันตำแหน่งเพี้ยนไปจากที่ตาเห็นจริงบนจอ
+    document.documentElement.appendChild(stack);
+
+    const mailBall = document.getElementById("mailFabBall");
+    if (mailBall) stack.appendChild(mailBall);
+
+    const dailyBall = document.getElementById("dailyFabBall");
+    if (dailyBall) stack.appendChild(dailyBall);
+
+    if (!mailBall && !dailyBall) { stack.remove(); return; } // ไม่มีลูกบอลไหนให้ย้ายเลยในหน้านี้
+
+    positionUtilityStack();
+    // ความสูงแถบโปรไฟล์อาจเปลี่ยน (เช่น หมุนจอ/ปรับขนาดจอ ทำให้ชื่อผู้เล่นตัดบรรทัดต่างไป)
+    window.addEventListener("resize", positionUtilityStack);
   }
 
   // ---------------------------------------------------------------- DOM: ป๊อปอัปหน้าบัญชี
@@ -869,6 +921,7 @@
   function init() {
     injectStyles();
     buildProfileBar();
+    relocateUtilityBalls();
     buildAccountPopup();
     wireEvents();
     // เติมชื่อ/รูปเบื้องต้นจาก localStorage ทันที (ก่อนรอ fetch จากเซิร์ฟเวอร์)
