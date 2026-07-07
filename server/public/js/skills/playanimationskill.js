@@ -74,6 +74,32 @@ function showFloatingNumber(targetEl, amount, kind) {
   setTimeout(() => num.remove(), 850);
 }
 
+// 🔧 FIX: หลังย้ายระบบต่อสู้ไปรันจริงที่เซิฟ (routes/battle.js + battle/engine.js) โค้ดจำลอง
+// การต่อสู้ฝั่ง client เดิม (skills/attack.js normalAttack/applyDamage) ไม่ถูกเรียกอีกต่อไป —
+// ทำให้แอนิเมชันโจมตี/ตัวเลขดาเมจที่ผูกอยู่กับโค้ดชุดนั้นหายไปด้วย ทั้งที่ตัวการ์ด/สนามยังอยู่
+// ฟังก์ชันนี้เล่นแอนิเมชันย้อนหลังจาก "เหตุการณ์การตี" จริงที่เซิฟส่งกลับมาแต่ละเทิร์น
+// (turnRes.events — ดู ctx.trackDamage ใน routes/battle.js) โดยใช้ฟังก์ชันแอนิเมชันเดิม
+// ในไฟล์นี้ทั้งหมด ไม่ต้องคำนวณดาเมจ/ผลใดๆ เองอีก แค่ "แสดงผล" สิ่งที่เกิดขึ้นจริงแล้ว
+async function playTurnEvents(events) {
+  for (const ev of (events || [])) {
+    if (!ev || !ev.attackerId || !ev.targetId) continue;
+    const attackerEl = document.querySelector(`[data-id="${ev.attackerId}"]`);
+    const targetEl = document.querySelector(`[data-id="${ev.targetId}"]`);
+    if (!attackerEl && !targetEl) continue;
+
+    if (attackerEl) {
+      if (ev.skill) announceSkill({ instanceId: ev.attackerId }, ev.skill);
+      else announceNormalAttack({ instanceId: ev.attackerId });
+    }
+    if (attackerEl && targetEl) {
+      await playAttackAnimation(attackerEl, targetEl, { class: ev.attackerClass });
+    }
+    if (targetEl) showFloatingNumber(targetEl, ev.dmg, "damage");
+
+    await delay(Math.max(80, getBattleSpeed() * 0.15));
+  }
+}
+
 async function playAttackAnimation(attackerEl, targetEl, attacker) {
   if (!attackerEl || !targetEl) return;
 
