@@ -438,6 +438,11 @@ async function startBattle(){
       await sleep(Math.max(120, getBattleSpeed() * 0.25));
     }
 
+    // 🔧 FIX: เล่นแอนิเมชันโจมตี/ตัวเลขดาเมจจริงจากเหตุการณ์ที่เซิฟส่งกลับมา และ sync สถิติ
+    // ดาเมจ "ทำ/รับ" ต่อหน่วยไปหน้าสรุปผล (ดู N-Mode.js สำหรับรายละเอียดเต็ม — root cause เดียวกัน)
+    if (window.HubUI) HubUI.setDamageStats(turnRes.damageStats);
+    if (typeof playTurnEvents === "function") await playTurnEvents(turnRes.events);
+
     playerTeam = turnRes.playerTeam;
     enemyTeam = turnRes.enemyTeam;
     damageDone = turnRes.bossDamageDealt || 0;
