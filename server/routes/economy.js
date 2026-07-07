@@ -79,47 +79,13 @@ router.post('/equip-gacha/blacklist', requireAuth, asyncHandler(async (req, res)
 // for run anti-cheat, and require the stage to be <= the player's server-recorded
 // normal_progress.max_stage (so you can't claim rewards for stages you haven't beaten).
 // ---------------------------------------------------------------------------
+// 🔒 DISABLED — see routes/battle.js instead.
+// เดิม endpoint นี้จ่ายเงิน/ไอเทมให้แค่เพราะ stage <= normal_progress.max_stage (การ์ดผ่านมาจาก
+// /api/progress/normal-clear ซึ่งก็ไม่เคยพิสูจน์ว่ามีการสู้จริง — ดู progress.js) บวก rate-limit
+// เวลาเท่านั้น ไม่เคยตรวจว่า "มีการต่อสู้เกิดขึ้นจริง" เลย ตอนนี้ routes/battle.js เป็นคนรันการต่อสู้
+// เองทีละเทิร์นและจ่ายรางวัลทันทีที่ชนะจริงในทรานแซกชันเดียวกัน ไม่ต้องมี endpoint แยกให้มา "เคลม" อีก
 router.post('/claim/normal', requireAuth, asyncHandler(async (req, res) => {
-  const stage = Number(req.body?.stage);
-  if (!Number.isInteger(stage) || stage < 1) return res.status(400).json({ error: 'invalid stage' });
-
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-
-    const progress = await client.query(`SELECT max_stage FROM normal_progress WHERE player_id = $1`, [req.playerId]);
-    const maxStage = progress.rows[0]?.max_stage ?? 0;
-    if (stage > maxStage) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({ error: `stage ${stage} not unlocked yet (max cleared: ${maxStage})` });
-    }
-
-    const econ = await getOrCreateEconomy(client, req.playerId);
-    const now = Date.now();
-    const last = econ.last_normal_claim_at ? new Date(econ.last_normal_claim_at).getTime() : 0;
-    if (now - last < MIN_MS_PER_NORMAL_CLAIM) {
-      await client.query('ROLLBACK');
-      return res.status(429).json({ error: 'claiming too fast' });
-    }
-
-    const moneyGain = STAGE_REWARDS[stage] || 0;
-    const drops = STAGE_DROPS[stage] || {};
-    const newMoney = Number(econ.money) + moneyGain;
-    const newBag = mergeBag(econ.bag, drops);
-
-    await client.query(
-      `UPDATE player_economy SET money = $2, bag = $3, last_normal_claim_at = now(), updated_at = now() WHERE player_id = $1`,
-      [req.playerId, newMoney, JSON.stringify(newBag)]
-    );
-
-    await client.query('COMMIT');
-    res.json({ ok: true, moneyGain, drops, money: newMoney, bag: newBag });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
-  }
+  return res.status(410).json({ error: 'gone: rewards are now paid automatically by /api/battle on a verified win' });
 }));
 
 // ---------------------------------------------------------------------------
@@ -129,64 +95,7 @@ router.post('/claim/normal', requireAuth, asyncHandler(async (req, res) => {
 // UNIQUE(run_id, stage) constraint that makes the second attempt a no-op-safe 409.
 // ---------------------------------------------------------------------------
 router.post('/claim/inf', requireAuth, asyncHandler(async (req, res) => {
-  const { runId } = req.body || {};
-  const stage = Number(req.body?.stage);
-  if (!runId || !Number.isInteger(stage)) return res.status(400).json({ error: 'invalid input' });
-
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-
-    const runRes = await client.query(`SELECT * FROM runs WHERE id = $1 AND player_id = $2 FOR UPDATE`, [runId, req.playerId]);
-    const run = runRes.rows[0];
-    if (!run || run.mode !== 'inf') {
-      await client.query('ROLLBACK');
-      return res.status(403).json({ error: 'run not found for this player' });
-    }
-
-    const eventRes = await client.query(
-      `SELECT 1 FROM run_stage_events WHERE run_id = $1 AND stage = $2`,
-      [runId, stage]
-    );
-    if (eventRes.rows.length === 0) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'stage clear not recorded for this run yet' });
-    }
-
-    const moneyGain = infStageReward(Math.min(stage, MAX_INF_STAGE));
-    const drops = infShardDrop(Math.min(stage, MAX_INF_STAGE));
-
-    let claimRes;
-    try {
-      claimRes = await client.query(
-        `INSERT INTO reward_claims (player_id, run_id, mode, stage, money_awarded, items_awarded)
-         VALUES ($1, $2, 'inf', $3, $4, $5) RETURNING id`,
-        [req.playerId, runId, stage, moneyGain, JSON.stringify(drops)]
-      );
-    } catch (e) {
-      if (e.code === '23505') { // unique_violation — already claimed
-        await client.query('ROLLBACK');
-        return res.status(409).json({ error: 'already claimed' });
-      }
-      throw e;
-    }
-
-    const econ = await getOrCreateEconomy(client, req.playerId);
-    const newMoney = Number(econ.money) + moneyGain;
-    const newBag = mergeBag(econ.bag, drops);
-    await client.query(
-      `UPDATE player_economy SET money = $2, bag = $3, updated_at = now() WHERE player_id = $1`,
-      [req.playerId, newMoney, JSON.stringify(newBag)]
-    );
-
-    await client.query('COMMIT');
-    res.json({ ok: true, moneyGain, drops, money: newMoney, bag: newBag });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
-  }
+  return res.status(410).json({ error: 'gone: rewards are now paid automatically by /api/battle on a verified win' });
 }));
 
 // ---------------------------------------------------------------------------
@@ -195,15 +104,7 @@ router.post('/claim/inf', requireAuth, asyncHandler(async (req, res) => {
 
 // POST /api/economy/boss/start { bossId }
 router.post('/boss/start', requireAuth, asyncHandler(async (req, res) => {
-  const bossId = req.body?.bossId;
-  if (typeof bossId !== 'string' || !bossId) return res.status(400).json({ error: 'invalid bossId' });
-
-  const token = uuid();
-  const { rows } = await pool.query(
-    `INSERT INTO runs (player_id, mode, token, boss_id) VALUES ($1, 'boss', $2, $3) RETURNING id, started_at`,
-    [req.playerId, token, bossId]
-  );
-  res.json({ runId: rows[0].id, token, startedAt: rows[0].started_at });
+  return res.status(410).json({ error: 'gone: use /api/battle/start with mode "boss" instead' });
 }));
 
 // POST /api/economy/boss/claim-tier { runId, token, tierIndex, damageDone }
@@ -212,103 +113,12 @@ router.post('/boss/start', requireAuth, asyncHandler(async (req, res) => {
 // and each tier can only be paid once (reward_claims UNIQUE(run_id, stage) — stage here
 // is the tier index). Reward amount always comes from BOSS_REWARD_TIERS on the server.
 router.post('/boss/claim-tier', requireAuth, asyncHandler(async (req, res) => {
-  const { runId, token } = req.body || {};
-  const tierIndex = Number(req.body?.tierIndex);
-  const damageDone = Number(req.body?.damageDone);
-  if (!runId || !token || !Number.isInteger(tierIndex) || tierIndex < 0 || !Number.isFinite(damageDone) || damageDone < 0) {
-    return res.status(400).json({ error: 'invalid input' });
-  }
-
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-
-    const runRes = await client.query(
-      `SELECT * FROM runs WHERE id = $1 AND player_id = $2 FOR UPDATE`,
-      [runId, req.playerId]
-    );
-    const run = runRes.rows[0];
-    if (!run || run.mode !== 'boss' || run.token !== token) {
-      await client.query('ROLLBACK');
-      return res.status(403).json({ error: 'invalid run/token' });
-    }
-    if (run.status !== 'active') {
-      await client.query('ROLLBACK');
-      return res.status(400).json({ error: `run already ${run.status}` });
-    }
-
-    const tiers = require('../game-data/economy-data').BOSS_REWARD_TIERS[run.boss_id];
-    if (!tiers || !tiers[tierIndex]) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'invalid tier for this boss' });
-    }
-    // tiers must be claimed strictly in order — run.max_stage doubles as "highest tier claimed"
-    if (tierIndex !== run.max_stage) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({ error: `tier out of order: expected ${run.max_stage}, got ${tierIndex}` });
-    }
-
-    const tier = tiers[tierIndex];
-    if (damageDone < tier.dmg) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'reported damage below this tier threshold' });
-    }
-    const elapsedMs = Date.now() - new Date(run.started_at).getTime();
-    if (damageDone > BOSS_MAX_DPS * (elapsedMs / 1000)) {
-      await client.query(`UPDATE runs SET status = 'flagged', flag_reason = 'damage exceeds plausible DPS' WHERE id = $1`, [runId]);
-      await client.query('COMMIT');
-      return res.status(400).json({ error: 'damage exceeds plausible rate — flagged, not paid' });
-    }
-
-    const moneyGain = rollRange(tier.money);
-    const drops = {};
-    if (tier.items) for (const [k, range] of Object.entries(tier.items)) drops[k] = rollRange(range);
-
-    try {
-      await client.query(
-        `INSERT INTO reward_claims (player_id, run_id, mode, stage, money_awarded, items_awarded)
-         VALUES ($1, $2, 'boss', $3, $4, $5)`,
-        [req.playerId, runId, tierIndex, moneyGain, JSON.stringify(drops)]
-      );
-    } catch (e) {
-      if (e.code === '23505') {
-        await client.query('ROLLBACK');
-        return res.status(409).json({ error: 'tier already claimed' });
-      }
-      throw e;
-    }
-
-    await client.query(`UPDATE runs SET max_stage = $2 WHERE id = $1`, [runId, tierIndex + 1]);
-
-    const econ = await getOrCreateEconomy(client, req.playerId);
-    const newMoney = Number(econ.money) + moneyGain;
-    const newBag = mergeBag(econ.bag, drops);
-    await client.query(
-      `UPDATE player_economy SET money = $2, bag = $3, updated_at = now() WHERE player_id = $1`,
-      [req.playerId, newMoney, JSON.stringify(newBag)]
-    );
-
-    await client.query('COMMIT');
-    res.json({ ok: true, moneyGain, drops, money: newMoney, bag: newBag });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
-  }
+  return res.status(410).json({ error: 'gone: boss tier rewards are now paid automatically by /api/battle turns' });
 }));
 
 // POST /api/economy/boss/finish { runId, token } — call when the fight ends (win/lose/leave)
 router.post('/boss/finish', requireAuth, asyncHandler(async (req, res) => {
-  const { runId, token } = req.body || {};
-  if (!runId || !token) return res.status(400).json({ error: 'invalid input' });
-  const { rows } = await pool.query(
-    `UPDATE runs SET status = 'finished', finished_at = now()
-     WHERE id = $1 AND player_id = $2 AND token = $3 AND status = 'active' RETURNING id`,
-    [runId, req.playerId, token]
-  );
-  if (rows.length === 0) return res.status(404).json({ error: 'run not found or already finished' });
-  res.json({ ok: true });
+  return res.status(410).json({ error: 'gone: /api/battle closes the run itself on finish/forfeit' });
 }));
 
 // ---------------------------------------------------------------------------
@@ -848,6 +658,14 @@ router.post('/sell', requireAuth, asyncHandler(async (req, res) => {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'การ์ดที่ยืมมาจากเพื่อนไม่สามารถขายได้' });
     }
+    // 🔧 FIX: `locked` ("ล็อคกันขาย") was only ever checked client-side (see
+    // deck-manage.js sellCard()) — calling this endpoint directly (devtools/script)
+    // bypassed the lock entirely and sold the card anyway. Server now enforces it too,
+    // same as `borrowed` right above.
+    if (deck[idx].locked) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'การ์ดนี้ถูกล็อคไว้ ปลดล็อคก่อนถึงจะขายได้' });
+    }
 
     const sold = deck[idx];
     const price = calcSellPrice(sold);
@@ -882,9 +700,13 @@ router.post('/sell-all', requireAuth, asyncHandler(async (req, res) => {
     const econ = await getOrCreateEconomy(client, req.playerId);
     const idSet = new Set(cardIds);
     // borrowed helper cards (see routes/helpers.js) are never sellable, even
-    // if their id slipped into a bulk "sell all unlocked" request
-    const toSell = econ.deck.filter(c => idSet.has(c.id) && !c.borrowed);
-    const kept = econ.deck.filter(c => !(idSet.has(c.id) && !c.borrowed));
+    // if their id slipped into a bulk "sell all unlocked" request.
+    // 🔧 FIX: same gap as /sell above — `locked` was only ever filtered out
+    // client-side (deck-manage.js sellAllUnlocked() already excludes locked ids from
+    // cardIds before calling this), so calling the endpoint directly with a locked
+    // card's id still sold it. Server now excludes locked cards unconditionally too.
+    const toSell = econ.deck.filter(c => idSet.has(c.id) && !c.borrowed && !c.locked);
+    const kept = econ.deck.filter(c => !(idSet.has(c.id) && !c.borrowed && !c.locked));
     const totalEarned = toSell.reduce((sum, c) => sum + calcSellPrice(c), 0);
     const newMoney = Number(econ.money) + totalEarned;
 
