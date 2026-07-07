@@ -63,6 +63,16 @@ function announceNormalAttack(user) {
   showActionLabel(el, "⚔️ โจมตีธรรมดา", "fx-normal");
 }
 
+// 🧹 FIX: บั๊กลูกธนู Rogue ค้างจอ (ดูรายละเอียดเต็มใน playRogueAttackEffect ด้านล่าง) —
+// ลูกธนูที่ค้างมาจากก่อนแก้ไฟล์นี้ถูกแปะไว้ที่ document.body ตรงๆ ไม่มีจุดไหนในโค้ด
+// เดิมเคลียร์มันออกอีกเลย เลยค้างอยู่ถาวรแม้ reload คนละหน้า ฟังก์ชันนี้กวาดทิ้งทันที
+// ตอนโหลดสคริปต์ (เคลียร์ของเก่าที่ค้างอยู่ก่อนแก้) และเรียกซ้ำก่อนยิงลูกธนูใหม่ทุกครั้ง
+// (กันเหตุซ้ำ เผื่อมีบั๊กอื่นหลุดมาสร้างค้างอีกในอนาคต)
+function clearStrayProjectiles() {
+  document.querySelectorAll(".projectile-wrapper").forEach(el => el.remove());
+}
+clearStrayProjectiles();
+
 // 🔢 ตัวเลขดาเมจ/ฮีล ลอยขึ้นเหนือเป้าหมาย ให้เห็นชัดว่าโดนไปเท่าไหร่ ประเภทไหน
 function showFloatingNumber(targetEl, amount, kind) {
   if (!targetEl || !amount) return;
@@ -104,8 +114,12 @@ async function playAttackAnimation(attackerEl, targetEl, attacker) {
   if (!attackerEl || !targetEl) return;
 
   // 🟢 เช็คอาชีพ Rogue → ใช้ projectile
+  // 🔧 FIX: เดิม "return playRogueAttackEffect(...)" โดยที่ฟังก์ชันนั้นไม่ใช่ async และ
+  // ไม่คืนค่า Promise เลย — โค้ดข้างนอกที่ "await playAttackAnimation(...)" เลยผ่านทันที
+  // โดยไม่รอให้ลูกธนูวิ่งไปถึงเป้าหมายจริงๆ (ดูรายละเอียดเต็มใน playRogueAttackEffect)
   if (attacker?.class === "Rogue") {
-    return playRogueAttackEffect(attackerEl, targetEl);
+    await playRogueAttackEffect(attackerEl, targetEl);
+    return;
   }
 
   // 🔵 อาชีพอื่น → ใช้ animation พุ่งไปโจมตี (ระยะประชิด)
@@ -124,8 +138,15 @@ async function playAttackAnimation(attackerEl, targetEl, attacker) {
   attackerEl.style.animationDuration = duration + "ms";
   attackerEl.classList.add("attack-moving");
 
+  // 🔧 FIX: เดิมรอ "animationend" เฉยๆ ไม่มี fallback — ถ้าการ์ดโดนลบออกจาก DOM กลาง
+  // แอนิเมชัน (เช่น กดยกเลิกการต่อสู้ ทำให้ renderBattlefield() ล้าง innerHTML แทรกกลางคัน)
+  // event นี้จะไม่มีวันยิงอีกเลย ทำให้ await ค้างตลอดไป (ล็อกคิวเทิร์นถัดไปในลูปไม่ให้เดิน
+  // ต่อ) ใส่ timeout สำรองให้ resolve แน่ๆ ไม่เกิน duration ของแอนิเมชันเอง
   await new Promise(res => {
-    attackerEl.addEventListener("animationend", res, { once: true });
+    let done = false;
+    const finish = () => { if (done) return; done = true; res(); };
+    attackerEl.addEventListener("animationend", finish, { once: true });
+    setTimeout(finish, duration + 100);
   });
 
   attackerEl.classList.remove("attack-moving");
@@ -147,8 +168,13 @@ async function playPowerStrikeEffect(attackerEl, targetEl) {
   attackerEl.style.animationDuration = chargeDuration + "ms";
   attackerEl.classList.add("power-charge");
 
+  // 🔧 FIX: เหมือนกับ playAttackAnimation — ใส่ fallback timeout กัน await ค้างตลอดไป
+  // ถ้า "animationend" ไม่ยิง (element โดนลบออกจาก DOM กลางแอนิเมชัน)
   await new Promise(res => {
-    attackerEl.addEventListener("animationend", res, { once: true });
+    let done = false;
+    const finish = () => { if (done) return; done = true; res(); };
+    attackerEl.addEventListener("animationend", finish, { once: true });
+    setTimeout(finish, chargeDuration + 100);
   });
 
   attackerEl.classList.remove("power-charge");
@@ -247,62 +273,90 @@ async function applyHeal(caster, target, amount) {
 
   updateHpBar(target);
 }
+// 🔧 FIX: แก้บั๊ก "ลูกธนูค้างจอ" 2 จุดที่ทำให้เกิดปัญหาร่วมกัน:
+//
+// 1) container = attackerEl.offsetParent — การ์ดในสนาม (.card-box / .team-box) ไม่มี
+//    CSS "position" อยู่เลยสักตัว หา positioned ancestor ไม่เจอ เลย fallback เป็น
+//    document.body ตรงๆ ทุกครั้ง ลูกธนูเลยถูกแปะไว้ที่ตัวหน้าเว็บ ไม่ใช่ในกรอบสนามรบ
+//    → แก้โดยหา #battlefield (คงอยู่ตลอดตราบใดที่ยังอยู่หน้าเกม) ก่อนเป็นอันดับแรก
+//
+// 2) การลบ wrapper (wrapper.remove()) ผูกกับ "transitionend" อย่างเดียว ไม่มี fallback
+//    เลย — ถ้าเทิร์นนั้นเป็นเทิร์นจบเกม (ชนะ/แพ้/ยกเลิกกลางคัน) โค้ดฝั่งโหมดจะเรียกแสดง
+//    ผลจบเกม/เคลียร์สนามต่อทันที โดยไม่รอ transition ของลูกธนูให้จบก่อน (เพราะเดิม
+//    playAttackAnimation ก็ไม่ได้รอฟังก์ชันนี้จริงอยู่แล้ว — ดู FIX ใน playAttackAnimation)
+//    ถ้า transitionend ยังไม่ทันยิงตอนนั้น wrapper.remove() ก็ไม่ถูกเรียก แล้วเพราะมันถูก
+//    แปะไว้ที่ document.body (ข้อ 1) จึงไม่มีจุดไหนในโค้ดเคลียร์มันออกอีกเลย ค้างอยู่
+//    ตำแหน่งเดิมไปตลอด แม้เปลี่ยนไปหน้าเลือกด่านที่อยู่ใต้สนามรบพอดี
+//
+// ฟังก์ชันนี้ตอนนี้คืนค่าเป็น Promise จริง (ให้ playAttackAnimation await ได้ถูกต้อง)
+// และการ์านตีลบ wrapper ด้วย fallback timeout เสมอ ไม่ว่า transitionend จะยิงหรือไม่
 function playRogueAttackEffect(attackerEl, targetEl) {
-  if (!attackerEl || !targetEl) return;
+  return new Promise((resolve) => {
+    if (!attackerEl || !targetEl) { resolve(); return; }
 
-  const container = attackerEl.offsetParent || document.body;
+    const container = document.getElementById("battlefield")
+      || attackerEl.offsetParent
+      || document.body;
 
-  // wrapper สำหรับเคลื่อนที่
-  const wrapper = document.createElement("div");
-  wrapper.className = "projectile-wrapper";
-  wrapper.style.position = "absolute";
-  wrapper.style.left = "0";
-  wrapper.style.top = "0";
-  container.appendChild(wrapper);
+    // wrapper สำหรับเคลื่อนที่
+    const wrapper = document.createElement("div");
+    wrapper.className = "projectile-wrapper";
+    wrapper.style.position = "absolute";
+    wrapper.style.left = "0";
+    wrapper.style.top = "0";
+    container.appendChild(wrapper);
 
-  // actual arrow
-  const projectile = document.createElement("div");
-  projectile.className = "rogue-projectile";
-  wrapper.appendChild(projectile);
+    // actual arrow
+    const projectile = document.createElement("div");
+    projectile.className = "rogue-projectile";
+    wrapper.appendChild(projectile);
 
-  const attackerRect = attackerEl.getBoundingClientRect();
-  const targetRect = targetEl.getBoundingClientRect();
-  const containerRect = container.getBoundingClientRect();
+    const attackerRect = attackerEl.getBoundingClientRect();
+    const targetRect = targetEl.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
 
-  const startX = attackerRect.left - containerRect.left + attackerRect.width / 2;
-  const startY = attackerRect.top - containerRect.top + attackerRect.height / 2;
-  const endX = targetRect.left - containerRect.left + targetRect.width / 2;
-  const endY = targetRect.top - containerRect.top + targetRect.height / 2;
+    const startX = attackerRect.left - containerRect.left + attackerRect.width / 2;
+    const startY = attackerRect.top - containerRect.top + attackerRect.height / 2;
+    const endX = targetRect.left - containerRect.left + targetRect.width / 2;
+    const endY = targetRect.top - containerRect.top + targetRect.height / 2;
 
-  const dx = endX - startX;
-  const dy = endY - startY;
-  const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    const dx = endX - startX;
+    const dy = endY - startY;
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
 
-  // ตั้งค่า wrapper ที่จุดเริ่ม
-  wrapper.style.left = startX + "px";
-  wrapper.style.top = startY + "px";
-  wrapper.style.transform = `translate(-50%, -50%)`;
+    // ตั้งค่า wrapper ที่จุดเริ่ม
+    wrapper.style.left = startX + "px";
+    wrapper.style.top = startY + "px";
+    wrapper.style.transform = `translate(-50%, -50%)`;
 
-  // หมุน arrow ตามมุม
-  projectile.style.transform = `rotate(${angle}deg)`;
+    // หมุน arrow ตามมุม
+    projectile.style.transform = `rotate(${angle}deg)`;
 
-  const base = getBattleSpeed();
-  const duration = Math.max(300, base * 0.4);
-  wrapper.style.transition = `transform ${duration}ms linear`;
+    const base = getBattleSpeed();
+    const duration = Math.max(300, base * 0.4);
+    wrapper.style.transition = `transform ${duration}ms linear`;
 
-  // animate เคลื่อน wrapper
-  requestAnimationFrame(() => {
+    // animate เคลื่อน wrapper
     requestAnimationFrame(() => {
-      wrapper.style.transform = `translate(${dx}px, ${dy}px)`; 
+      requestAnimationFrame(() => {
+        wrapper.style.transform = `translate(${dx}px, ${dy}px)`;
+      });
     });
-  });
 
-  // ✅ ใช้ transitionend → ยิงโดนแล้วค่อยใส่เอฟเฟค
-  wrapper.addEventListener("transitionend", () => {
-    targetEl.classList.add("rogue-hit");
-    setTimeout(() => targetEl.classList.remove("rogue-hit"), 150);
-    wrapper.remove();
-  }, { once: true });
+    // ✅ ยิงโดนแล้วค่อยใส่เอฟเฟค + ลบ wrapper ทิ้งเสมอ ไม่ว่าจะมาจาก transitionend
+    // จริงๆ หรือจาก timeout สำรอง (กันเทิร์นจบเกม/ยกเลิกกลางคันตัดจบ transition ก่อน)
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      targetEl.classList.add("rogue-hit");
+      setTimeout(() => targetEl.classList.remove("rogue-hit"), 150);
+      wrapper.remove();
+      resolve();
+    };
+    wrapper.addEventListener("transitionend", finish, { once: true });
+    setTimeout(finish, duration + 150);
+  });
 }
 
 function activateBerserk(user, multiplier) {
