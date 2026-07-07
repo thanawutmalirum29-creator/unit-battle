@@ -73,6 +73,7 @@ function requireAdmin(req, res, next) {
 const BAG_KEYS = [
   'memoryRare', 'memoryEpic', 'memoryLegendary', 'memoryMythical', 'memoryCosmic',
   'shardGray', 'shardBlue', 'shardPurple', 'shardGold', 'shardRed', 'shardSky',
+  'pvpMedal',
 ];
 
 // Thai display labels for bag keys — used only in the reclaim mail body text below
@@ -82,6 +83,7 @@ const BAG_LABELS = {
   memoryLegendary: 'ความทรงจำ Legendary', memoryMythical: 'ความทรงจำ Mythical',
   memoryCosmic: 'ความทรงจำ Cosmic', shardGray: 'ชาร์ดเทา', shardBlue: 'ชาร์ดน้ำเงิน',
   shardPurple: 'ชาร์ดม่วง', shardGold: 'ชาร์ดทอง', shardRed: 'ชาร์ดแดง', shardSky: 'ชาร์ดฟ้า',
+  pvpMedal: 'เหรียญสมรภูมิ',
 };
 
 // POST /api/admin/login { code }
@@ -586,6 +588,117 @@ router.post('/players/:id/reclaim', requireAdmin, asyncHandler(async (req, res) 
       money: newMoney, bag: newBag, deck: newDeck, equipBag: newEquipBag,
       mailId: mailRes.rows[0].id,
     });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}));
+
+// ============================================================================
+// PvP Ranked Arena — season control. See routes/pvp.js for player-facing
+// endpoints and game-data/pvp-data.js for tier/reward tuning. Nothing here
+// auto-starts a season (the game isn't live yet) — an admin has to explicitly
+// start the first one; every season after that rolls over automatically the
+// moment its end date passes and a player hits any /api/pvp route (see
+// ensureSeasonState in routes/pvp.js) — this console only needs to be used
+// again to force-end a season early or to check on things.
+// ============================================================================
+const { rankInfo: pvpRankInfo } = require('../game-data/pvp-data.js');
+
+// Same lazy "ensure a current season row exists" logic as routes/pvp.js, but
+// WITHOUT the auto-rollover-on-expiry (that's intentionally left to the
+// player-facing routes so this console can't silently roll a season over
+// itself just by being viewed — an admin should trigger that on purpose).
+async function ensureSeasonRowForAdmin() {
+  const { rows } = await pool.query(
+    `SELECT * FROM pvp_seasons WHERE status IN ('active','upcoming') ORDER BY season_number DESC LIMIT 1`
+  );
+  if (rows[0]) return rows[0];
+  const ins = await pool.query(`INSERT INTO pvp_seasons (season_number, status) VALUES (1, 'upcoming') RETURNING *`);
+  return ins.rows[0];
+}
+
+// GET /api/admin/pvp/season — current season status + top of the ladder.
+router.get('/pvp/season', requireAdmin, asyncHandler(async (req, res) => {
+  const season = await ensureSeasonRowForAdmin();
+  let top = [];
+  if (season.status === 'active') {
+    const { rows } = await pool.query(
+      `SELECT p.username, r.rating, r.wins, r.losses
+       FROM pvp_ratings r JOIN players p ON p.id = r.player_id
+       WHERE r.season_id = $1 ORDER BY r.rating DESC LIMIT 20`,
+      [season.id]
+    );
+    top = rows.map((r, i) => ({ rank: i + 1, username: r.username, rating: r.rating, wins: r.wins, losses: r.losses, tier: pvpRankInfo(r.rating).label }));
+  }
+  res.json({ season, top });
+}));
+
+// POST /api/admin/pvp/season/start — starts the current 'upcoming' season now.
+router.post('/pvp/season/start', requireAdmin, asyncHandler(async (req, res) => {
+  const season = await ensureSeasonRowForAdmin();
+  if (season.status !== 'upcoming') {
+    return res.status(400).json({ error: `season ${season.season_number} is already '${season.status}'` });
+  }
+  const durationDays = Number(req.body?.durationDays) || season.duration_days;
+  const { rows } = await pool.query(
+    `UPDATE pvp_seasons SET status = 'active', duration_days = $2, starts_at = now(),
+       ends_at = now() + ($2 || ' days')::interval WHERE id = $1 RETURNING *`,
+    [season.id, durationDays]
+  );
+  res.json({ ok: true, season: rows[0] });
+}));
+
+// POST /api/admin/pvp/season/end — force-ends the active season immediately
+// (distributes rewards + opens the next 'upcoming' season, same as a natural
+// expiry would — see finalizeSeason in routes/pvp.js, duplicated here since
+// the admin console intentionally doesn't import player-route internals).
+router.post('/pvp/season/end', requireAdmin, asyncHandler(async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows } = await client.query(`SELECT * FROM pvp_seasons WHERE status = 'active' FOR UPDATE`);
+    const season = rows[0];
+    if (!season) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'no active season to end' });
+    }
+
+    const { rows: standings } = await client.query(
+      `SELECT player_id, rating, wins, losses, RANK() OVER (ORDER BY rating DESC) AS final_rank
+       FROM pvp_ratings WHERE season_id = $1`,
+      [season.id]
+    );
+    const { seasonRewardFor: rewardFor, PVP_MEDAL_KEY: medalKey } = require('../game-data/pvp-data.js');
+    for (const row of standings) {
+      const tierKey = pvpRankInfo(row.rating).key;
+      const reward = rewardFor(Number(row.final_rank), tierKey);
+      const mailRes = await client.query(
+        `INSERT INTO mailbox (player_id, subject, body, reward_money, reward_bag_key, reward_bag_qty, sent_by)
+         VALUES ($1, $2, $3, $4, $5, $6, 'system') RETURNING id`,
+        [
+          row.player_id, reward.subject,
+          `จบซีซั่นที่ ${season.season_number} ด้วยอันดับ #${row.final_rank} (เรตติ้ง ${row.rating}) — ${row.wins} ชนะ / ${row.losses} แพ้`,
+          reward.money, medalKey, reward.medals,
+        ]
+      );
+      await client.query(
+        `INSERT INTO pvp_season_history (season_id, player_id, final_rank, final_rating, tier_key, wins, losses, reward_mail_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (season_id, player_id) DO NOTHING`,
+        [season.id, row.player_id, row.final_rank, row.rating, tierKey, row.wins, row.losses, mailRes.rows[0].id]
+      );
+      await client.query(`UPDATE players SET pvp_best_rating_lifetime = GREATEST(pvp_best_rating_lifetime, $2) WHERE id = $1`, [row.player_id, row.rating]);
+    }
+    await client.query(`UPDATE pvp_seasons SET status = 'ended', ended_at = now(), rewards_distributed_at = now() WHERE id = $1`, [season.id]);
+    const nextRes = await client.query(
+      `INSERT INTO pvp_seasons (season_number, status) VALUES ($1, 'upcoming') RETURNING *`,
+      [season.season_number + 1]
+    );
+
+    await client.query('COMMIT');
+    res.json({ ok: true, endedSeason: season.season_number, playersRewarded: standings.length, nextSeason: nextRes.rows[0] });
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;

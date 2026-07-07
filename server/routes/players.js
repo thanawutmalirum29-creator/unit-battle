@@ -292,7 +292,7 @@ router.delete('/friends/requests/:id', requireAuth, asyncHandler(async (req, res
 // than failing — a player with no guild simply can't have guild/boss/donate
 // badges unlocked yet.
 async function computePlayerBadgeStats(playerId) {
-  const [normalRow, infRow, guildRow, top10Row] = await Promise.all([
+  const [normalRow, infRow, guildRow, top10Row, playerRow, pvpChampionRow] = await Promise.all([
     pool.query(`SELECT max_stage FROM normal_progress WHERE player_id = $1`, [playerId]),
     pool.query(`SELECT max_stage FROM inf_progress WHERE player_id = $1`, [playerId]),
     pool.query(
@@ -310,6 +310,8 @@ async function computePlayerBadgeStats(playerId) {
        ) AS top10`,
       [playerId]
     ),
+    pool.query(`SELECT pvp_best_rating_lifetime FROM players WHERE id = $1`, [playerId]),
+    pool.query(`SELECT EXISTS (SELECT 1 FROM pvp_season_history WHERE player_id = $1 AND final_rank = 1) AS champ`, [playerId]),
   ]);
 
   return {
@@ -319,6 +321,8 @@ async function computePlayerBadgeStats(playerId) {
     bossDamageLifetime: Number(guildRow.rows[0]?.boss_damage_lifetime || 0),
     contributionLifetime: Number(guildRow.rows[0]?.contribution_lifetime || 0),
     leaderboardTop10: !!top10Row.rows[0]?.top10,
+    pvpBestRating: Number(playerRow.rows[0]?.pvp_best_rating_lifetime || 0),
+    pvpChampion: pvpChampionRow.rows[0]?.champ ? 1 : 0,
   };
 }
 

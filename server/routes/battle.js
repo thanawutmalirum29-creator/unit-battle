@@ -18,6 +18,7 @@ const { v4: uuid } = require('uuid');
 const pool = require('../db/pool');
 const asyncHandler = require('../middleware/asyncHandler');
 const { requireAuth } = require('../middleware/auth');
+const { bumpMissionProgress } = require('../db/dailyMissions');
 
 const engine = require('../battle/engine');
 const { STAGES, BOSSES } = require('../battle/stage-data');
@@ -269,6 +270,7 @@ router.post('/:battleId/turn', requireAuth, asyncHandler(async (req, res) => {
           if (runRes.rows[0]) await writeLeaderboardEntry(client, req.playerId, runRes.rows[0]);
         }
       }
+      if (win) await bumpMissionProgress(client, req.playerId, 'win_battle', 1);
     }
 
     await client.query(

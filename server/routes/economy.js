@@ -21,6 +21,7 @@ const {
   calcSellPrice,
 } = require('../game-data/economy-data');
 const { cleanupExpiredHelperLoans } = require('../db/helperLoans');
+const { bumpMissionProgress } = require('../db/dailyMissions');
 
 const router = express.Router();
 
@@ -236,6 +237,7 @@ router.post('/shop/buy', requireAuth, asyncHandler(async (req, res) => {
       `UPDATE player_economy SET money = $2, deck = $3, updated_at = now() WHERE player_id = $1`,
       [req.playerId, newMoney, JSON.stringify(newDeck)]
     );
+    await bumpMissionProgress(client, req.playerId, 'shop_buy', 1);
 
     await client.query('COMMIT');
     res.json({ ok: true, card: newCard, money: newMoney, deck: newDeck });
@@ -307,6 +309,7 @@ router.post('/shop/buy-with-shard', requireAuth, asyncHandler(async (req, res) =
       `UPDATE player_economy SET bag = $2, deck = $3, updated_at = now() WHERE player_id = $1`,
       [req.playerId, JSON.stringify(newBag), JSON.stringify(newDeck)]
     );
+    await bumpMissionProgress(client, req.playerId, 'shop_buy', 1);
 
     await client.query('COMMIT');
     res.json({ ok: true, card: newCard, bag: newBag, deck: newDeck });
@@ -401,6 +404,7 @@ router.post('/gacha/roll', requireAuth, asyncHandler(async (req, res) => {
       `UPDATE player_economy SET money = $2, deck = $3, bag = $4, updated_at = now() WHERE player_id = $1`,
       [req.playerId, newMoney, JSON.stringify(newDeck), JSON.stringify(newBag)]
     );
+    await bumpMissionProgress(client, req.playerId, 'gacha_roll', 1);
 
     await client.query('COMMIT');
     res.json({ ok: true, results, money: newMoney, deck: newDeck, bag: newBag });
