@@ -56,6 +56,22 @@ window.HubUI = (function () {
     if (t) t.taken += dmg;
   }
 
+  // 🔧 FIX: battle ตอนนี้รันจริงที่ฝั่งเซิฟทั้งหมด (ดู routes/battle.js) — trackDamage() ด้านบน
+  // แทบไม่เคยถูกเรียกอีกต่อไปแล้ว เพราะโค้ดจำลองการต่อสู้ฝั่ง client เดิม (skills/attack.js)
+  // ไม่ได้ทำงานในเส้นทางนี้ ทำให้ตารางสรุปผลโชว์ 0/0 ทุกตัวเสมอ ฟังก์ชันนี้แทนที่ด้วยการ
+  // sync สถิติ "ทำ/รับ" ที่เซิฟคำนวณจริงและส่งกลับมาทุกเทิร์น (turnRes.damageStats) แทน
+  function setDamageStats(serverStats) {
+    if (!serverStats) return;
+    for (const [instanceId, entry] of Object.entries(serverStats)) {
+      damageStats[instanceId] = {
+        name: entry.name || (damageStats[instanceId] && damageStats[instanceId].name) || "?",
+        isEnemy: !!entry.isEnemy,
+        dealt: Number(entry.dealt) || 0,
+        taken: Number(entry.taken) || 0,
+      };
+    }
+  }
+
   function resetDamageStats() {
     damageStats = {};
   }
@@ -338,6 +354,7 @@ window.HubUI = (function () {
 
   return {
     trackDamage,
+    setDamageStats,
     resetDamageStats,
     resetRewards,
     addReward,
