@@ -77,6 +77,15 @@ async function startInfGame(startStage = 1) {
 async function setInfStage(n) {
   if (battleRunning) return;
   currentInfStage = n;
+
+  // 🔒 ตอนจบด่านก่อนหน้า endInfBattle() เซ็ต battleRunning = false ไว้ชั่วคราวก่อนเรียกมาที่นี่
+  // — ช่วงว่างนั้น (ระหว่างรอ GameAPI.battleStart ด้านล่าง) ตัว safety-net lockPoll ของ HubUI
+  // (เช็คทุก 300ms ว่า battleRunning ยังจริงไหม เผื่อบางโหมดลืมเรียก showResults/exitToSelect)
+  // จะเห็นว่า battleRunning เป็น false แล้วสั่ง unlockUI() คลายล็อกทั้งที่จริงๆ แค่กำลังไปด่านถัดไป
+  // ในรันเดียวกัน ไม่ได้จบการต่อสู้จริง — ต้อง enterBattle() ซ้ำตรงนี้เพื่อล็อก UI กลับทันที
+  // (ไม่เรียก resetDamageStats/resetRewards เพราะสถิติ/รางวัลสะสมต่อเนื่องทั้งรัน ดู endInfBattle)
+  if (window.HubUI) HubUI.enterBattle();
+
   const cancelBtn = document.getElementById("cancelBattleBtn");
   cancelBtn.style.display = "inline-block";
   cancelBtn.onclick = async () => {
@@ -294,6 +303,11 @@ async function runInfBattleLoop() {
       log(entry.msg, entry.side);
       await delay(Math.max(120, getBattleSpeed() * 0.25));
     }
+
+    // 🔧 FIX: เล่นแอนิเมชันโจมตี/ตัวเลขดาเมจจริงจากเหตุการณ์ที่เซิฟส่งกลับมา และ sync สถิติ
+    // ดาเมจ "ทำ/รับ" ต่อหน่วยไปหน้าสรุปผล (ดู N-Mode.js สำหรับรายละเอียดเต็ม — root cause เดียวกัน)
+    if (window.HubUI) HubUI.setDamageStats(turnRes.damageStats);
+    if (typeof playTurnEvents === "function") await playTurnEvents(turnRes.events);
 
     playerTeam = turnRes.playerTeam;
     enemyTeam = turnRes.enemyTeam;
