@@ -139,6 +139,12 @@ async function startBattle(){
       await delay(Math.max(120, getBattleSpeed() * 0.25));
     }
 
+    // 🔧 FIX: เล่นแอนิเมชันโจมตี/ตัวเลขดาเมจจริงจากเหตุการณ์ที่เซิฟส่งกลับมา (เดิมหายไปเพราะ
+    // battle ย้ายไปรันที่เซิฟแล้วไม่มีอะไรเรียก skills/attack.js อีก) และ sync สถิติดาเมจ
+    // "ทำ/รับ" ต่อหน่วยไปหน้าสรุปผล (เดิมค้าง 0/0 เพราะ ctx.trackDamage ฝั่งเซิฟเป็น no-op)
+    if (window.HubUI) HubUI.setDamageStats(turnRes.damageStats);
+    if (typeof playTurnEvents === "function") await playTurnEvents(turnRes.events);
+
     playerTeam = turnRes.playerTeam;
     enemyTeam = turnRes.enemyTeam;
     renderBattlefield();
