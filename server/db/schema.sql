@@ -278,6 +278,103 @@ ALTER TABLE runs ADD COLUMN IF NOT EXISTS start_stage INT NOT NULL DEFAULT 0;
 -- to apply to shard/memory currencies.
 ALTER TABLE player_economy DROP CONSTRAINT IF EXISTS player_economy_money_check;
 
+-- ============================================================================
+-- PvP Ranked Arena ("สมรภูมิจัดอันดับ"): async attack-a-snapshot-defense-team
+-- ladder. No live matchmaking/sockets needed — battles reuse the same
+-- turn-based server engine (battle/engine.js) as PvE, just run start-to-finish
+-- in one request against the opponent's saved defense team. Seasonal (default
+-- 30 days), Elo-style rating -> tier/division, end-of-season mailbox rewards.
+-- See routes/pvp.js + game-data/pvp-data.js.
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS pvp_seasons (
+  id                      BIGSERIAL PRIMARY KEY,
+  season_number           INT NOT NULL UNIQUE,
+  status                  TEXT NOT NULL DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'active', 'ended')),
+  duration_days           INT NOT NULL DEFAULT 30,
+  starts_at               TIMESTAMPTZ,
+  ends_at                 TIMESTAMPTZ,
+  ended_at                TIMESTAMPTZ,
+  rewards_distributed_at  TIMESTAMPTZ,
+  created_at              TIMESTAMPTZ DEFAULT now()
+);
+
+-- One row per player per season — rating resets each season (a fresh row is
+-- created lazily the first time a player touches PvP that season; see
+-- ensureRatingRow in routes/pvp.js). Lifetime-best rating lives on
+-- players.pvp_best_rating_lifetime instead (see further below), since this
+-- table's rows don't survive past their season.
+CREATE TABLE IF NOT EXISTS pvp_ratings (
+  season_id     BIGINT NOT NULL REFERENCES pvp_seasons(id),
+  player_id     UUID NOT NULL REFERENCES players(id),
+  rating        INT NOT NULL DEFAULT 1000,
+  wins          INT NOT NULL DEFAULT 0,
+  losses        INT NOT NULL DEFAULT 0,
+  win_streak    INT NOT NULL DEFAULT 0,
+  best_streak   INT NOT NULL DEFAULT 0,
+  updated_at    TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (season_id, player_id)
+);
+CREATE INDEX IF NOT EXISTS idx_pvp_ratings_season_rating ON pvp_ratings (season_id, rating DESC);
+
+-- Defense team persists across seasons (unlike rating) — references cards by
+-- id in the player's own server-owned deck (player_economy.deck), same as
+-- battle/team-builder.js does for PvE.
+CREATE TABLE IF NOT EXISTS pvp_defense (
+  player_id   UUID PRIMARY KEY REFERENCES players(id),
+  card_ids    JSONB NOT NULL DEFAULT '[]',
+  updated_at  TIMESTAMPTZ DEFAULT now()
+);
+
+-- Daily attack-ticket usage, one row per player per calendar day (UTC —
+-- CURRENT_DATE under the DB's timezone, which Railway/Postgres defaults to UTC).
+CREATE TABLE IF NOT EXISTS pvp_daily (
+  player_id     UUID NOT NULL REFERENCES players(id),
+  day           DATE NOT NULL DEFAULT CURRENT_DATE,
+  attacks_used  INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (player_id, day)
+);
+
+-- One row per resolved attack — both sides' rating before/after plus the full
+-- round-by-round log, so either side can look back at what happened (attacker
+-- sees it as "battle history", defender sees it as "who attacked me").
+CREATE TABLE IF NOT EXISTS pvp_battles (
+  id                      BIGSERIAL PRIMARY KEY,
+  season_id               BIGINT NOT NULL REFERENCES pvp_seasons(id),
+  attacker_id             UUID NOT NULL REFERENCES players(id),
+  defender_id             UUID NOT NULL REFERENCES players(id),
+  win                     BOOLEAN NOT NULL,
+  attacker_rating_before  INT NOT NULL,
+  attacker_rating_after   INT NOT NULL,
+  defender_rating_before  INT NOT NULL,
+  defender_rating_after   INT NOT NULL,
+  log                     JSONB NOT NULL,
+  created_at              TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_pvp_battles_attacker ON pvp_battles (attacker_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_pvp_battles_defender ON pvp_battles (defender_id, created_at DESC);
+
+-- Frozen final standing per player per season, written once when a season
+-- ends (see finalizeSeason in routes/pvp.js). This — not pvp_ratings, which
+-- gets reset for the next season — is the source of truth for season-end
+-- mailbox rewards AND the "was ever season champion" badge check.
+CREATE TABLE IF NOT EXISTS pvp_season_history (
+  season_id       BIGINT NOT NULL REFERENCES pvp_seasons(id),
+  player_id       UUID NOT NULL REFERENCES players(id),
+  final_rank      INT NOT NULL,
+  final_rating    INT NOT NULL,
+  tier_key        TEXT NOT NULL,
+  wins            INT NOT NULL DEFAULT 0,
+  losses          INT NOT NULL DEFAULT 0,
+  reward_mail_id  BIGINT REFERENCES mailbox(id) ON DELETE SET NULL,
+  PRIMARY KEY (season_id, player_id)
+);
+
+-- Lifetime-best rating ever reached across all seasons — needed because
+-- pvp_ratings resets every season. Feeds the PvP achievement badges
+-- (game-data/badges-data.js, category 'rank').
+ALTER TABLE players ADD COLUMN IF NOT EXISTS pvp_best_rating_lifetime INT NOT NULL DEFAULT 0;
+
 -- One row per admin reclaim action — both the audit trail the console's
 -- "เรียกคืน" tab reads back (so admin can see what's already been clawed back
 -- from a given player) and the source mail that told the player about it.
@@ -545,3 +642,44 @@ CREATE TABLE IF NOT EXISTS battle_sessions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_battle_sessions_player ON battle_sessions (player_id, status);
+
+-- ============================================================================
+-- Daily login streak + daily missions ("ล็อกอินรายวัน" / "ภารกิจรายวัน")
+-- Both reset on the same 04:00-Thailand "game day" boundary already used by
+-- the guild system (see currentGameDayStart/currentGuildCycle in
+-- game-data/guild-data.js) — dayIndex here (game-data/daily-data.js
+-- currentDayIndex()) is that exact same day counter, just exposed under its
+-- own name in a file daily.js doesn't need to import guild-data for.
+-- ============================================================================
+
+-- One row per player. `streak` is the current consecutive-day count (resets to
+-- 1 instead of continuing if a day was missed — see routes/daily.js), cycling
+-- through the 7-day reward table in game-data/daily-data.js and then
+-- repeating. `total_claims` never resets — lifetime login-claim counter,
+-- available for a future badge the same way other lifetime stats are.
+CREATE TABLE IF NOT EXISTS daily_login_state (
+  player_id     UUID PRIMARY KEY REFERENCES players(id),
+  streak        INT NOT NULL DEFAULT 0,
+  last_claim_day INT,
+  total_claims  INT NOT NULL DEFAULT 0,
+  updated_at    TIMESTAMPTZ DEFAULT now()
+);
+
+-- One row per (player, game day, mission). Missions are a fixed daily set
+-- (game-data/daily-data.js DAILY_MISSIONS) — progress is bumped by
+-- db/dailyMissions.js bumpMissionProgress() from whichever route just did the
+-- matching thing (battle win, gacha roll, shop purchase, PvP attack, ...) and
+-- capped server-side at each mission's target, so a claim can never be
+-- double-paid past what's actually earned. mission_key '_bonus_all' is a
+-- synthetic row for the "claim every mission today" bonus (see
+-- routes/daily.js POST /missions/claim-bonus) — not one of DAILY_MISSIONS,
+-- just reusing this table's claimed_at/UNIQUE machinery instead of a second table.
+CREATE TABLE IF NOT EXISTS daily_mission_progress (
+  player_id     UUID NOT NULL REFERENCES players(id),
+  day_index     INT NOT NULL,
+  mission_key   TEXT NOT NULL,
+  progress      INT NOT NULL DEFAULT 0,
+  claimed_at    TIMESTAMPTZ,
+  PRIMARY KEY (player_id, day_index, mission_key)
+);
+CREATE INDEX IF NOT EXISTS idx_daily_mission_progress_player_day ON daily_mission_progress (player_id, day_index);
