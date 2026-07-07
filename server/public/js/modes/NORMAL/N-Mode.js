@@ -1,12 +1,16 @@
-let deck = JSON.parse(localStorage.getItem("deck") || "[]");            
-let selectedIndexes = [];   
-const maxTeamSize = 4;
-let currentStage = null;
-let enemyTeam = [];           
-let playerTeam = [];           // team chosen for battle (cloned)
-let battleRunning = false;
-let unlockedStage = parseInt(localStorage.getItem("unlockedStage") || "1");
-let roundCount = 1;
+// 🟢 var แทน let/const ตรงนี้ เพราะหน้ารวมโหมด (game.html) โหลดสคริปต์ของทั้ง 3 โหมด
+// ไว้ในเอกสารเดียวกัน — ชื่อพวกนี้ซ้ำกับ boss.js/inf-mode.js ถ้าประกาศด้วย let/const
+// จะเกิด SyntaxError ทันที (redeclare ไม่ได้ข้าม <script> ในเอกสารเดียวกัน) ส่วน var
+// ประกาศซ้ำได้ปกติ ไม่มีปัญหาอะไร เพราะจริงๆ ก็ตั้งใจให้เป็นตัวแปร global ร่วมกันอยู่แล้ว
+var deck = JSON.parse(localStorage.getItem("deck") || "[]");            
+var selectedIndexes = loadSelectedTeam("normal"); // เด็คที่เลือกใช้ในหน้านี้ (จัดไว้จากหน้า "จัดเด็ค")
+var maxTeamSize = 4;
+var currentStage = null;
+var enemyTeam = [];           
+var playerTeam = [];           // team chosen for battle (cloned)
+var battleRunning = false;
+var unlockedStage = parseInt(localStorage.getItem("unlockedStage") || "1");
+var roundCount = 1;
 /* ============================
    STAGE SELECTION
    ============================ */
@@ -76,119 +80,110 @@ async function startBattle(){
   if (!playerTeam || playerTeam.length === 0){ alert("จัดเตรียมทีมให้เรียบ"); return; }
   if (!enemyTeam || enemyTeam.length === 0){ alert("ยังไม่มีศัตรู — กดเตรียมทีมและศัตรูก่อน"); return; }
 
+  // 🔐 เซิฟเป็นคนรันผลจริง — ต้องมีการ์ดที่เลือกไว้จริง (ไม่เกิน 4 ตัว ไม่ซ้ำ) ส่งไปให้เซิฟ
+  // ตรวจสอบว่ามีอยู่ในเด็คจริงก่อน แล้วสร้างทีม/คำนวณ stat เองจาก deck+equips ที่เก็บไว้
+  const cardIds = selectedIndexes.slice(0, maxTeamSize);
+  const startRes = await GameAPI.battleStart("normal", cardIds, { stage: currentStage });
+  if (!startRes || startRes.error) {
+    alert("เริ่มการต่อสู้ไม่สำเร็จ: " + (startRes?.error || "ไม่ทราบสาเหตุ (เช็คอินเทอร์เน็ต/ล็อกอิน)"));
+    return;
+  }
+  const battleId = startRes.battleId;
+
   battleRunning = true;
-  document.getElementById("cancelBattleBtn").style.display = "inline-block";
+  if (window.HubUI) { HubUI.enterBattle(); HubUI.resetDamageStats(); HubUI.resetRewards(); }
+  const cancelBtn = document.getElementById("cancelBattleBtn");
+  cancelBtn.style.display = "inline-block";
+  cancelBtn.onclick = async () => {
+    if (await uiConfirm("คุณต้องการยกเลิกการต่อสู้หรือไม่?")) {
+      log("⚠️ การต่อสู้ถูกยกเลิก", "system");
+      updateResult("❌ คุณยกเลิกการต่อสู้");
+      GameAPI.battleForfeit(battleId); // fire-and-forget
+      if (window.HubUI) {
+        HubUI.showResults({
+          win: false,
+          cancelled: true,
+          title: "❌ คุณยกเลิกการต่อสู้",
+          extraNote: "การยกเลิกกลางคันนับเป็นแพ้ — ได้รางวัลเท่าที่สะสมไว้เท่านั้น",
+          playerTeam: [...playerTeam],
+          enemyTeam: [...enemyTeam],
+        });
+      }
+      endBattlecancle(false);
+    }
+  };
   logClear();
   log(`⚔️ เริ่มสู้ สเตจ ${currentStage} !`, "system");
+
+  // sync กับ snapshot เริ่มต้นที่เซิฟสร้างจริง (แทนของที่เตรียมไว้ฝั่ง client)
+  playerTeam = startRes.playerTeam;
+  enemyTeam = startRes.enemyTeam;
   renderBattlefield();
   updateResult("");
 
-  // ensure starting states
-  playerTeam.forEach(p => { p.hp = p.hp; p.tempDef = p.tempDef || 0; p.cooldown = p.cooldown || 0; });
-  enemyTeam.forEach(e => { e.hp = e.hp; e.tempDef = e.tempDef || 0; e.cooldown = e.cooldown || 0; });
-
   let turn = 1;
-  while (battleRunning){
+  while (battleRunning) {
     log(`--- เทิร์น ${turn} ---`, "system");
 
-    // จัดลำดับสลับแบบข้ามเฉพาะตัวที่ยังมีชีวิต
-    let turnOrder = [];
-    let pAlive = playerTeam.filter(p => p.hp > 0);
-    let eAlive = enemyTeam.filter(e => e.hp > 0);
-    let maxLen = Math.max(pAlive.length, eAlive.length);
-
-    for (let i = 0; i < maxLen; i++) {
-      if (pAlive[i]) turnOrder.push(pAlive[i]);
-      if (eAlive[i]) turnOrder.push(eAlive[i]);
+    const turnRes = await GameAPI.battleTurn(battleId);
+    if (!turnRes || turnRes.error) {
+      log(`⚠️ เชื่อมต่อเซิฟไม่ได้ (${turnRes?.error || "network"}) — หยุดการต่อสู้`, "system");
+      updateResult("⚠️ เกิดข้อผิดพลาด ลองใหม่อีกครั้ง");
+      endBattlecancle(false);
+      return;
     }
 
-    // 🔁 ดำเนินการตามลำดับเทิร์น
-    for (let actor of turnOrder){
-      if (actor.hp <= 0) continue;
-      let allies = actor.isEnemy ? enemyTeam : playerTeam;
-      let enemies = actor.isEnemy ? playerTeam : enemyTeam;
-      applyStatusEffects(actor);
+    // เล่น log ของเทิร์นนี้ทีละบรรทัด (แทน animation ทีละสกิลแบบเดิม เพราะผลจริงคำนวณที่เซิฟแล้ว)
+    for (const entry of (turnRes.log || [])) {
+      log(entry.msg, entry.side);
+      await delay(Math.max(120, getBattleSpeed() * 0.25));
+    }
 
-      if (actor.skipTurn) {
-        actor.skipTurn = false; 
-        continue;
-      }
-      if (!enemies.some(t => t.hp > 0)) break;
+    playerTeam = turnRes.playerTeam;
+    enemyTeam = turnRes.enemyTeam;
+    renderBattlefield();
 
-      if (actor.cooldown && actor.cooldown > 0){
-        if (isHealer(actor)) {
-          healerIdle(actor);
-        } else {
-          await normalAttack(actor, enemies);
-        }
-      } else {
-        const used = await useSkill(actor, allies, enemies);
-
-        if (used) {
-          // ✅ Trigger Counter
-          const counters = (actor.isEnemy ? playerTeam : enemyTeam).filter(
-            ally => ally.hp > 0 && ally.class === "Counter"
-          );
-
-          for (let counter of counters) {
-            if (Math.random() < 0.3) {
-              const counterDmg = Math.floor((counter.atk + (counter.tempAtk || 0)) * 1.3);
-              log(`🔄 ${counter.name} (Counter) โจมตีสวนกลับใส่ ${actor.name}!`,
-                  counter.isEnemy ? "enemy" : "player");
-
-              await applyDamage(counter, actor, counterDmg,
-                `💥 ${counter.name} โจมตีสวนกลับ → ${actor.name}`);
-            }
-          }
-        } else {
-          // ❌ ใช้สกิลไม่สำเร็จ → โจมตีธรรมดา
-          if (isHealer(actor)) {
-            healerIdle(actor);
-          } else {
-            await normalAttack(actor, enemies);
-          }
-        }
-      }
-
-      // ✅ ตรวจสอบเงื่อนไขจบการต่อสู้
-      if (!playerTeam.some(p => p.hp > 0)){
-        log("💀 ทีมผู้เล่นพ่ายแพ้ทั้งหมด...", "system");
-        updateResult("💀 คุณแพ้... ลองใหม่อีกครั้ง");
-        endBattle(false);
-        return;
-      }
-      if (!enemyTeam.some(e => e.hp > 0)){
+    if (turnRes.finished) {
+      if (turnRes.win) {
         log("🎉 ทีมศัตรูพ่ายแพ้ทั้งหมด!", "system");
         updateResult("🎉 คุณชนะ!");
         if (currentStage >= unlockedStage) {
           unlockedStage = currentStage + 1;
           localStorage.setItem("unlockedStage", unlockedStage);
         }
-        GameAPI.reportNormalClear(currentStage); // server-side leaderboard record (fire-and-forget)
-
-        // 💰🧩 เงิน+ดรอปตอนนี้เซิฟเป็นคนคำนวณและจ่ายจริง (กันแก้ STAGE_REWARDS/STAGE_DROPS ฝั่ง client)
-        GameAPI.claimNormalReward(currentStage).then((result) => {
-          if (result && result.ok) {
-            applyServerMoney(result.money);
-            applyServerBag(result.bag);
-            for (const [key, amount] of Object.entries(result.drops || {})) {
-              log(`🎁 ได้ ${amount}x ${key}`, "system");
-            }
-          } else {
-            console.warn("[N-Mode] claim reward failed:", result?.error);
+        // 💰🧩 รางวัลนี้เซิฟจ่ายจริงไปแล้วตอนรันเทิร์นสุดท้าย (ดู routes/battle.js) แค่โชว์ผลที่ได้กลับมา
+        const rewards = turnRes.rewards;
+        if (rewards) {
+          applyServerMoney(rewards.money);
+          applyServerBag(rewards.bag);
+          for (const [key, amount] of Object.entries(rewards.drops || {})) {
+            log(`🎁 ได้ ${amount}x ${key}`, "system");
           }
-        });
-
-        endBattle(true);
-        return;
+          if (window.HubUI) HubUI.addReward(rewards.moneyGain, rewards.drops);
+        }
+        if (window.HubUI) {
+          HubUI.showResults({
+            win: true,
+            title: "🎉 คุณชนะ!",
+            playerTeam: [...playerTeam],
+            enemyTeam: [...enemyTeam],
+          });
+        }
+      } else {
+        log("💀 ทีมผู้เล่นพ่ายแพ้ทั้งหมด...", "system");
+        updateResult("💀 คุณแพ้... ลองใหม่อีกครั้ง");
+        if (window.HubUI) {
+          HubUI.showResults({
+            win: false,
+            title: "💀 คุณแพ้... ลองใหม่อีกครั้ง",
+            playerTeam: [...playerTeam],
+            enemyTeam: [...enemyTeam],
+          });
+        }
       }
-
-      await delay(getBattleSpeed());
+      endBattle(turnRes.win);
+      return;
     }
-
-    // 🟢 จบรอบใหญ่ → ลด cooldown ของทุกตัว
-   endRoundAll();
-   renderBattlefield(); // ⏳ ให้ตัวเลขคูลดาวน์บนการ์ดอัปเดตทันทีตอนจบเทิร์นใหญ่
 
     turn++;
     await delay(400);
@@ -215,16 +210,12 @@ document.getElementById("cancelBattleBtn").style.display = "none";
     renderBattlefield();
     renderStageButtons(); 
 }
-document.getElementById("cancelBattleBtn").addEventListener("click", async () => {
-  if(await uiConfirm("คุณต้องการยกเลิกการต่อสู้หรือไม่?")){
-    log("⚠️ การต่อสู้ถูกยกเลิก", "system");
-    updateResult("❌ คุณยกเลิกการต่อสู้");
-    endBattlecancle(false);
-  }
-});
+// 🟢 การกด cancelBattleBtn ตอนนี้ผูก onclick ไว้ตรงจุดเริ่มสู้ใน startBattle() แทน
+// (ดูด้านบน) เพราะหน้ารวมโหมดใช้ปุ่มยกเลิกร่วมกันทั้ง 3 โหมด — ใครเริ่มสู้ล่าสุด
+// onclick จะชี้ไปที่โหมดนั้นเสมอ ไม่ต้องมี addEventListener ซ้อนกันหลายชั้น
 
-const SPEEDS = { 1: 1300, 2: 1000, 3: 800 ,4:500};
-let speedMultiplier = parseInt(localStorage.getItem("speedMul") || "1", 10);
+var SPEEDS = { 1: 1300, 2: 1000, 3: 800 ,4:500};
+var speedMultiplier = parseInt(localStorage.getItem("speedMul") || "1", 10);
 
 function getBattleSpeed(){
   return SPEEDS[speedMultiplier] || 1500;
@@ -245,7 +236,6 @@ document.querySelectorAll(".speed-btn").forEach(btn => {
    Initialization
    ============================ */
 updateBagUI();
-renderDeck();
 renderStageButtons();
 updateMoneyUI();
 
