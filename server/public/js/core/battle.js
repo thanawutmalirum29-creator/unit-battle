@@ -51,7 +51,7 @@ function renderBattlefield() {
         <div class="hp-fill red" data-red style="width:${p.lastHpPercent ?? hpPercent}%"></div>
       </div>
       <div class="meta">HP: ${Math.max(0, p.hp)} / ${maxHp}</div>
-      <div style="font-size:13px">ATK: ${atkNow} • DEF: ${defNow}</div>
+      <div style="font-size:9.5px">ATK: ${atkNow} • DEF: ${defNow}</div>
       <div class="meta">Skill: ${p.skill}${p.cooldown > 0 ? ` <span class="skill-cd">⏳${p.cooldown}</span>` : ""}</div>
     `;
     pBox.appendChild(el);
@@ -89,7 +89,7 @@ function renderBattlefield() {
         <div class="hp-fill red" data-red style="width:${e.lastHpPercent ?? hpPercent}%"></div>
       </div>
       <div class="meta">HP: ${Math.max(0, e.hp)} / ${maxHp}</div>
-      <div style="font-size:13px">ATK: ${atkNow} • DEF: ${defNow}</div>
+      <div style="font-size:9.5px">ATK: ${atkNow} • DEF: ${defNow}</div>
       <div class="meta">Skill: ${e.skill}${e.cooldown > 0 ? ` <span class="skill-cd">⏳${e.cooldown}</span>` : ""}</div>
     `;
     eBox.appendChild(el);

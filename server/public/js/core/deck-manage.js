@@ -218,16 +218,16 @@ function renderDeck() {
       .filter(Boolean);
 
     el.innerHTML = `
-      <div class="title">${card.name}</div>
-      <div class="title">${starsDisplay} ${lvDisplay}</div>
-      <div style="margin-top:4px; font-size:10px">
+      <div class="title" style="font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${card.name}</div>
+      <div class="title" style="font-size:9.5px">${starsDisplay} ${lvDisplay}</div>
+      <div style="margin-top:3px; font-size:9.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
         HP:${stats.hp} • ATK:${stats.atk} • DEF:${stats.def}
       </div>
-      <div class="meta" style="margin-top:2px; font-size:12px">
+      <div class="meta" style="margin-top:2px; font-size:9.5px">
         Skill:${card.skill}
       </div>
-      ${card.borrowed ? `<div class="meta" style="margin-top:2px; font-size:11px; color:#7dd3fc;">🤝 ยืมจาก ${card.lenderName || "เพื่อน"} • เหลือ ${Number.isFinite(card.roundsLeft) ? card.roundsLeft : 20} รอบ</div>` : ""}
-      ${usedInOtherDecks.length > 0 ? `<div class="meta" style="margin-top:2px; font-size:10.5px; color:var(--muted);">📎 อยู่ในเด็คอื่น: ${usedInOtherDecks.map(escapeHtml).join(", ")}</div>` : ""}
+      ${card.borrowed ? `<div class="meta" style="margin-top:2px; font-size:9px; color:#7dd3fc;">🤝 ยืมจาก ${card.lenderName || "เพื่อน"} • เหลือ ${Number.isFinite(card.roundsLeft) ? card.roundsLeft : 20} รอบ</div>` : ""}
+      ${usedInOtherDecks.length > 0 ? `<div class="meta" style="margin-top:2px; font-size:9px; color:var(--muted);">📎 อยู่ในเด็คอื่น: ${usedInOtherDecks.map(escapeHtml).join(", ")}</div>` : ""}
     `;
     el.appendChild(lockBtn);
 
