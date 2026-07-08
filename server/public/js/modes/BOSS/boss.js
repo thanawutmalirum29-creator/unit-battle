@@ -603,7 +603,7 @@ function createUnitCard(unit, isEnemy){
       <div class="hp-fill ${isEnemy?"red":"green"}" style="width:${hpPct}%"></div>
     </div>
     <div class="meta">HP: ${toNum(unit.hp,0)} / ${toNum(unit.maxHp,0)}</div>
-    <div style="font-size:13px">ATK:${toNum(unit.atk,0)} • DEF:${toNum(unit.def,0)}</div>
+    <div style="font-size:9.5px">ATK:${toNum(unit.atk,0)} • DEF:${toNum(unit.def,0)}</div>
     <div class="meta">Skill: ${unit.skill || "-"}${unit.cooldown > 0 ? ` <span class="skill-cd">⏳${unit.cooldown}</span>` : ""}</div>
   `;
   return wrap;
