@@ -1,0 +1,204 @@
+/* ============================================================
+   BATTLE HUB — visual polish for the Normal / Boss / Infinity
+   mode-select screens on the ต่อสู้ (game.html) page.
+   Every selector here targets IDs/classes the JS already renders
+   into — nothing here changes behaviour, only how it looks.
+   ============================================================ */
+
+/* ---------------- MODE TABS ---------------- */
+.mode-tabs{
+  display:flex;
+  gap:8px;
+  margin:0 0 14px;
+  flex-wrap:wrap;
+}
+.mode-tab-btn{
+  flex:1 1 auto;
+  min-width:100px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:11px 12px;
+  border-radius:var(--radius-sm,9px);
+  border:1px solid var(--border,rgba(255,255,255,.12));
+  background:var(--panel,#141d2b);
+  color:var(--muted,#93a1b5);
+  font-weight:700;
+  font-size:13.5px;
+  cursor:pointer;
+  transition:.15s ease;
+}
+.mode-tab-btn:hover{
+  background:rgba(255,255,255,.08);
+  color:var(--text,#e8edf5);
+  transform:translateY(-1px);
+}
+.mode-tab-btn.active{
+  background:linear-gradient(135deg,var(--accent,#5c8bff),#3f63d6);
+  color:#fff;
+  border-color:transparent;
+  box-shadow:0 4px 14px rgba(92,139,255,.35);
+}
+.mode-tab-btn.active:hover{ transform:none; }
+
+/* ---------------- SPEED ROW ---------------- */
+.speed-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:0 0 14px;
+  flex-wrap:wrap;
+}
+.speed-row-label{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  color:var(--muted,#93a1b5);
+  font-size:13px;
+  font-weight:600;
+  margin-right:2px;
+}
+
+/* ---------------- SHARED MODE-SELECT PANEL ---------------- */
+.mode-panel{
+  animation:pageFadeIn .25s ease both;
+}
+.section-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin:0 0 10px;
+}
+.section-header h3{
+  margin:0;
+}
+.section-header h4{
+  margin:0;
+  font-size:13px;
+  color:var(--muted,#93a1b5);
+  font-weight:700;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.checkpoint-header{ margin:16px 0 8px; }
+
+#stageInfo:empty{ display:none; }
+
+/* ---------------- STAGE BUTTONS (Normal tab) ---------------- */
+.stage-btn{
+  position:relative;
+  min-width:84px;
+  padding:12px 14px;
+  border-radius:var(--radius-sm,9px);
+  border:1px solid var(--border,rgba(255,255,255,.12));
+  background:var(--panel-soft,rgba(255,255,255,.04));
+  color:var(--text,#e8edf5);
+  font-weight:700;
+  font-size:13px;
+}
+.stage-btn:hover:not(:disabled){
+  background:rgba(255,255,255,.09);
+  border-color:var(--accent,#5c8bff);
+}
+.stage-btn:disabled{
+  background:rgba(255,255,255,.02);
+  color:var(--muted,#93a1b5);
+  border-style:dashed;
+}
+/* ทุกๆ 5 ด่าน — ป้ายด่านสำคัญ (เดิมใช้สีแดง/ส้มไล่เฉด สุ่มทับปุ่มธรรมดา ตอนนี้ทำเป็น
+   คลาสเดียว ให้ล็อกสี/แสงตรงกันทุกปุ่ม และยังโดน :disabled dim ได้ตามปกติถ้ายังไม่ปลดล็อก) */
+.stage-btn.milestone:not(:disabled){
+  background:linear-gradient(135deg,#ff5f2e,#ff9800);
+  border-color:transparent;
+  color:#fff;
+  box-shadow:0 0 14px rgba(255,111,0,.45);
+}
+.stage-btn.milestone:not(:disabled):hover{ filter:brightness(1.08); }
+.stage-btn.stage-selected{
+  box-shadow:0 0 0 2px rgba(123,214,255,.55), 0 4px 14px rgba(92,139,255,.35);
+}
+
+/* ---------------- BOSS LIST (Boss tab) ---------------- */
+.boss-list{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+  gap:12px;
+}
+
+/* ---------------- INFINITY TAB ---------------- */
+.inf-hero{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  align-items:stretch;
+  margin:0 0 6px;
+}
+.inf-hero-actions{
+  display:flex;
+  gap:8px;
+  flex:1 1 200px;
+}
+.inf-start-btn, .inf-auto-btn{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  font-size:14px;
+  font-weight:800;
+  border:none;
+  border-radius:var(--radius-sm,9px);
+  padding:0 14px;
+}
+.inf-start-btn{
+  background:linear-gradient(135deg,var(--good,#10b981),#0c8c66);
+  color:#04150f;
+}
+.inf-auto-btn{
+  background:linear-gradient(135deg,var(--accent,#5c8bff),#3f63d6);
+  color:#fff;
+}
+.inf-stage-card{
+  flex:1 1 160px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+  padding:10px 14px;
+  border-radius:var(--radius-sm,9px);
+  border:1px solid var(--border,rgba(255,255,255,.1));
+  background:var(--panel-soft,rgba(255,255,255,.04));
+  text-align:center;
+}
+.inf-stage-label{
+  font-size:11px;
+  color:var(--muted,#93a1b5);
+  font-weight:700;
+  letter-spacing:.5px;
+  text-transform:uppercase;
+}
+.inf-stage-value{
+  font-family:var(--font-display);
+  font-size:17px;
+  font-weight:700;
+  color:var(--accent-2,#7bd6ff);
+}
+
+.checkpoint-list .checkpoint-btn{
+  background:linear-gradient(135deg,rgba(255,213,79,.16),rgba(255,213,79,.04));
+  border:1px solid rgba(255,213,79,.35);
+  color:var(--gold,#ffd54f);
+  font-weight:700;
+}
+.checkpoint-list .checkpoint-btn:hover{
+  background:linear-gradient(135deg,rgba(255,213,79,.28),rgba(255,213,79,.08));
+}
+
+@media (max-width:420px){
+  .inf-hero-actions{ flex:1 1 100%; }
+  .inf-stage-card{ flex:1 1 100%; }
+}
