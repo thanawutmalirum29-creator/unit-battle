@@ -355,7 +355,9 @@ async function showPulledCards(cards) {
       // ✅ layout เดิม (สำหรับ 1, 10 ใบ)
       const container = document.createElement("div");
       container.style.display = "grid";
-      container.style.gridTemplateColumns = "repeat(auto-fit, minmax(136px, 1fr))";
+      // 🟢 อิง --card-w จาก theme.css ตัวเดียว (ตัวแปรกลางเดียวกับทุกการ์ดในเกม)
+      // แทนใส่เลข px ซ้ำไว้ที่นี่ — แก้ขนาดการ์ดที่ theme.css ที่เดียวพอ
+      container.style.gridTemplateColumns = "repeat(auto-fit, minmax(var(--card-w), 1fr))";
       container.style.gap = "12px";
       container.style.justifyContent = "center";
       container.style.justifyItems = "center";
