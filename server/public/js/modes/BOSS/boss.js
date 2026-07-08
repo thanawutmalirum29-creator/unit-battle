@@ -46,6 +46,11 @@ const BOSS_THEME_CLASS = ["boss-theme-1", "boss-theme-2", "boss-theme-3", "boss-
 function renderBossButtons(){
   const div = document.getElementById("bossList");
   if (!div) return;
+  // 🔧 เดิม CSS ของการ์ดบอส (.boss-card/.boss-btn/.boss-card-info-btn) ถูก inject แบบ lazy
+  // ตอนกดเปิดป๊อปอัป❗ครั้งแรกเท่านั้น (ensureBossInfoOverlay) ทำให้ตอนโหลดหน้าครั้งแรก
+  // การ์ดยังไม่มีสไตล์เลย เลยยืดเต็มความกว้างแบบไม่มีขีดจำกัด และปุ่ม❗หลุดไปอยู่บรรทัดถัดไป
+  // แทนที่จะลอยมุมขวาบนของการ์ด — เรียกตรงนี้เลยให้พร้อมใช้ตั้งแต่ render ครั้งแรก
+  injectBossInfoStyles();
   div.className = "boss-list";
   div.innerHTML = "";
 
