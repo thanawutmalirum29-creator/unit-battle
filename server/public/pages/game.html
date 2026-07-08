@@ -13,18 +13,9 @@
   <link rel="stylesheet" href="../css/skills.css" />
   <link rel="stylesheet" href="../css/theme.css" />
   <link rel="stylesheet" href="../css/icons.css" />
+  <link rel="stylesheet" href="../css/battle-hub.css" />
   <script src="../js/core/ui-popup.js"></script>
   <style>
-    .mode-tabs{ display:flex; gap:8px; margin:10px 0; flex-wrap:wrap; }
-    .mode-tab-btn{
-      flex:1 1 auto; min-width:100px; padding:10px 12px; border-radius:var(--radius-sm,9px);
-      border:1px solid var(--border,rgba(255,255,255,.12)); background:var(--panel,#141d2b);
-      color:var(--muted,#93a1b5); font-weight:700; cursor:pointer; transition:.15s ease;
-    }
-    .mode-tab-btn.active{
-      background:linear-gradient(135deg,var(--accent,#5c8bff),#3f63d6);
-      color:#fff; border-color:transparent;
-    }
 
     /* ============ Battle lock: ระหว่างต่อสู้ให้เหลือแค่ปุ่มยกเลิก/ความเร็ว/สนามต่อสู้/แชท ============ */
     html.battle-lock-active header.topbar,
@@ -87,15 +78,15 @@
 </header>
 
 <div class="mode-tabs">
-  <button class="mode-tab-btn" data-mode="normal">🎴 Normal</button>
-  <button class="mode-tab-btn" data-mode="boss">👹 Boss</button>
-  <button class="mode-tab-btn" data-mode="inf">🌀 Infinity</button>
+  <button class="mode-tab-btn" data-mode="normal"><span class=gicon-sword></span> Normal</button>
+  <button class="mode-tab-btn" data-mode="boss"><span class=gicon-skull></span> Boss</button>
+  <button class="mode-tab-btn" data-mode="inf"><span class=gicon-infinity></span> Infinity</button>
 </div>
 
 <div id="teamSelectorMount" data-page-key="normal"></div>
 
-<div style="margin:8px 0">
-  <span class="">ความเร็ว:</span>
+<div class="speed-row">
+  <span class="speed-row-label"><span class=gicon-bolt></span> ความเร็ว</span>
   <button class="speed-btn" data-mul="1">×1</button>
   <button class="speed-btn" data-mul="2">×2</button>
   <button class="speed-btn" data-mul="3">×3</button>
@@ -103,29 +94,41 @@
 </div>
 
 <!-- ============ NORMAL: mode-select area ============ -->
-<section id="normalSelect">
+<section id="normalSelect" class="panel mode-panel">
+  <div class="section-header">
+    <h3><span class=gicon-castle></span> เลือกด่าน</h3>
+  </div>
   <div class="stage-list" id="stageList"></div>
-  <hr>
   <div id="stageInfo"></div>
 </section>
 
 <!-- ============ BOSS: mode-select area ============ -->
-<section id="bossSelect" style="display:none">
-  <div class="boss-section-header">
-    <h3>เลือก Boss</h3>
+<section id="bossSelect" class="panel mode-panel" style="display:none">
+  <div class="section-header boss-section-header">
+    <h3><span class=gicon-skull></span> เลือก Boss</h3>
   </div>
   <div id="bossList"></div>
 </section>
 
 <!-- ============ INFINITY: mode-select area ============ -->
-<section id="infSelect" style="display:none">
-  <button onclick="startInfGame()">▶️ เริ่มสู้</button>
-  <button onclick="startInfAuto()">▶️ Auto</button>
-  <hr>
-  <h3>INF Stage</h3>
-  <div id="infStageInfo">ยังไม่เริ่ม</div>
-  <h4 style="margin:14px 0 6px">🚩 เริ่มจากจุดเช็คพอยต์</h4>
-  <div class="stage-list" id="infCheckpointList"></div>
+<section id="infSelect" class="panel mode-panel" style="display:none">
+  <div class="section-header">
+    <h3><span class=gicon-infinity></span> Infinity</h3>
+  </div>
+  <div class="inf-hero">
+    <div class="inf-hero-actions">
+      <button class="inf-start-btn" onclick="startInfGame()"><span class=gicon-battle></span> เริ่มสู้</button>
+      <button class="inf-auto-btn" onclick="startInfAuto()"><span class=gicon-refresh></span> Auto</button>
+    </div>
+    <div class="inf-stage-card">
+      <span class="inf-stage-label">INF Stage</span>
+      <span id="infStageInfo" class="inf-stage-value">ยังไม่เริ่ม</span>
+    </div>
+  </div>
+  <div class="section-header checkpoint-header">
+    <h4>🚩 เริ่มจากจุดเช็คพอยต์</h4>
+  </div>
+  <div class="stage-list checkpoint-list" id="infCheckpointList"></div>
 </section>
 
 <!-- ============ SHARED: battle screen — โผล่เฉพาะตอนกำลังต่อสู้เท่านั้น ============ -->
