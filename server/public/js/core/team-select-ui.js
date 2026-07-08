@@ -33,7 +33,10 @@ function renderTeamSelectorUI(mount, pageKey) {
 .team-selector select:hover, .team-selector select:focus{ border-color:var(--accent,#5c8bff); outline:none; }
 
 .team-preview{
-  display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin:0 0 14px;
+  /* 🔧 เดิมใช้ auto-fit+1fr พอเด็คมีการ์ดใบเดียว (เช่น 1/4) การ์ดจะยืดเต็มความกว้าง
+     กลายเป็นแถบยาวแบนๆ ไม่เหมือนการ์ด — เปลี่ยนเป็น auto-fill + เพดานความกว้างคงที่
+     แทน ให้การ์ดกว้างพอดีเสมอไม่ว่าจะมีกี่ใบ */
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,150px)); gap:8px; margin:0 0 14px;
 }
 .team-preview-card{
   position:relative; overflow:hidden;
