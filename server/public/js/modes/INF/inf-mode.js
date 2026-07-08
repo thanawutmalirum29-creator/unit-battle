@@ -467,7 +467,8 @@ async function renderInfCheckpoints() {
   for (let i = 1; i <= unlockedCount; i++) {
     const stageNum = i * 25;
     const btn = document.createElement("button");
-    btn.textContent = "🚩 เริ่มด่าน " + stageNum;
+    btn.className = "checkpoint-btn";
+    btn.innerHTML = `🚩 ด่าน ${stageNum}`;
     btn.onclick = () => startInfGame(stageNum);
     wrap.appendChild(btn);
   }
