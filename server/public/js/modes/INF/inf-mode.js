@@ -468,10 +468,16 @@ async function renderInfCheckpoints() {
     const stageNum = i * 25;
     const btn = document.createElement("button");
     btn.className = "checkpoint-btn";
-    btn.innerHTML = `🚩 ด่าน ${stageNum}`;
+    btn.id = "btn-checkpoint-" + stageNum;
+    btn.textContent = "ด่าน " + stageNum;
     btn.onclick = () => startInfGame(stageNum);
     wrap.appendChild(btn);
   }
+
+  // 🟢 เลื่อนแถบไปโชว์จุดเช็คพอยต์ล่าสุดเสมอ เหมือนแถบเลือกด่านโหมดปกติ — เดิมไม่มีจุดนี้
+  // เลยค้างอยู่ scrollLeft=0 (เช็คพอยต์แรกสุด) ทุกครั้งที่โหลดหน้า/แท็บใหม่
+  const lastBtn = document.getElementById("btn-checkpoint-" + (unlockedCount * 25));
+  if (lastBtn) lastBtn.scrollIntoView({ behavior: "auto", inline: "end", block: "nearest" });
 }
 
 /* ============================
