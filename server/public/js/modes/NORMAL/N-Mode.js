@@ -20,8 +20,8 @@ function setStage(n){
   if (!STAGES[n]){ alert("ไม่มีสเตจนี้"); return; }
   currentStage = n;
   prepareBattle();
-  document.querySelectorAll(".stage-list button").forEach(b => b.style.outline = "none");
-  document.getElementById("btn-stage-" + n).style.outline = "3px solid rgba(255,255,255,0.06)";
+  document.querySelectorAll(".stage-list button").forEach(b => b.classList.remove("stage-selected"));
+  document.getElementById("btn-stage-" + n)?.classList.add("stage-selected");
   startBattle()
 }
 
