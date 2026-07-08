@@ -62,7 +62,7 @@ input, textarea{
      ใส่อุปกรณ์/เลือกทีม PvP ก็ตาม — ถ้าเนื้อหาในการ์ดไม่พอ ให้ลดขนาดตัวอักษรแทน
      การขยายกล่องการ์ด (ดู .card, .card-box, .equip-card, .gacha-fly-card,
      .gacha-static-card, .pick-card ด้านล่าง และ pvp.html / equip.html ที่ import ค่านี้) */
-  --card-w:136px;
+  --card-w:172px;
   --card-h:196px;
   --font-display: "Chakra Petch", "Prompt", "Noto Sans Thai", sans-serif;
   --font: "Prompt", "Noto Sans Thai", "Segoe UI", sans-serif;
@@ -419,7 +419,10 @@ input[type="text"]{ flex:1 1 200px; }
 
 .gacha-container{
   display:grid !important;
-  grid-template-columns:repeat(auto-fill,minmax(170px,1fr)) !important;
+  /* 🟢 อิงจาก --card-w ตัวเดียว (ผ่าน calc) แทนตัวเลขคงที่แยกต่างหาก เผื่อพื้นที่
+     ให้หัวข้อแบนเนอร์ + การ์ดตัวอย่างข้างใน — แก้ --card-w ที่เดียวพอ ไม่ต้องมาตาม
+     แก้เลขนี้เองอีก */
+  grid-template-columns:repeat(auto-fill,minmax(calc(var(--card-w) + 38px),1fr)) !important;
   gap:12px !important;
   width:100%;
 }
