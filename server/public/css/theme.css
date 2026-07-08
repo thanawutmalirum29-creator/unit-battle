@@ -57,6 +57,13 @@ input, textarea{
   --radius:14px;
   --radius-sm:9px;
   --shadow:0 8px 24px rgba(0,0,0,.45);
+
+  /* 🟢 ขนาดการ์ดกลาง ใช้ค่าเดียวกันทั้งเกม ไม่ว่าจะเป็นการ์ดร้านค้า/กาชา/เด็ค/สนามรบ/
+     ใส่อุปกรณ์/เลือกทีม PvP ก็ตาม — ถ้าเนื้อหาในการ์ดไม่พอ ให้ลดขนาดตัวอักษรแทน
+     การขยายกล่องการ์ด (ดู .card, .card-box, .equip-card, .gacha-fly-card,
+     .gacha-static-card, .pick-card ด้านล่าง และ pvp.html / equip.html ที่ import ค่านี้) */
+  --card-w:136px;
+  --card-h:196px;
   --font-display: "Chakra Petch", "Prompt", "Noto Sans Thai", sans-serif;
   --font: "Prompt", "Noto Sans Thai", "Segoe UI", sans-serif;
 }
@@ -307,14 +314,17 @@ a{ text-decoration:none; }
 #deck-wrapper.upgrade-grid{
   display:grid !important;
   flex-wrap:unset !important;
-  grid-template-columns:repeat(auto-fill,minmax(160px,1fr)) !important;
+  grid-template-columns:repeat(auto-fill,minmax(var(--card-w),1fr)) !important;
   overflow-x:visible !important;
   overflow-y:visible !important;
   gap:12px !important;
 }
+/* 🟢 การ์ดขนาดเดียวกันทั้งเกม: ใช้ --card-w/--card-h เหมือนที่อื่น แค่ตัด flex-basis
+   ของ deck-wrapper ทิ้ง (แนวนอนเลื่อน) เพราะหน้านี้เป็นกริดห่อบรรทัดแทน */
 #deck-wrapper.upgrade-grid .card,
 #deck-wrapper.upgrade-grid .card-box{
-  width:auto;
+  width:var(--card-w);
+  margin:0 auto;
   flex:unset;
 }
 
@@ -395,6 +405,7 @@ input[type="text"]{ flex:1 1 200px; }
   grid-template-columns:repeat(1,1fr) !important;
   gap:10px !important;
   width:100%;
+  justify-items:center;
 }
 @media (min-width:480px){
   .grid{ grid-template-columns:repeat(2,1fr) !important; }
@@ -431,19 +442,32 @@ input[type="text"]{ flex:1 1 200px; }
 #deck-wrapper::-webkit-scrollbar-thumb{ background:#283246; border-radius:8px; }
 #deck-wrapper .card, #deck-wrapper .card-box{
   flex:0 0 auto;
-  width:130px;
+  width:var(--card-w);
+}
+
+/* 🟢 การ์ดขนาดเดียวกันทั้งเกม ไม่ว่าจะเป็นการ์ดอะไร (.card ตัวละครในร้าน/เด็ค,
+   .card-box ในสนามรบ, .equip-card ในกระเป๋าอุปกรณ์) ใช้ --card-w/--card-h ตายตัว
+   จากตรงนี้เป็นค่ากลาง — ถ้าเนื้อหาในการ์ดไม่พอ ให้ไปลดที่ font-size ของแต่ละ
+   context แทนการเพิ่ม width/height ตรงนี้ (ดู .gacha-fly-card/.gacha-static-card
+   และ .pick-card ในหน้า pvp.html ที่อ้างค่าตัวแปรเดียวกันนี้ด้วย)
+   .gacha-box ไม่รวมด้วยเพราะมันคือ "กล่องแบนเนอร์กาชา" (หัวข้อ+การ์ดตัวอย่าง+ปุ่มสุ่ม 3 ปุ่ม)
+   ไม่ใช่การ์ดตัวละครเดี่ยวๆ ขนาดของมันมาจาก .gacha-container grid แทน */
+.card, .card-box, .equip-card{
+  width:var(--card-w);
+  height:var(--card-h);
+  overflow:hidden;
 }
 
 .card, .card-box, .gacha-box, .equip-card{
   background:rgba(255,255,255,.035);
   border:1px solid var(--border);
   border-radius:var(--radius);
-  padding:12px;
+  padding:10px;
   box-shadow:0 4px 10px rgba(0,0,0,.3);
   display:flex;
   flex-direction:column;
   justify-content:space-between;
-  gap:8px;
+  gap:3px;
   transition:transform .15s, box-shadow .15s;
   contain:content;
 }
@@ -453,15 +477,23 @@ input[type="text"]{ flex:1 1 200px; }
 }
 
 .card .title, .card-box .title, .gacha-header{
-  display:flex; justify-content:space-between; align-items:center; gap:8px;
-  font-weight:800; font-size:14px;
+  display:flex; justify-content:space-between; align-items:center; gap:6px;
+  font-weight:800; font-size:12px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 
-.stats{ font-size:12px; opacity:.85; display:grid; grid-template-columns:1fr 1fr; gap:4px 10px; }
-.muted{ opacity:.65; font-size:11px; }
+.stats{ font-size:10.5px; opacity:.85; display:grid; grid-template-columns:1fr 1fr; gap:2px 8px; }
+.muted{ opacity:.65; font-size:10px; }
 /* 🟢 .meta ไม่เคยถูกกำหนดสไตล์เลยในไฟล์นี้ เลยใช้ font-size เริ่มต้นของ browser (16px)
-   ซึ่งใหญ่เกินไปสำหรับการ์ดแคบๆ ในสนามรบ เป็นอีกสาเหตุที่การ์ดสูงไม่เท่ากัน */
-.meta{ opacity:.7; font-size:12px; }
+   ซึ่งใหญ่เกินไปสำหรับการ์ดแคบๆ ในสนามรบ เป็นอีกสาเหตุที่การ์ดสูงไม่เท่ากัน
+   (ตอนนี้การ์ดสูงเท่ากันหมดโดยดีไซน์อยู่แล้วผ่าน --card-h แต่ยังคงลด font ไว้
+   เพื่อให้เนื้อหายัดพอดีกล่องที่ตายตัวแล้ว) */
+.meta{ opacity:.7; font-size:9.5px; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* 🟢 หน้าตีดาว/อัพเกรด (.upgrade-grid) มีเนื้อหาในการ์ดเยอะที่สุดในเกม (ชื่อ+สถานะ+
+   HP/ATK/DEF+สกิล+ต้นทุนอัพเกรด+โปรเกรสบาร์+ปุ่ม 1-2 ปุ่ม) บีบ progress-bar/ปุ่ม
+   ให้เล็กลงอีกชั้น เพื่อให้ยัดพอในกล่อง --card-h เดียวกับการ์ดอื่นทั้งเกม */
+.card .progress-bar, .card-box .progress-bar{ height:7px; margin-top:2px; }
 /* ⏳ ตัวเลขคูลดาวน์สกิล โชว์ต่อท้าย Skill: ... เฉพาะตอนยังติดคูลดาวน์อยู่ */
 .skill-cd{
   display:inline-block;
@@ -473,9 +505,9 @@ input[type="text"]{ flex:1 1 200px; }
   font-weight:800;
   opacity:1;
 }
-.price{ font-weight:800; color:var(--gold); }
+.price{ font-weight:800; color:var(--gold); font-size:10.5px; }
 
-.actions{ display:flex; gap:8px; }
+.actions{ display:flex; gap:6px; flex-wrap:wrap; }
 button.buy{
   flex:1;
   background:linear-gradient(135deg,var(--good),#0c8c66);
@@ -483,6 +515,14 @@ button.buy{
   padding:9px;
 }
 button.buy[disabled]{ background:#374151 !important; color:#9ca3af !important; }
+
+/* 🟢 ปุ่ม/สกิลเลเบล ฯลฯ ที่อยู่ "ในการ์ด" (กล่องขนาดตายตัวแล้ว) ต้องเล็กลงเพื่อให้พอดี
+   กล่อง ไม่กระทบปุ่มทั่วไปนอกการ์ด */
+.card button, .card-box button, .equip-card button{
+  font-size:10px;
+  padding:5px 6px;
+}
+.card .skill-cd, .card-box .skill-cd, .equip-card .skill-cd{ font-size:9px; }
 
 .card.locked, .card-box.locked{ opacity:.4; pointer-events:none; filter:grayscale(.4); }
 
@@ -757,18 +797,26 @@ body.no-scroll{ overflow:hidden; height:100%; }
   box-shadow:0 4px 14px rgba(214,40,40,.4);
 }
 
+/* 🟢 การ์ดผลสุ่มกาชา (fly/static) ใช้ขนาดเดียวกับการ์ดทุกที่ในเกม (--card-w/--card-h)
+   แทนที่จะยืด/หดตามความยาวชื่อ/สกิลเหมือนเดิม — ตัวอักษรภายในถูกลดขนาดแทน
+   (ดู inline font-size ใน GACHA.html ที่ปรับให้เล็กลงคู่กัน) */
 .gacha-fly-card, .gacha-static-card{
   background:var(--panel);
   border:1px solid var(--border);
   border-radius:var(--radius);
-  padding:14px;
-  min-width:150px;
-  max-width:min(90vw, 260px);
+  padding:10px;
+  width:var(--card-w);
+  height:var(--card-h);
+  overflow:hidden;
   word-break:break-word;
   box-sizing:border-box;
   text-align:center;
   font-weight:700;
   box-shadow:var(--shadow);
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:4px;
 }
 .gacha-fly-card{
   transform:scale(0); opacity:0;
@@ -825,7 +873,7 @@ body.no-scroll{ overflow:hidden; height:100%; }
   gap:4px 12px; margin:6px 0 12px 4px; font-size:13px; line-height:1.4;
 }
 
-.gacha-featured{ text-align:center; margin:8px 0; }
+.gacha-featured{ text-align:center; margin:8px 0; display:flex; justify-content:center; }
 .gacha-header button{
   background:var(--gold); border:none; border-radius:50%;
   width:26px; height:26px; font-weight:800; cursor:pointer;
@@ -844,8 +892,10 @@ body.no-scroll{ overflow:hidden; height:100%; }
   position:relative;      /* จุดยึดของป้ายสกิล/ตัวเลขดาเมจที่ลอยขึ้น */
   overflow:visible;       /* อย่า clip ป้าย/เลขที่ลอยออกไปนอกกรอบการ์ด */
   flex:0 0 auto;
-  width:132px;
-  height:150px;
+  /* 🟢 ใช้ --card-w/--card-h ตัวเดียวกับการ์ดทุกที่ในเกม (เดิมล็อกไว้ 132x150 เฉพาะการ์ด
+     สนามรบ ทำให้ขนาดไม่ตรงกับการ์ดที่อื่น) */
+  width:var(--card-w);
+  height:var(--card-h);
   min-height:0;
   padding:8px;
   gap:4px;
@@ -859,12 +909,12 @@ body.no-scroll{ overflow:hidden; height:100%; }
 }
 #playerTeamBox .card-box > div:first-child,
 #enemyTeamBox .card-box > div:first-child{
-  font-size:13px;
+  font-size:10.5px;
   line-height:1.2;
 }
 #playerTeamBox .card-box .meta,
 #enemyTeamBox .card-box .meta{
-  font-size:11px;
+  font-size:9.5px;
   opacity:.8;
 }
 .card-box.player-card{
@@ -905,19 +955,37 @@ body.no-scroll{ overflow:hidden; height:100%; }
    ============================================================ */
 #deckList{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  grid-template-columns:repeat(auto-fill,minmax(var(--card-w),1fr));
   gap:14px;
   margin:12px 0 24px;
+  justify-items:center;
 }
+/* 🟢 การ์ดตัวละครในหน้าใส่อุปกรณ์ ใช้ขนาดเดียวกับการ์ดทุกที่ในเกม (--card-w/--card-h)
+   เนื้อหาที่นี่ยาวกว่าที่อื่น (ชื่อ+เลเวล, HP/ATK/DEF, ช่องอาวุธ/เกราะ/เสริม, ปุ่ม)
+   จึงลด font-size/line-height ลงแทนการขยายกล่อง แล้วให้ overflow:hidden (มาจาก
+   base rule) ตัดส่วนเกินถ้ายังไม่พอจริงๆ */
 #deckList .card{
   text-align:left;
-  height:auto;
-  min-height:0;
-  padding:14px;
+  padding:10px;
   display:block;
+  font-size:9.5px;
+  line-height:1.45;
 }
+#deckList .card b{ font-size:11px; }
 #deckList .card button{
-  margin-top:8px;
+  margin-top:6px;
+  font-size:9.5px;
+  padding:5px 6px;
+}
+#deckList .card .equip-slot{
+  font-size:9px;
+  padding:1px 4px;
+  display:inline-block;
+  max-width:100%;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  vertical-align:bottom;
 }
 .equip-slot{
   display:inline-block;
