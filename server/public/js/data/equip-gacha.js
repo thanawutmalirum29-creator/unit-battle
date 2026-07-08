@@ -365,7 +365,9 @@ async function showEquipResults(results) {
       wrap.appendChild(bottomRow);
     } else {
       const container = document.createElement("div");
-      container.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(136px,1fr));gap:12px;justify-content:center;justify-items:center;width:100%;max-width:600px;box-sizing:border-box;";
+      // 🟢 อิง --card-w จาก theme.css ตัวเดียว (ตัวแปรกลางเดียวกับทุกการ์ดในเกม)
+      // แทนใส่เลข px ซ้ำไว้ที่นี่ — แก้ขนาดการ์ดที่ theme.css ที่เดียวพอ
+      container.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(var(--card-w),1fr));gap:12px;justify-content:center;justify-items:center;width:100%;max-width:600px;box-sizing:border-box;";
       sorted.forEach(eq => {
         const el = document.createElement("div");
         el.className = `gacha-static-card rarity-${eq.rarity}`;
