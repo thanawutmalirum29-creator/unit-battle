@@ -179,7 +179,7 @@ function renderEquipGachaBoxes() {
         <div class="card rarity-${f.rarity}">
           <div class="title">${f.name}</div>
           <div class="meta">${typeIcon} ${f.type} • ⭐ ${f.rarity}</div>
-          <div style="margin-top:4px; font-size:12px">${bonusTxt}</div>
+          <div style="margin-top:4px; font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${bonusTxt}</div>
         </div>
       </div>
       <div class="gacha-actions">
@@ -325,9 +325,9 @@ async function showEquipResults(results) {
   function cardHTML(eq) {
     const typeIcon = eq.type === "Weapon" ? "⚔️" : eq.type === "Armor" ? "🛡️" : "✨";
     return `
-      <div style="font-size:16px">${typeIcon} ${eq.name} ${eq._blacklisted ? "❌" : ""}</div>
-      <div>⭐ ${eq.rarity}</div>
-      <div style="font-size:12px">${bonusText(eq)}</div>
+      <div style="font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${typeIcon} ${eq.name} ${eq._blacklisted ? "❌" : ""}</div>
+      <div style="font-size:10px">⭐ ${eq.rarity}</div>
+      <div style="font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${bonusText(eq)}</div>
     `;
   }
 
@@ -365,7 +365,7 @@ async function showEquipResults(results) {
       wrap.appendChild(bottomRow);
     } else {
       const container = document.createElement("div");
-      container.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;justify-content:center;width:100%;max-width:600px;box-sizing:border-box;";
+      container.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(136px,1fr));gap:12px;justify-content:center;justify-items:center;width:100%;max-width:600px;box-sizing:border-box;";
       sorted.forEach(eq => {
         const el = document.createElement("div");
         el.className = `gacha-static-card rarity-${eq.rarity}`;
@@ -399,7 +399,7 @@ async function showEquipResults(results) {
     const eq = results[i];
     const el = document.createElement("div");
     el.className = `gacha-fly-card rarity-${eq.rarity}`;
-    el.innerHTML = `<div style="font-size:18px">${eq.name} ${eq._blacklisted ? "❌" : ""}</div><div>⭐ ${eq.rarity}</div><div style="font-size:12px">${bonusText(eq)}</div>`;
+    el.innerHTML = `<div style="font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${eq.name} ${eq._blacklisted ? "❌" : ""}</div><div style="font-size:10px">⭐ ${eq.rarity}</div><div style="font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${bonusText(eq)}</div>`;
     overlay.appendChild(el);
 
     if (i === 0) skipBtn.classList.remove("hidden");
