@@ -35,16 +35,20 @@ function renderTeamSelectorUI(mount, pageKey) {
 .team-preview{
   /* 🔧 เดิมใช้ auto-fit+1fr พอเด็คมีการ์ดใบเดียว (เช่น 1/4) การ์ดจะยืดเต็มความกว้าง
      กลายเป็นแถบยาวแบนๆ ไม่เหมือนการ์ด — เปลี่ยนเป็น auto-fill + เพดานความกว้างคงที่
-     แทน ให้การ์ดกว้างพอดีเสมอไม่ว่าจะมีกี่ใบ */
-  display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,150px)); gap:8px; margin:0 0 14px;
+     แทน ให้การ์ดกว้างพอดีเสมอไม่ว่าจะมีกี่ใบ
+     🟢 อิง --card-w จาก theme.css (ตัวแปรกลางเดียวกับการ์ดทุกที่ในเกม) แทนเลข px
+     คงที่แยกไว้เอง — แก้ขนาดการ์ดที่ theme.css ที่เดียว ที่นี่ตามอัตโนมัติ */
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(var(--card-w),var(--card-w))); gap:8px; margin:0 0 14px;
 }
 .team-preview-card{
   position:relative; overflow:hidden;
+  width:var(--card-w); height:var(--card-h);
   padding:10px 10px 9px; border-radius:var(--radius-sm,9px);
   border:1px solid var(--border,rgba(255,255,255,.12));
   background:linear-gradient(160deg, rgba(255,255,255,.05), var(--panel,#141d2b) 65%);
   box-shadow:0 3px 10px rgba(0,0,0,.25);
   transition:transform .15s ease, box-shadow .15s ease;
+  display:flex; flex-direction:column; justify-content:center; gap:4px;
 }
 .team-preview-card::before{
   content:""; position:absolute; top:0; left:0; right:0; height:3px;
@@ -58,33 +62,30 @@ function renderTeamSelectorUI(mount, pageKey) {
 .team-preview-card.rarity-Cosmic::before{ background:linear-gradient(90deg,var(--c-cosmic,#7f00ff),#00d2ff); }
 .team-preview-card:hover{ transform:translateY(-2px); box-shadow:0 8px 18px rgba(0,0,0,.35); }
 .team-preview-name{
-  font-weight:800; font-size:12.5px; line-height:1.25;
+  font-weight:800; font-size:11px; line-height:1.25;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   margin:3px 0 4px;
 }
-.team-preview-stars{ font-size:11px; letter-spacing:.5px; }
+.team-preview-stars{ font-size:10px; letter-spacing:.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .team-preview-lv{
   display:inline-block; margin-left:4px; padding:0 5px; border-radius:999px;
   background:rgba(255,255,255,.08); color:var(--muted,#93a1b5);
-  font-size:9.5px; font-weight:700; vertical-align:1px;
+  font-size:9px; font-weight:700; vertical-align:1px;
 }
 .team-preview-stats{
   display:flex; flex-wrap:wrap; gap:3px 8px;
-  font-size:10px; color:var(--muted); margin-top:6px;
+  font-size:9.5px; color:var(--muted); margin-top:6px;
   padding-top:6px; border-top:1px dashed var(--border,rgba(255,255,255,.1));
 }
 .team-preview-stats b{ color:var(--text,#e8edf5); font-weight:700; }
 .team-preview-card.team-preview-missing{
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  color:var(--muted); font-size:11.5px; text-align:center; min-height:64px; opacity:.7;
+  color:var(--muted); font-size:11px; text-align:center; opacity:.7;
   border-style:dashed;
 }
 .team-preview-empty{
   color:var(--muted); font-size:13px; margin:0 0 14px; text-align:center;
   padding:14px; border:1px dashed var(--border,rgba(255,255,255,.14)); border-radius:var(--radius-sm,9px);
-}
-@media (max-width:380px){
-  .team-preview{ grid-template-columns:repeat(2,1fr); }
 }
 `;
     document.head.appendChild(style);
