@@ -14,27 +14,82 @@ function renderTeamSelectorUI(mount, pageKey) {
     const style = document.createElement("style");
     style.id = "teamSelectorStyles";
     style.textContent = `
-.team-selector{ display:flex; align-items:center; gap:8px; margin:8px 0; flex-wrap:wrap; }
-.team-selector-label{ color:var(--muted); font-size:14px; }
-.team-selector select{ font-size:14px; padding:6px 8px; border-radius:var(--radius-sm); background:var(--panel,#141d2b); color:var(--text,#e8edf5); border:1px solid var(--border,rgba(255,255,255,.12)); }
-
-.team-preview{ display:flex; gap:8px; flex-wrap:wrap; margin:0 0 10px; }
-.team-preview-card{
-  flex:1 1 110px; max-width:140px; min-width:90px; padding:8px 10px; border-radius:var(--radius-sm,9px);
-  border:1.5px solid var(--border,rgba(255,255,255,.12)); background:var(--panel,#141d2b);
+.team-selector{
+  display:flex; align-items:center; gap:10px; margin:0 0 12px; flex-wrap:wrap;
+  background:var(--panel-soft,rgba(255,255,255,.04));
+  border:1px solid var(--border,rgba(255,255,255,.08));
+  border-radius:var(--radius-sm,9px);
+  padding:9px 12px;
 }
-.team-preview-name{ font-weight:700; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.team-preview-stars{ font-size:11px; margin-top:2px; }
-.team-preview-stats{ font-size:10.5px; color:var(--muted); margin-top:3px; }
-.team-preview-card.team-preview-missing{ color:var(--muted); font-size:12px; text-align:center; }
-.team-preview-empty{ color:var(--muted); font-size:13px; margin:0 0 10px; }
+.team-selector-label{
+  color:var(--muted); font-size:13px; font-weight:600;
+  display:flex; align-items:center; gap:6px; white-space:nowrap;
+}
+.team-selector select{
+  flex:1 1 auto; font-size:13.5px; font-weight:600; padding:8px 10px; border-radius:var(--radius-sm);
+  background:var(--panel,#141d2b); color:var(--text,#e8edf5); border:1px solid var(--border,rgba(255,255,255,.14));
+  cursor:pointer; transition:.15s;
+}
+.team-selector select:hover, .team-selector select:focus{ border-color:var(--accent,#5c8bff); outline:none; }
+
+.team-preview{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin:0 0 14px;
+}
+.team-preview-card{
+  position:relative; overflow:hidden;
+  padding:10px 10px 9px; border-radius:var(--radius-sm,9px);
+  border:1px solid var(--border,rgba(255,255,255,.12));
+  background:linear-gradient(160deg, rgba(255,255,255,.05), var(--panel,#141d2b) 65%);
+  box-shadow:0 3px 10px rgba(0,0,0,.25);
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.team-preview-card::before{
+  content:""; position:absolute; top:0; left:0; right:0; height:3px;
+  background:var(--c-common,#9aa5b1); opacity:.9;
+}
+.team-preview-card.rarity-Common::before{ background:var(--c-common,#9aa5b1); }
+.team-preview-card.rarity-Rare::before{ background:var(--c-rare,#2f8bff); }
+.team-preview-card.rarity-Epic::before{ background:var(--c-epic,#a855f7); }
+.team-preview-card.rarity-Legendary::before{ background:var(--c-legend,#ffb300); }
+.team-preview-card.rarity-Mythical::before{ background:var(--c-mythical,#ff3da6); }
+.team-preview-card.rarity-Cosmic::before{ background:linear-gradient(90deg,var(--c-cosmic,#7f00ff),#00d2ff); }
+.team-preview-card:hover{ transform:translateY(-2px); box-shadow:0 8px 18px rgba(0,0,0,.35); }
+.team-preview-name{
+  font-weight:800; font-size:12.5px; line-height:1.25;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  margin:3px 0 4px;
+}
+.team-preview-stars{ font-size:11px; letter-spacing:.5px; }
+.team-preview-lv{
+  display:inline-block; margin-left:4px; padding:0 5px; border-radius:999px;
+  background:rgba(255,255,255,.08); color:var(--muted,#93a1b5);
+  font-size:9.5px; font-weight:700; vertical-align:1px;
+}
+.team-preview-stats{
+  display:flex; flex-wrap:wrap; gap:3px 8px;
+  font-size:10px; color:var(--muted); margin-top:6px;
+  padding-top:6px; border-top:1px dashed var(--border,rgba(255,255,255,.1));
+}
+.team-preview-stats b{ color:var(--text,#e8edf5); font-weight:700; }
+.team-preview-card.team-preview-missing{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  color:var(--muted); font-size:11.5px; text-align:center; min-height:64px; opacity:.7;
+  border-style:dashed;
+}
+.team-preview-empty{
+  color:var(--muted); font-size:13px; margin:0 0 14px; text-align:center;
+  padding:14px; border:1px dashed var(--border,rgba(255,255,255,.14)); border-radius:var(--radius-sm,9px);
+}
+@media (max-width:380px){
+  .team-preview{ grid-template-columns:repeat(2,1fr); }
+}
 `;
     document.head.appendChild(style);
   }
 
   mount.innerHTML = `
     <div class="team-selector">
-      <span class="team-selector-label"><span class=gicon-card></span> เด็คที่ใช้:</span>
+      <span class="team-selector-label"><span class=gicon-users></span> เด็คที่ใช้</span>
       <select id="teamSelectorPick">
         ${teamDecks.map((d, i) => `<option value="${i}"${i === activeSlot ? " selected" : ""}>${escapeTeamName(d.name)} (${d.indexes.length}/4)</option>`).join("")}
       </select>
@@ -77,14 +132,18 @@ function renderTeamPreview(mount, teamDecks, activeSlot) {
     <div class="team-preview">
       ${indexes.map((id) => {
         const card = deckById.get(id);
-        if (!card) return `<div class="team-preview-card team-preview-missing">❌<br>การ์ดถูกขายไปแล้ว</div>`;
+        if (!card) return `<div class="team-preview-card team-preview-missing"><span class=gicon-x></span><br>การ์ดถูกขายไปแล้ว</div>`;
         const stats = (typeof getRenderStats === "function") ? getRenderStats(card) : { hp: card.hp, atk: card.atk, def: card.def };
         const stars = (typeof getStarsDisplay === "function") ? getStarsDisplay(card.stars, card.maxed) : "⭐".repeat(card.stars || 1);
         return `
           <div class="team-preview-card rarity-${card.rarity}">
-            <div class="team-preview-name">${escapeTeamName(card.name)}</div>
-            <div class="team-preview-stars">${stars} Lv.${card.level || 1}</div>
-            <div class="team-preview-stats">HP ${stats.hp} • ATK ${stats.atk} • DEF ${stats.def}</div>
+            <div class="team-preview-name">${escapeTeamName(card.name)}<span class="team-preview-lv">Lv.${card.level || 1}</span></div>
+            <div class="team-preview-stars">${stars}</div>
+            <div class="team-preview-stats">
+              <span>HP <b>${stats.hp}</b></span>
+              <span>ATK <b>${stats.atk}</b></span>
+              <span>DEF <b>${stats.def}</b></span>
+            </div>
           </div>
         `;
       }).join("")}

@@ -43,23 +43,9 @@ function renderStageButtons() {
     const btn = document.createElement("button");
     btn.textContent = "Stage " + n;
     btn.id = "btn-stage-" + n;
+    btn.className = "stage-btn" + (n % 5 === 0 ? " milestone" : "") + (n === currentStage ? " stage-selected" : "");
     btn.onclick = () => setStage(n);
-
-    if (n <= unlockedStage) {
-      btn.disabled = false;
-      btn.style.opacity = 1;
-    } else {
-      btn.disabled = true;
-      btn.style.opacity = 0.4;
-    }
-
-    // 🎯 ทุกๆ 5 ด่าน ให้ปุ่มเป็นสีแดงส้มๆ
-    if (n % 5 === 0) {
-      btn.style.background = "linear-gradient(45deg, #ff0000, #ff8800)";
-      btn.style.color = "white";
-      btn.style.fontWeight = "bold";
-      btn.style.boxShadow = "0 0 10px rgba(255, 0, 0, 0.7)";
-    }
+    btn.disabled = n > unlockedStage;
 
     stageList.appendChild(btn);
   }
