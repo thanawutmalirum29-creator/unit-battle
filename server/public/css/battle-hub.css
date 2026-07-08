@@ -156,9 +156,13 @@
 }
 
 /* ---------------- BOSS LIST (Boss tab) ---------------- */
+/* ใช้ auto-fill + เพดานความกว้างคงที่ (ไม่ใช่ 1fr) กันการ์ดยืดเต็มจอแบบไม่มีขีดจำกัด
+   เวลามีบอสไม่กี่ตัวบนจอกว้าง — แล้ว justify-content:center ให้แถวที่เหลือที่ไม่เต็ม
+   แถวอยู่กึ่งกลางแทนที่จะเบียดชิดซ้ายเป็นแถบยาว */
 .boss-list{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+  grid-template-columns:repeat(auto-fill,minmax(140px,168px));
+  justify-content:center;
   gap:12px;
 }
 

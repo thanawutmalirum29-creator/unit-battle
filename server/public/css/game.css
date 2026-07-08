@@ -18,11 +18,8 @@
   transition:width 1s ease;
 }
 
-.boss-list{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
-  gap:10px;
-}
+/* .boss-list ย้ายไปอยู่ใน battle-hub.css แล้ว (ไฟล์นั้นโหลดทีหลังไฟล์นี้ ชนะอยู่แล้ว
+   การมีนิยามซ้ำสองที่ทำให้แก้ทีต้องจำแก้สองไฟล์ เก็บไว้ที่เดียวชัดเจนกว่า) */
 
 .enemy-box{
   display:flex;
