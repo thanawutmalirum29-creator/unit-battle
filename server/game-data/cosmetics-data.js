@@ -54,7 +54,9 @@ const FRAME_CATALOG = [
   // --- ด่านเนื้อเรื่อง (normalStage) ---
   { key: 'frame_stage_30', source: 'achievement', category: 'stage', tier: 1, name: 'กรอบนักผจญภัย', desc: 'ผ่านด่านที่ 30 ในโหมดเนื้อเรื่อง', stat: 'normalStage', min: 30 },
   { key: 'frame_stage_80', source: 'achievement', category: 'stage', tier: 2, name: 'กรอบนักรบผู้กล้า', desc: 'ผ่านด่านที่ 80 ในโหมดเนื้อเรื่อง', stat: 'normalStage', min: 80 },
-  { key: 'frame_stage_145', source: 'achievement', category: 'stage', tier: 4, name: 'กรอบผู้พิชิตบัลลังก์จักรวาล', desc: 'ผ่านด่านสุดท้าย (145) ในโหมดเนื้อเรื่อง', stat: 'normalStage', min: 145 },
+  { key: 'frame_stage_200', source: 'achievement', category: 'stage', tier: 3, name: 'กรอบผู้พิชิตขั้นยาก', desc: 'ผ่านบิ๊กสเตจ 2 (ด่าน 200) ในโหมดเนื้อเรื่อง', stat: 'normalStage', min: 200 },
+  { key: 'frame_stage_350', source: 'achievement', category: 'stage', tier: 4, name: 'กรอบผู้พิชิตขั้นนรก', desc: 'ผ่านด่านที่ 350 ในโหมดเนื้อเรื่อง', stat: 'normalStage', min: 350 },
+  { key: 'frame_stage_500', source: 'achievement', category: 'stage', tier: 5, name: 'กรอบผู้พิชิตบัลลังก์จักรวาล', desc: 'ผ่านด่านสุดท้าย (500) ในโหมดเนื้อเรื่อง', stat: 'normalStage', min: 500 },
 
   // --- โหมดไม่สิ้นสุด (infStage) ---
   { key: 'frame_inf_100', source: 'achievement', category: 'inf', tier: 2, name: 'กรอบนักท่องนิรันดร์', desc: 'ไปถึงด่านที่ 100 ในโหมดไม่สิ้นสุด', stat: 'infStage', min: 100 },

@@ -19,8 +19,11 @@ const BADGE_CATALOG = [
   // --- ด่านเนื้อเรื่อง (NORMAL mode progress, normal_progress.max_stage) ---
   { key: 'stage_20', category: 'stage', tier: 1, icon: '⚔️', name: 'นักผจญภัย', desc: 'ผ่านด่านที่ 20 ในโหมดเนื้อเรื่อง', stat: 'normalStage', min: 20 },
   { key: 'stage_60', category: 'stage', tier: 2, icon: '🛡️', name: 'นักรบผู้กล้า', desc: 'ผ่านด่านที่ 60 ในโหมดเนื้อเรื่อง', stat: 'normalStage', min: 60 },
-  { key: 'stage_100', category: 'stage', tier: 3, icon: '👑', name: 'จอมทัพ', desc: 'ผ่านด่านที่ 100 ในโหมดเนื้อเรื่อง', stat: 'normalStage', min: 100 },
-  { key: 'stage_145', category: 'stage', tier: 4, icon: '🌌', name: 'ผู้พิชิตบัลลังก์จักรวาล', desc: 'ผ่านด่านสุดท้าย (145) ในโหมดเนื้อเรื่อง', stat: 'normalStage', min: 145 },
+  { key: 'stage_100', category: 'stage', tier: 3, icon: '👑', name: 'จอมทัพ', desc: 'ผ่านบิ๊กสเตจ 1 (ด่าน 100) ในโหมดเนื้อเรื่อง', stat: 'normalStage', min: 100 },
+  { key: 'stage_200', category: 'stage', tier: 4, icon: '🔥', name: 'ผู้พิชิตขั้นยาก', desc: 'ผ่านบิ๊กสเตจ 2 (ด่าน 200) ในโหมดเนื้อเรื่อง', stat: 'normalStage', min: 200 },
+  { key: 'stage_300', category: 'stage', tier: 5, icon: '💀', name: 'ผู้พิชิตขั้นโหด', desc: 'ผ่านบิ๊กสเตจ 3 (ด่าน 300) ในโหมดเนื้อเรื่อง', stat: 'normalStage', min: 300 },
+  { key: 'stage_400', category: 'stage', tier: 6, icon: '👹', name: 'ผู้พิชิตขั้นนรก', desc: 'ผ่านบิ๊กสเตจ 4 (ด่าน 400) ในโหมดเนื้อเรื่อง', stat: 'normalStage', min: 400 },
+  { key: 'stage_500', category: 'stage', tier: 7, icon: '🌌', name: 'ผู้พิชิตบัลลังก์จักรวาล', desc: 'ผ่านด่านสุดท้าย (500) ในโหมดเนื้อเรื่อง', stat: 'normalStage', min: 500 },
 
   // --- โหมดไม่สิ้นสุด (INF mode progress, inf_progress.max_stage) ---
   { key: 'inf_50', category: 'inf', tier: 1, icon: '♾️', name: 'นักท่องนิรันดร์', desc: 'ไปถึงด่านที่ 50 ในโหมดไม่สิ้นสุด', stat: 'infStage', min: 50 },
