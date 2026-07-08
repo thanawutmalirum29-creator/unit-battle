@@ -38,6 +38,11 @@ var maxTeamSize = 4;
 /* =======================
    Team Prep
    ======================= */
+// ไอคอน CSS (icons.css) + โทนสีต่อบอสหนึ่งตัว — วนใช้ 4 โทนซ้ำถ้ามีบอสมากกว่านี้
+// แทนการสุ่ม hue แบบเดิม (ซึ่งให้สีมั่วๆ ไม่เข้าธีมเกม และซ้ำกับสีแดง/เขียวของ HP bar ได้)
+const BOSS_THEME_ICON = { slime: "gicon-skull", dragon: "gicon-dragon", golem: "gicon-shield", "เทพเจ้า": "gicon-bolt" };
+const BOSS_THEME_CLASS = ["boss-theme-1", "boss-theme-2", "boss-theme-3", "boss-theme-4"];
+
 function renderBossButtons(){
   const div = document.getElementById("bossList");
   if (!div) return;
@@ -47,18 +52,20 @@ function renderBossButtons(){
   const keys = Object.keys(BOSSES || {});
   keys.forEach((key, i) => {
     const b = BOSSES[key];
+    const themeClass = BOSS_THEME_CLASS[i % BOSS_THEME_CLASS.length];
+    const iconClass = BOSS_THEME_ICON[key] || "gicon-skull";
 
     const card = document.createElement("div");
-    card.className = "boss-card";
+    card.className = "boss-card " + themeClass;
 
     const btn = document.createElement("button");
     btn.className = "boss-btn";
-    btn.textContent = `🐉 ${b.name}`;
+    btn.innerHTML = `
+      <span class="boss-btn-icon"><span class=${iconClass}></span></span>
+      <span class="boss-btn-name">${b.name}</span>
+      <span class="boss-btn-cta">ต่อสู้ →</span>
+    `;
     btn.onclick = ()=> setBoss(key);
-
-    const hue = 120 - (i * 30);
-    btn.style.backgroundColor = `hsl(${hue}, 70%, 50%)`;
-    btn.style.color = "white";
 
     // ❗ ข้อมูล/ของดรอปของบอสตัวนี้ตัวเดียว — แยกของใครของมัน ไม่รวมกับบอสตัวอื่น
     const infoBtn = document.createElement("button");
@@ -132,15 +139,48 @@ function injectBossInfoStyles(){
 /* การ์ดบอสแต่ละใบในลิสต์ — ปุ่มเลือกสู้ + ปุ่ม❗ข้อมูลของบอสตัวนั้นลอยอยู่มุมเดียวกัน */
 .boss-card{
   position:relative;
+  border-radius:var(--radius,14px);
+  overflow:hidden;
+  box-shadow:0 4px 12px rgba(0,0,0,.3);
+  transition:transform .15s ease, box-shadow .15s ease;
 }
+.boss-card:hover{ transform:translateY(-3px); box-shadow:0 10px 22px rgba(0,0,0,.4); }
 .boss-card .boss-btn{
   width:100%;
   height:100%;
+  min-height:118px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:18px 10px 14px;
+  border-radius:var(--radius,14px);
+  border:1px solid var(--border,rgba(255,255,255,.1));
+  background:linear-gradient(160deg, var(--boss-c1,#1a2436), var(--boss-c2,#0c121b) 75%);
+  color:var(--text,#e8edf5);
 }
+.boss-card .boss-btn:hover{ transform:none; filter:brightness(1.08); }
+.boss-btn-icon{
+  width:40px; height:40px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(255,255,255,.08);
+  font-size:19px;
+  color:var(--boss-accent,#7bd6ff);
+  box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 0 16px var(--boss-glow,rgba(123,214,255,.35));
+}
+.boss-btn-name{ font-weight:800; font-size:14px; text-align:center; line-height:1.2; }
+.boss-btn-cta{ font-size:10.5px; color:var(--muted,#93a1b5); font-weight:600; letter-spacing:.3px; }
+
+/* โทนสีต่อบอสหนึ่งตัว วนซ้ำทุก 4 ตัว ให้แต่ละการ์ดแยกจากกันด้วยสายตาโดยไม่ต้องพึ่ง hue สุ่ม */
+.boss-card.boss-theme-1{ --boss-c1:#1a2436; --boss-c2:#0c121b; --boss-accent:#7bd6ff; --boss-glow:rgba(123,214,255,.35); }
+.boss-card.boss-theme-2{ --boss-c1:#2a1730; --boss-c2:#120a1b; --boss-accent:#d9aaff; --boss-glow:rgba(168,85,247,.35); }
+.boss-card.boss-theme-3{ --boss-c1:#312110; --boss-c2:#170f06; --boss-accent:#ffd54f; --boss-glow:rgba(255,213,79,.35); }
+.boss-card.boss-theme-4{ --boss-c1:#331321; --boss-c2:#15070f; --boss-accent:#ff3da6; --boss-glow:rgba(255,61,166,.35); }
 .boss-card-info-btn{
   position:absolute;
-  top:4px;
-  right:4px;
+  top:6px;
+  right:6px;
   width:24px;
   height:24px;
   font-size:13px;
