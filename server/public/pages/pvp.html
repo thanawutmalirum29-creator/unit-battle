@@ -57,14 +57,18 @@
     .opp-meta{ color:var(--muted); font-size:12px; margin-top:2px; }
     .opp-actions{ flex:0 0 auto; }
 
-    .deck-pick-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px; margin:10px 0; }
+    /* 🟢 การ์ดเลือกทีมตั้งรับ PvP ใช้ขนาดเดียวกับการ์ดทุกที่ในเกม (--card-w/--card-h
+       มาจาก theme.css) แทนที่จะปล่อยให้กริดคำนวณความกว้างเอง */
+    .deck-pick-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(var(--card-w),1fr)); gap:8px; margin:10px 0; justify-items:center; }
     .pick-card{
+      width:var(--card-w); height:var(--card-h); overflow:hidden;
       padding:8px 6px; border-radius:10px; text-align:center; cursor:pointer;
       border:1.5px solid var(--border); background:var(--panel,#141d2b); position:relative;
+      display:flex; flex-direction:column; justify-content:center; gap:4px;
     }
     .pick-card.selected{ border-color:#5c8bff; box-shadow:0 0 0 2px rgba(92,139,255,.35); }
-    .pick-card-name{ font-weight:700; font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .pick-card-stars{ font-size:10.5px; margin-top:2px; }
+    .pick-card-name{ font-weight:700; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .pick-card-stars{ font-size:10px; margin-top:2px; }
     .pick-order-badge{
       position:absolute; top:-6px; right:-6px; width:18px; height:18px; border-radius:50%;
       background:#5c8bff; color:#fff; font-size:10.5px; font-weight:800; display:flex; align-items:center; justify-content:center;

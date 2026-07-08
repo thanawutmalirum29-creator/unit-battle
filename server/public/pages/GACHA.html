@@ -74,10 +74,10 @@ cost1 = enforceMinCost(key, cost1);
         <div class="card rarity-${f.rarity}">
           <div class="title">${f.name}</div>
           <div class="meta"><span class=gicon-star></span> ${f.rarity}</div>
-          <div style="margin-top:4px; font-size:12px">
+          <div style="margin-top:4px; font-size:10px">
             HP:${f.hp} • ATK:${f.atk} • DEF:${def}
           </div>
-          <div class="meta" style="margin-top:2px; font-size:12px">
+          <div class="meta" style="margin-top:2px; font-size:10px">
             Skill:${f.skill}
           </div>
         </div>
@@ -324,10 +324,10 @@ async function showPulledCards(cards) {
       bestEl.className = `gacha-static-card rarity-${best.rarity}`;
       bestEl.style.margin = "0 auto"; // ตรงกลาง
       bestEl.innerHTML = `
-        <div style="font-size:18px">${best.name} ${cardRewardBadge(best)}</div>
+        <div style="font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${best.name} ${cardRewardBadge(best)}</div>
         <div><span class=gicon-star></span> ${best.rarity}</div>
-        <div style="font-size:12px">HP:${best.hp} ATK:${best.atk} DEF:${def}</div>
-        <div style="font-size:12px">Skill: ${best.skill}</div>
+        <div style="font-size:10px">HP:${best.hp} ATK:${best.atk} DEF:${def}</div>
+        <div style="font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">Skill: ${best.skill}</div>
       `;
       wrap.appendChild(bestEl);
 
@@ -342,10 +342,10 @@ async function showPulledCards(cards) {
         const el = document.createElement("div");
         el.className = `gacha-static-card rarity-${card.rarity}`;
         el.innerHTML = `
-          <div style="font-size:16px">${card.name} ${cardRewardBadge(card)}</div>
+          <div style="font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${card.name} ${cardRewardBadge(card)}</div>
           <div><span class=gicon-star></span> ${card.rarity}</div>
-          <div style="font-size:12px">HP:${card.hp} ATK:${card.atk} DEF:${def}</div>
-          <div style="font-size:12px">Skill: ${card.skill}</div>
+          <div style="font-size:10px">HP:${card.hp} ATK:${card.atk} DEF:${def}</div>
+          <div style="font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">Skill: ${card.skill}</div>
         `;
         bottomRow.appendChild(el);
       });
@@ -355,9 +355,10 @@ async function showPulledCards(cards) {
       // ✅ layout เดิม (สำหรับ 1, 10 ใบ)
       const container = document.createElement("div");
       container.style.display = "grid";
-      container.style.gridTemplateColumns = "repeat(auto-fit, minmax(160px, 1fr))";
+      container.style.gridTemplateColumns = "repeat(auto-fit, minmax(136px, 1fr))";
       container.style.gap = "12px";
       container.style.justifyContent = "center";
+      container.style.justifyItems = "center";
       container.style.width = "100%";
       container.style.maxWidth = "500px";
       container.style.boxSizing = "border-box";
@@ -367,10 +368,10 @@ async function showPulledCards(cards) {
         const el = document.createElement("div");
         el.className = `gacha-static-card rarity-${card.rarity}`;
         el.innerHTML = `
-          <div style="font-size:16px">${card.name} ${cardRewardBadge(card)}</div>
+          <div style="font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${card.name} ${cardRewardBadge(card)}</div>
           <div><span class=gicon-star></span> ${card.rarity}</div>
-          <div style="font-size:12px">HP:${card.hp} ATK:${card.atk} DEF:${def}</div>
-          <div style="font-size:12px">Skill: ${card.skill}</div>
+          <div style="font-size:10px">HP:${card.hp} ATK:${card.atk} DEF:${def}</div>
+          <div style="font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">Skill: ${card.skill}</div>
         `;
         container.appendChild(el);
       });
@@ -413,10 +414,10 @@ async function showPulledCards(cards) {
     const el = document.createElement("div");
     el.className = `gacha-fly-card rarity-${card.rarity}`;
     el.innerHTML = `
-      <div style="font-size:18px">${card.name} ${cardRewardBadge(card)}</div>
+      <div style="font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${card.name} ${cardRewardBadge(card)}</div>
       <div><span class=gicon-star></span> ${card.rarity}</div>
-      <div style="font-size:12px">HP:${card.hp} ATK:${card.atk} DEF:${def}</div>
-      <div style="font-size:12px">Skill: ${card.skill}</div>
+      <div style="font-size:10px">HP:${card.hp} ATK:${card.atk} DEF:${def}</div>
+      <div style="font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">Skill: ${card.skill}</div>
     `;
     overlay.appendChild(el);
 
