@@ -42,6 +42,40 @@
 }
 .mode-tab-btn.active:hover{ transform:none; }
 
+/* ---------------- BIG STAGE TABS (Normal tab — เลือกบิ๊กสเตจ) ---------------- */
+/* โผล่เฉพาะตอนปลดล็อคบิ๊กสเตจมากกว่า 1 (ดู renderBigStageTabs ใน render.js) —
+   ให้เลือกสลับไปมาได้ว่าจะตีบิ๊กสเตจไหน โดยไม่ผูกกับด่านล่าสุดที่ไปถึงเสมอไป */
+.bigstage-tabs{
+  display:flex;
+  gap:6px;
+  margin:0 0 10px;
+  flex-wrap:wrap;
+}
+.bigstage-tabs:empty{ display:none; margin:0; }
+.bigstage-btn{
+  flex:1 1 auto;
+  min-width:84px;
+  padding:8px 10px;
+  border-radius:var(--radius-sm,9px);
+  border:1px solid var(--border,rgba(255,255,255,.12));
+  background:var(--panel,#141d2b);
+  color:var(--muted,#93a1b5);
+  font-weight:700;
+  font-size:12.5px;
+  cursor:pointer;
+  transition:.15s ease;
+}
+.bigstage-btn:hover{
+  background:rgba(255,255,255,.08);
+  color:var(--text,#e8edf5);
+}
+.bigstage-btn.active{
+  background:linear-gradient(135deg,#ff5f2e,#ff9800);
+  color:#fff;
+  border-color:transparent;
+  box-shadow:0 0 14px rgba(255,111,0,.35);
+}
+
 /* ---------------- SPEED ROW ---------------- */
 .speed-row{
   display:flex;
