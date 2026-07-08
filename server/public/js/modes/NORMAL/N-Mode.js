@@ -10,6 +10,10 @@ var enemyTeam = [];
 var playerTeam = [];           // team chosen for battle (cloned)
 var battleRunning = false;
 var unlockedStage = parseInt(localStorage.getItem("unlockedStage") || "1");
+// 🟢 บิ๊กสเตจที่กำลังดู/เลือกอยู่ในหน้าเลือกด่าน (1-5) — แยกจาก unlockedStage เพราะผู้เล่น
+// ต้องสลับไปมาดูบิ๊กสเตจเก่าได้เองด้วย ไม่ใช่ผูกติดกับด่านล่าสุดที่ไปถึงเสมอไป
+// (ค่าเริ่มต้น/การ clamp ทำใน renderBigStageTabs() ของ render.js)
+var selectedBigStage = parseInt(localStorage.getItem("selectedBigStage") || "0") || null;
 var roundCount = 1;
 /* ============================
    STAGE SELECTION
@@ -156,6 +160,12 @@ async function startBattle(){
         if (currentStage >= unlockedStage) {
           unlockedStage = currentStage + 1;
           localStorage.setItem("unlockedStage", unlockedStage);
+        }
+        // 🟢 เพิ่งผ่านด่านสุดท้าย (ด่านที่หาร 100 ลงตัว) ของบิ๊กสเตจที่กำลังดูอยู่ —
+        // พาไปโชว์บิ๊กสเตจใหม่ที่เพิ่งปลดล็อคให้เลยอัตโนมัติ (ยังกดสลับกลับมาเองได้ตลอดภายหลัง)
+        if (currentStage % 100 === 0) {
+          selectedBigStage = Math.min(5, Math.ceil(unlockedStage / 100));
+          localStorage.setItem("selectedBigStage", String(selectedBigStage));
         }
         // 💰🧩 รางวัลนี้เซิฟจ่ายจริงไปแล้วตอนรันเทิร์นสุดท้าย (ดู routes/battle.js) แค่โชว์ผลที่ได้กลับมา
         const rewards = turnRes.rewards;
