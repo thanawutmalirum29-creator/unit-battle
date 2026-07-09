@@ -1,4 +1,4 @@
-// 🟢 var แทน let/const ตรงนี้ เพราะหน้ารวมโหมด (game.html) โหลดสคริปต์ของทั้ง 3 โหมด
+//  var แทน let/const ตรงนี้ เพราะหน้ารวมโหมด (game.html) โหลดสคริปต์ของทั้ง 3 โหมด
 // ไว้ในเอกสารเดียวกัน — ชื่อพวกนี้ซ้ำกับ boss.js/inf-mode.js ถ้าประกาศด้วย let/const
 // จะเกิด SyntaxError ทันที (redeclare ไม่ได้ข้าม <script> ในเอกสารเดียวกัน) ส่วน var
 // ประกาศซ้ำได้ปกติ ไม่มีปัญหาอะไร เพราะจริงๆ ก็ตั้งใจให้เป็นตัวแปร global ร่วมกันอยู่แล้ว
@@ -10,7 +10,7 @@ var enemyTeam = [];
 var playerTeam = [];           // team chosen for battle (cloned)
 var battleRunning = false;
 var unlockedStage = parseInt(localStorage.getItem("unlockedStage") || "1");
-// 🟢 บิ๊กสเตจที่กำลังดู/เลือกอยู่ในหน้าเลือกด่าน (1-5) — แยกจาก unlockedStage เพราะผู้เล่น
+//  บิ๊กสเตจที่กำลังดู/เลือกอยู่ในหน้าเลือกด่าน (1-5) — แยกจาก unlockedStage เพราะผู้เล่น
 // ต้องสลับไปมาดูบิ๊กสเตจเก่าได้เองด้วย ไม่ใช่ผูกติดกับด่านล่าสุดที่ไปถึงเสมอไป
 // (ค่าเริ่มต้น/การ clamp ทำใน renderBigStageTabs() ของ render.js)
 var selectedBigStage = parseInt(localStorage.getItem("selectedBigStage") || "0") || null;
@@ -53,13 +53,13 @@ playerTeam = selectedIndexes.map((cardId, i) => {
   if (!found) return null;
   const c = deepClone(found);
 
-  // 🟢 คำนวณค่าสุดท้ายจากอุปกรณ์
+  //  คำนวณค่าสุดท้ายจากอุปกรณ์
   const finalStats =getRenderStats(c);
   c.hp = finalStats.hp;
   c.atk = finalStats.atk;
   c.def = finalStats.def;
 
-  // 🟢 กัน skill หาย
+  //  กัน skill หาย
   c.skill = found.skill || c.skill || null;
 
   c.instanceId = c.instanceId || ("P-" + i + "-" + Date.now());
@@ -74,9 +74,9 @@ playerTeam = selectedIndexes.map((cardId, i) => {
 }).filter(Boolean);
 renderBattlefield();
 logClear();
-log(`🛡️ เตรียมทีมเสร็จ — สเตจ ${currentStage}`, "system");
-log(`👥 ทีมผู้เล่น: ${playerTeam.map(x=>x.name).join(", ")}`, "system");
-log(`👾 ทีมศัตรู: ${enemyTeam.map(x=>x.name).join(", ")}`, "system");}
+log(`<span class=gicon-shield></span> เตรียมทีมเสร็จ — สเตจ ${currentStage}`, "system");
+log(`<span class=gicon-users></span> ทีมผู้เล่น: ${playerTeam.map(x=>x.name).join(", ")}`, "system");
+log(`<span class=gicon-skull></span> ทีมศัตรู: ${enemyTeam.map(x=>x.name).join(", ")}`, "system");}
 
 async function startBattle(){
   if (battleRunning){ alert("การต่อสู้กำลังดำเนินอยู่"); return; }
@@ -84,7 +84,7 @@ async function startBattle(){
   if (!playerTeam || playerTeam.length === 0){ alert("จัดเตรียมทีมให้เรียบ"); return; }
   if (!enemyTeam || enemyTeam.length === 0){ alert("ยังไม่มีศัตรู — กดเตรียมทีมและศัตรูก่อน"); return; }
 
-  // 🔐 เซิฟเป็นคนรันผลจริง — ต้องมีการ์ดที่เลือกไว้จริง (ไม่เกิน 4 ตัว ไม่ซ้ำ) ส่งไปให้เซิฟ
+  //  เซิฟเป็นคนรันผลจริง — ต้องมีการ์ดที่เลือกไว้จริง (ไม่เกิน 4 ตัว ไม่ซ้ำ) ส่งไปให้เซิฟ
   // ตรวจสอบว่ามีอยู่ในเด็คจริงก่อน แล้วสร้างทีม/คำนวณ stat เองจาก deck+equips ที่เก็บไว้
   const cardIds = selectedIndexes.slice(0, maxTeamSize);
   const startRes = await GameAPI.battleStart("normal", cardIds, { stage: currentStage });
@@ -100,14 +100,14 @@ async function startBattle(){
   cancelBtn.style.display = "inline-block";
   cancelBtn.onclick = async () => {
     if (await uiConfirm("คุณต้องการยกเลิกการต่อสู้หรือไม่?")) {
-      log("⚠️ การต่อสู้ถูกยกเลิก", "system");
-      updateResult("❌ คุณยกเลิกการต่อสู้");
+      log("<span class=gicon-warning></span> การต่อสู้ถูกยกเลิก", "system");
+      updateResult("<span class=gicon-x></span> คุณยกเลิกการต่อสู้");
       GameAPI.battleForfeit(battleId); // fire-and-forget
       if (window.HubUI) {
         HubUI.showResults({
           win: false,
           cancelled: true,
-          title: "❌ คุณยกเลิกการต่อสู้",
+          title: "<span class=gicon-x></span> คุณยกเลิกการต่อสู้",
           extraNote: "การยกเลิกกลางคันนับเป็นแพ้ — ได้รางวัลเท่าที่สะสมไว้เท่านั้น",
           playerTeam: [...playerTeam],
           enemyTeam: [...enemyTeam],
@@ -117,7 +117,7 @@ async function startBattle(){
     }
   };
   logClear();
-  log(`⚔️ เริ่มสู้ สเตจ ${currentStage} !`, "system");
+  log(`<span class=gicon-battle></span> เริ่มสู้ สเตจ ${currentStage} !`, "system");
 
   // sync กับ snapshot เริ่มต้นที่เซิฟสร้างจริง (แทนของที่เตรียมไว้ฝั่ง client)
   playerTeam = startRes.playerTeam;
@@ -131,8 +131,8 @@ async function startBattle(){
 
     const turnRes = await GameAPI.battleTurn(battleId);
     if (!turnRes || turnRes.error) {
-      log(`⚠️ เชื่อมต่อเซิฟไม่ได้ (${turnRes?.error || "network"}) — หยุดการต่อสู้`, "system");
-      updateResult("⚠️ เกิดข้อผิดพลาด ลองใหม่อีกครั้ง");
+      log(`<span class=gicon-warning></span> เชื่อมต่อเซิฟไม่ได้ (${turnRes?.error || "network"}) — หยุดการต่อสู้`, "system");
+      updateResult("<span class=gicon-warning></span> เกิดข้อผิดพลาด ลองใหม่อีกครั้ง");
       endBattlecancle(false);
       return;
     }
@@ -143,7 +143,7 @@ async function startBattle(){
       await delay(Math.max(120, getBattleSpeed() * 0.25));
     }
 
-    // 🔧 FIX: เล่นแอนิเมชันโจมตี/ตัวเลขดาเมจจริงจากเหตุการณ์ที่เซิฟส่งกลับมา (เดิมหายไปเพราะ
+    //  FIX: เล่นแอนิเมชันโจมตี/ตัวเลขดาเมจจริงจากเหตุการณ์ที่เซิฟส่งกลับมา (เดิมหายไปเพราะ
     // battle ย้ายไปรันที่เซิฟแล้วไม่มีอะไรเรียก skills/attack.js อีก) และ sync สถิติดาเมจ
     // "ทำ/รับ" ต่อหน่วยไปหน้าสรุปผล (เดิมค้าง 0/0 เพราะ ctx.trackDamage ฝั่งเซิฟเป็น no-op)
     if (window.HubUI) HubUI.setDamageStats(turnRes.damageStats);
@@ -155,43 +155,43 @@ async function startBattle(){
 
     if (turnRes.finished) {
       if (turnRes.win) {
-        log("🎉 ทีมศัตรูพ่ายแพ้ทั้งหมด!", "system");
-        updateResult("🎉 คุณชนะ!");
+        log("<span class=gicon-party></span> ทีมศัตรูพ่ายแพ้ทั้งหมด!", "system");
+        updateResult("<span class=gicon-party></span> คุณชนะ!");
         if (currentStage >= unlockedStage) {
           unlockedStage = currentStage + 1;
           localStorage.setItem("unlockedStage", unlockedStage);
         }
-        // 🟢 เพิ่งผ่านด่านสุดท้าย (ด่านที่หาร 100 ลงตัว) ของบิ๊กสเตจที่กำลังดูอยู่ —
+        //  เพิ่งผ่านด่านสุดท้าย (ด่านที่หาร 100 ลงตัว) ของบิ๊กสเตจที่กำลังดูอยู่ —
         // พาไปโชว์บิ๊กสเตจใหม่ที่เพิ่งปลดล็อคให้เลยอัตโนมัติ (ยังกดสลับกลับมาเองได้ตลอดภายหลัง)
         if (currentStage % 100 === 0) {
           selectedBigStage = Math.min(5, Math.ceil(unlockedStage / 100));
           localStorage.setItem("selectedBigStage", String(selectedBigStage));
         }
-        // 💰🧩 รางวัลนี้เซิฟจ่ายจริงไปแล้วตอนรันเทิร์นสุดท้าย (ดู routes/battle.js) แค่โชว์ผลที่ได้กลับมา
+        //  รางวัลนี้เซิฟจ่ายจริงไปแล้วตอนรันเทิร์นสุดท้าย (ดู routes/battle.js) แค่โชว์ผลที่ได้กลับมา
         const rewards = turnRes.rewards;
         if (rewards) {
           applyServerMoney(rewards.money);
           applyServerBag(rewards.bag);
           for (const [key, amount] of Object.entries(rewards.drops || {})) {
-            log(`🎁 ได้ ${amount}x ${key}`, "system");
+            log(`<span class=gicon-gift></span> ได้ ${amount}x ${key}`, "system");
           }
           if (window.HubUI) HubUI.addReward(rewards.moneyGain, rewards.drops);
         }
         if (window.HubUI) {
           HubUI.showResults({
             win: true,
-            title: "🎉 คุณชนะ!",
+            title: "<span class=gicon-party></span> คุณชนะ!",
             playerTeam: [...playerTeam],
             enemyTeam: [...enemyTeam],
           });
         }
       } else {
-        log("💀 ทีมผู้เล่นพ่ายแพ้ทั้งหมด...", "system");
-        updateResult("💀 คุณแพ้... ลองใหม่อีกครั้ง");
+        log("<span class=gicon-skull></span> ทีมผู้เล่นพ่ายแพ้ทั้งหมด...", "system");
+        updateResult("<span class=gicon-skull></span> คุณแพ้... ลองใหม่อีกครั้ง");
         if (window.HubUI) {
           HubUI.showResults({
             win: false,
-            title: "💀 คุณแพ้... ลองใหม่อีกครั้ง",
+            title: "<span class=gicon-skull></span> คุณแพ้... ลองใหม่อีกครั้ง",
             playerTeam: [...playerTeam],
             enemyTeam: [...enemyTeam],
           });
@@ -226,7 +226,7 @@ document.getElementById("cancelBattleBtn").style.display = "none";
     renderBattlefield();
     renderStageButtons(); 
 }
-// 🟢 การกด cancelBattleBtn ตอนนี้ผูก onclick ไว้ตรงจุดเริ่มสู้ใน startBattle() แทน
+//  การกด cancelBattleBtn ตอนนี้ผูก onclick ไว้ตรงจุดเริ่มสู้ใน startBattle() แทน
 // (ดูด้านบน) เพราะหน้ารวมโหมดใช้ปุ่มยกเลิกร่วมกันทั้ง 3 โหมด — ใครเริ่มสู้ล่าสุด
 // onclick จะชี้ไปที่โหมดนั้นเสมอ ไม่ต้องมี addEventListener ซ้อนกันหลายชั้น
 
@@ -255,7 +255,7 @@ updateBagUI();
 renderStageButtons();
 updateMoneyUI();
 
-// 🟢 localStorage เป็นแค่ cache ฝั่งเครื่อง — ด่านที่ปลดล็อคจริงถูกบันทึกไว้ในเซิร์ฟเวอร์แล้ว
+//  localStorage เป็นแค่ cache ฝั่งเครื่อง — ด่านที่ปลดล็อคจริงถูกบันทึกไว้ในเซิร์ฟเวอร์แล้ว
 // (ทุกครั้งที่ชนะจะยิง GameAPI.reportNormalClear) แต่ก่อนหน้านี้ไม่เคยมีการดึงค่านั้นกลับมาโหลด
 // เลย ทำให้เปิดเกมบนเครื่อง/เบราว์เซอร์/การติดตั้ง PWA อื่น หรือหลังเคลียร์ข้อมูลเบราว์เซอร์
 // แล้วเห็นเหมือนด่านที่ปลดล็อคหายไปทั้งที่เซิร์ฟเวอร์ยังมีอยู่ — ตรงนี้ดึงค่าจากเซิร์ฟเวอร์มา
