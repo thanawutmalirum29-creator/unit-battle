@@ -1012,25 +1012,73 @@
   background: #e03131;
 }
 
-/* ---------- gift box ---------- */
-/* box body (with a ribbon cross baked into it via layered backgrounds) below
-   a separate lid strip, so it reads as an actual present rather than two
-   plain overlapping bars */
-.gicon-gift { position: relative; display: inline-block; width: 1em; height: 1em; }
-.gicon-gift::before {
-  content: ""; position: absolute; left: 10%; top: 42%; width: 80%; height: 50%;
+/* ---------- gift box (closed) ---------- */
+/* Box body + lid each get a soft pink gradient (instead of a flat fill) for
+   a little roundness, plus a gold ribbon bow on top drawn straight on the
+   element itself — so the two pseudo-elements stay free for lid + box. */
+.gicon-gift {
+  position: relative; display: inline-block; width: 1em; height: 1em;
+  filter: drop-shadow(0 0.05em 0.06em rgba(0,0,0,.35));
+}
+.gicon-gift {
   background:
-    linear-gradient(#ffd54f, #ffd54f) center / 18% 100% no-repeat,
-    linear-gradient(#ffd54f, #ffd54f) center / 100% 22% no-repeat,
-    #ef7ba0;
-  border-radius: 0 0 0.06em 0.06em;
+    radial-gradient(circle at 50% 50%, #ffe082 0%, #ffca28 55%, #f9a825 100%) 22% 6% / 34% 34% no-repeat,
+    radial-gradient(circle at 50% 50%, #ffe082 0%, #ffca28 55%, #f9a825 100%) 66% 6% / 34% 34% no-repeat;
+}
+.gicon-gift::before {
+  /* lid */
+  content: ""; position: absolute; left: 6%; top: 24%; width: 88%; height: 20%;
+  background:
+    linear-gradient(90deg, transparent 41%, #ffd54f 41%, #ffd54f 59%, transparent 59%),
+    linear-gradient(180deg, #ff9ec4 0%, #ef7ba0 55%, #e5628e 100%);
+  border-radius: 0.12em 0.12em 0.02em 0.02em;
+  box-shadow: 0 0.05em 0 rgba(255,255,255,.25) inset, 0 0.04em 0.05em rgba(0,0,0,.25);
 }
 .gicon-gift::after {
-  content: ""; position: absolute; left: 6%; top: 28%; width: 88%; height: 16%;
+  /* box body */
+  content: ""; position: absolute; left: 11%; top: 44%; width: 78%; height: 48%;
   background:
-    linear-gradient(#ffd54f, #ffd54f) center / 18% 100% no-repeat,
-    #f490ab;
-  border-radius: 0.06em;
+    linear-gradient(90deg, transparent 41%, #ffd54f 41%, #ffd54f 59%, transparent 59%),
+    linear-gradient(160deg, #f490ab 0%, #e2628a 55%, #d1517c 100%);
+  border-radius: 0 0 0.1em 0.1em;
+  box-shadow: 0.06em 0 0 rgba(255,255,255,.12) inset, -0.06em 0 0.15em rgba(0,0,0,.18) inset;
+}
+
+/* ---------- gift box, opened (already claimed) ---------- */
+/* Used in place of a plain checkmark for a claimed daily-login day: the lid
+   has fallen off to one side, the box reads empty/taken, and a little
+   sparkle pops out on top — "already opened" at a glance. */
+.gicon-gift-open { position: relative; display: inline-block; width: 1em; height: 1em; }
+.gicon-gift-open {
+  /* 4-point sparkle, drawn on the element itself with a conic-gradient */
+  background:
+    conic-gradient(from 0deg,
+      transparent 0deg, #fff3c4 8deg, transparent 20deg,
+      transparent 70deg, #fff3c4 90deg, transparent 110deg,
+      transparent 160deg, #fff3c4 180deg, transparent 200deg,
+      transparent 250deg, #fff3c4 270deg, transparent 290deg,
+      transparent 340deg, #fff3c4 360deg)
+    62% 2% / 40% 40% no-repeat;
+}
+.gicon-gift-open::before {
+  /* lid, fallen off to the side at an angle */
+  content: ""; position: absolute; left: -2%; top: 30%; width: 46%; height: 16%;
+  background:
+    linear-gradient(90deg, transparent 34%, #ffca47 34%, #ffca47 66%, transparent 66%),
+    linear-gradient(200deg, #ffb0d0 0%, #ef7ba0 60%, #e5628e 100%);
+  border-radius: 0.1em;
+  transform: rotate(-32deg);
+  box-shadow: 0 0.03em 0.05em rgba(0,0,0,.3);
+}
+.gicon-gift-open::after {
+  /* open box, drawn as a trapezoid so the inside reads as empty/taken */
+  content: ""; position: absolute; left: 22%; top: 40%; width: 76%; height: 46%;
+  background:
+    linear-gradient(90deg, transparent 40%, #ffca47 40%, #ffca47 60%, transparent 60%),
+    linear-gradient(180deg, #f490ab 0%, #d1517c 100%);
+  clip-path: polygon(6% 0%, 94% 0%, 100% 100%, 0% 100%);
+  border-radius: 0 0 0.08em 0.08em;
+  box-shadow: inset 0 0.16em 0.1em rgba(0,0,0,.28);
 }
 
 /* ---------- impact / burst (critical hit) ---------- */
