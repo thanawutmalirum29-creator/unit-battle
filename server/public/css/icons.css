@@ -1295,3 +1295,105 @@
   content: ""; position: absolute; bottom: 8%; left: 38%; width: 24%; height: 12%;
   border-radius: 0 0 0.3em 0.3em; background: currentColor;
 }
+
+/* =========================================================
+   BOSS ICONS — bigger, dramatic, always their own fixed color
+   (never currentColor — a boss portrait shouldn't change with
+   the surrounding text). Designed for raid/boss select cards.
+   ========================================================= */
+
+/* ---------- slime king ---------- */
+/* Glossy jagged blob with a jagged gold crown resting on top and
+   a drop-shadow "ooze glow" so it reads as gelatinous, not flat. */
+.gicon-slime-king { position: relative; display: inline-block; width: 1em; height: 1em; }
+.gicon-slime-king::before {
+  content: ""; position: absolute; left: 2%; top: 26%; width: 96%; height: 70%;
+  background:
+    radial-gradient(circle at 34% 22%, rgba(255,255,255,.65), transparent 40%),
+    linear-gradient(165deg, #8ce99a 0%, #37b24d 55%, #2b8a3e 100%);
+  clip-path: polygon(
+    50% 0%, 82% 8%, 100% 34%, 90% 48%, 98% 72%,
+    80% 62%, 72% 100%, 56% 74%, 44% 100%, 28% 66%,
+    18% 96%, 8% 60%, 0% 34%, 18% 8%
+  );
+  filter: drop-shadow(0 0 0.1em rgba(55, 178, 77, 0.55));
+}
+.gicon-slime-king::after {
+  content: ""; position: absolute; left: 16%; top: 0%; width: 68%; height: 30%;
+  background: linear-gradient(180deg, #ffe066, #f5a524);
+  clip-path: polygon(0% 100%, 0% 34%, 18% 62%, 32% 6%, 50% 58%, 68% 6%, 82% 62%, 100% 34%, 100% 100%);
+}
+
+/* ---------- ancient golem ---------- */
+/* Blocky carved-stone head, mossy gradient, cracked seams and a
+   single glowing rune eye punched through with a mask + real glow. */
+.gicon-golem { position: relative; display: inline-block; width: 1em; height: 1em; }
+.gicon-golem::before {
+  content: ""; position: absolute; inset: 4% 6% 6% 6%;
+  background:
+    linear-gradient(155deg, #9c9a92 0%, #706e64 55%, #4d4b43 100%);
+  clip-path: polygon(
+    30% 0%, 70% 0%, 92% 16%, 100% 46%, 88% 78%,
+    64% 100%, 36% 100%, 12% 78%, 0% 46%, 8% 16%
+  );
+  -webkit-mask-image:
+    linear-gradient(115deg, transparent 42%, black 43%, black 45%, transparent 46%),
+    linear-gradient(20deg, transparent 60%, black 61%, black 62%, transparent 63%),
+    radial-gradient(circle at 50% 46%, transparent 15%, black 16%);
+  mask-image:
+    linear-gradient(115deg, transparent 42%, black 43%, black 45%, transparent 46%),
+    linear-gradient(20deg, transparent 60%, black 61%, black 62%, transparent 63%),
+    radial-gradient(circle at 50% 46%, transparent 15%, black 16%);
+}
+.gicon-golem::after {
+  content: ""; position: absolute; left: 39%; top: 38%; width: 22%; height: 16%;
+  background: #ffd54f;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  filter: drop-shadow(0 0 0.14em #ffb703) drop-shadow(0 0 0.05em #fff3bf);
+}
+
+/* ---------- deity / god (เทพเจ้า) ---------- */
+/* Radiant eight-point sunburst in gold with a bright divine core —
+   reads as "worship this, fear this" rather than a generic bolt. */
+.gicon-deity { position: relative; display: inline-block; width: 1em; height: 1em; }
+.gicon-deity::before {
+  content: ""; position: absolute; inset: 0%;
+  background: linear-gradient(160deg, #fff3bf, #ffd43b 45%, #f59f00 100%);
+  clip-path: polygon(
+    50% 0%, 61% 30%, 90% 10%, 72% 38%, 100% 50%,
+    72% 62%, 90% 90%, 61% 70%, 50% 100%, 39% 70%,
+    10% 90%, 28% 62%, 0% 50%, 28% 38%, 10% 10%, 39% 30%
+  );
+  filter: drop-shadow(0 0 0.16em rgba(255, 212, 59, 0.75));
+}
+.gicon-deity::after {
+  content: ""; position: absolute; inset: 36%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #ffffff, #fff3bf 60%, transparent 100%);
+}
+
+/* ---------- dragon head, redesigned (fiercer) ---------- */
+/* Overrides the earlier .gicon-dragon rule below it in cascade order —
+   sharper horn, wider fanged jaw, deeper crimson, real fire glow. */
+.gicon-dragon::before {
+  inset: 6% 3% 12% 1%;
+  background:
+    radial-gradient(circle at 28% 18%, rgba(255,255,255,.3), transparent 40%),
+    linear-gradient(150deg, #ff5c4d 0%, #c0221a 55%, #7f1410 100%);
+  clip-path: polygon(
+    0% 46%, 14% 16%, 26% 30%, 36% 2%, 46% 28%,
+    58% 8%, 68% 30%, 84% 10%, 100% 36%, 92% 50%,
+    100% 62%, 70% 60%, 54% 82%, 40% 62%, 20% 66%
+  );
+  -webkit-mask-image: radial-gradient(circle at 62% 38%, transparent 7%, black 8%);
+  mask-image: radial-gradient(circle at 62% 38%, transparent 7%, black 8%);
+}
+.gicon-dragon::after {
+  top: 48%;
+  left: 64%;
+  width: 38%;
+  height: 18%;
+  background: linear-gradient(90deg, #ffd43b, #ff922b 60%, #ff4d1a);
+  clip-path: polygon(0% 10%, 55% 0%, 100% 30%, 62% 42%, 100% 55%, 55% 70%, 0% 90%);
+  filter: drop-shadow(0 0 0.12em rgba(255, 146, 43, 0.7));
+}
