@@ -14,17 +14,9 @@ const {
 
 const router = express.Router();
 
-async function getOrCreateEconomy(client, playerId) {
-  await client.query(
-    `INSERT INTO player_economy (player_id) VALUES ($1) ON CONFLICT DO NOTHING`,
-    [playerId]
-  );
-  const { rows } = await client.query(
-    `SELECT * FROM player_economy WHERE player_id = $1 FOR UPDATE`,
-    [playerId]
-  );
-  return rows[0];
-}
+// ✅ getOrCreateEconomy เดิมก็อปมาไว้ในไฟล์นี้ (และอีก 4 route อื่น) รวมมาไว้จุดเดียว
+// ที่ server/db/economyHelpers.js แล้ว
+const { getOrCreateEconomy } = require('../db/economyHelpers');
 
 function creditReward(client, playerId, econ, reward) {
   const newMoney = Number(econ.money) + Number(reward.money || 0);

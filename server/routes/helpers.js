@@ -29,17 +29,9 @@ const router = express.Router();
 const LOAN_DURATION_MS = 12 * 60 * 60 * 1000;   // how long a borrowed card stays in the deck
 const COOLDOWN_MS = 24 * 60 * 60 * 1000;        // how long before you can ask the SAME friend again
 
-async function getOrCreateEconomy(client, playerId) {
-  await client.query(
-    `INSERT INTO player_economy (player_id) VALUES ($1) ON CONFLICT DO NOTHING`,
-    [playerId]
-  );
-  const { rows } = await client.query(
-    `SELECT * FROM player_economy WHERE player_id = $1 FOR UPDATE`,
-    [playerId]
-  );
-  return rows[0];
-}
+// ✅ getOrCreateEconomy เดิมก็อปมาไว้ในไฟล์นี้ (และอีก 4 route อื่น) รวมมาไว้จุดเดียว
+// ที่ server/db/economyHelpers.js แล้ว
+const { getOrCreateEconomy } = require('../db/economyHelpers');
 
 // Small, safe preview shape — never leaks the lender's internal card id or
 // equips, just what a borrower would actually be getting.

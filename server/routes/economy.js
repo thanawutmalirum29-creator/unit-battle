@@ -22,26 +22,12 @@ const {
 } = require('../game-data/economy-data');
 const { cleanupExpiredHelperLoans } = require('../db/helperLoans');
 const { bumpMissionProgress } = require('../db/dailyMissions');
+// ✅ mergeBag/getOrCreateEconomy เดิมก็อปมาไว้ในไฟล์นี้ (และอีก 4 route อื่น) รวมมา
+// ไว้จุดเดียวที่ server/db/economyHelpers.js แล้ว (เวอร์ชันเดิมตรงนี้ไม่มี `delta || {}`
+// กันเหนียว ถ้า delta เป็น undefined จะพังทันที — เวอร์ชันรวมศูนย์แก้ไว้แล้ว)
+const { mergeBag, getOrCreateEconomy } = require('../db/economyHelpers');
 
 const router = express.Router();
-
-function mergeBag(bag, delta) {
-  const next = { ...bag };
-  for (const [k, v] of Object.entries(delta)) next[k] = (next[k] || 0) + v;
-  return next;
-}
-
-async function getOrCreateEconomy(client, playerId) {
-  await client.query(
-    `INSERT INTO player_economy (player_id) VALUES ($1) ON CONFLICT DO NOTHING`,
-    [playerId]
-  );
-  const { rows } = await client.query(
-    `SELECT * FROM player_economy WHERE player_id = $1 FOR UPDATE`,
-    [playerId]
-  );
-  return rows[0];
-}
 
 // ---------------------------------------------------------------------------
 // GET /api/economy/state — current money/bag/deck

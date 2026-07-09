@@ -19,6 +19,9 @@ const pool = require('../db/pool');
 const asyncHandler = require('../middleware/asyncHandler');
 const { requireAuth } = require('../middleware/auth');
 const { bumpMissionProgress } = require('../db/dailyMissions');
+// ✅ mergeBag/getOrCreateEconomy เดิมก็อปมาไว้ในไฟล์นี้ (และอีก 4 route อื่น) รวม
+// มาไว้จุดเดียวที่ server/db/economyHelpers.js แล้ว ดูเหตุผลในคอมเมนต์ของไฟล์นั้น
+const { mergeBag, getOrCreateEconomy } = require('../db/economyHelpers');
 
 const engine = require('../battle/engine');
 const { STAGES, BOSSES } = require('../battle/stage-data');
@@ -33,17 +36,6 @@ const {
 const router = express.Router();
 const INF_CHECKPOINT_INTERVAL = 25;
 
-function mergeBag(bag, delta) {
-  const next = { ...bag };
-  for (const [k, v] of Object.entries(delta || {})) next[k] = (next[k] || 0) + v;
-  return next;
-}
-
-async function getOrCreateEconomy(client, playerId) {
-  await client.query(`INSERT INTO player_economy (player_id) VALUES ($1) ON CONFLICT DO NOTHING`, [playerId]);
-  const { rows } = await client.query(`SELECT * FROM player_economy WHERE player_id = $1 FOR UPDATE`, [playerId]);
-  return rows[0];
-}
 
 // สร้างทีมผู้เล่นจากเด็คจริงที่ server เก็บเอง (deck + equips) — ไม่เชื่อ stat ใดๆ จาก client
 // cardIds: array of card id ที่ client "เลือก" ไว้ (ลำดับ/ตัวเลือกเท่านั้นที่รับจาก client ได้
