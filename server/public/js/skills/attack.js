@@ -187,7 +187,7 @@ if (target.class === "PhantomBoss" && attacker && !attacker.isEnemy) {
   //  BigBoss Heal เมื่อถูกสกิลโจมตี
   if (target.class === "BigBoss" && attacker && !attacker.isEnemy && attacker.skill) {
     if (Math.random() < 0.3) {  // 30% chance
-      const heal = Math.floor(target.maxHp * 0.002);
+      const heal = Math.floor(target.maxHp * 0.05);
       target.hp = Math.min(target.maxHp, target.hp + heal);
 log(`<span class=gicon-heart></span> ${target.name} ฮีลตัวเอง +${heal} HP (BigBoss Reactive Heal)`, "enemy");
 updateHpBar(target);   // <span class=gicon-dot-green></span> อัปเดตทันที
