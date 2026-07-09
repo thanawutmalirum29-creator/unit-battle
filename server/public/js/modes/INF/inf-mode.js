@@ -1,4 +1,4 @@
-// 🟢 var แทน let/const: ชื่อพวกนี้ซ้ำกับ N-Mode.js/boss.js ในหน้ารวมโหมด (game.html)
+//  var แทน let/const: ชื่อพวกนี้ซ้ำกับ N-Mode.js/boss.js ในหน้ารวมโหมด (game.html)
 var deck = JSON.parse(localStorage.getItem("deck") || "[]");
 var selectedIndexes = loadSelectedTeam("inf"); // เด็คที่เลือกใช้ในหน้านี้ (จัดไว้จากหน้า "จัดเด็ค")
 var maxTeamSize = 4;
@@ -29,7 +29,7 @@ async function startInfGame(startStage = 1) {
   }
   if (battleRunning) return;
 
-  // 🚫 กันเหนียว: selectedIndexes ใช้ localStorage ร่วมกับโหมด NORMAL/BOSS ถ้า
+  //  กันเหนียว: selectedIndexes ใช้ localStorage ร่วมกับโหมด NORMAL/BOSS ถ้า
   // ผู้เล่นเลือกทีมที่มีตัวยืมไว้จากหน้าอื่นแล้วสลับมาหน้า INF โดยตรง (ไม่ผ่านการ
   // คลิกเลือกใน render.js ที่บล็อกไว้แล้ว) ให้เอาตัวยืมออกจากทีมตรงนี้อีกชั้น
   const deckNow = JSON.parse(localStorage.getItem("deck") || "[]");
@@ -48,13 +48,13 @@ async function startInfGame(startStage = 1) {
     return;
   }
 
-  // 🔧 เดิมเรียก GameAPI.infRunStart() (routes/runs.js — เช็คแค่จังหวะเวลา ไม่รู้ว่าสู้จริงไหม)
+  //  เดิมเรียก GameAPI.infRunStart() (routes/runs.js — เช็คแค่จังหวะเวลา ไม่รู้ว่าสู้จริงไหม)
   // ตอนนี้เซิฟรันการต่อสู้จริงเองทีละเทิร์น (routes/battle.js) — เริ่ม run ใหม่ตรงนี้เลย
   currentInfRunId = null;
   currentInfBattleId = null;
   const startRes = await GameAPI.battleStart("inf", selectedIndexes, { stage: startStage });
   if (!startRes || startRes.error) {
-    alert("❌ " + (startRes?.error || "เริ่มเกมไม่สำเร็จ (เช็คอินเทอร์เน็ต/ล็อกอิน)"));
+    alert(""+ (startRes?.error || "เริ่มเกมไม่สำเร็จ (เช็คอินเทอร์เน็ต/ล็อกอิน)"));
     autoMode = false;
     return;
   }
@@ -67,7 +67,7 @@ async function startInfGame(startStage = 1) {
   if (window.HubUI) { HubUI.enterBattle(); HubUI.resetDamageStats(); HubUI.resetRewards(); }
   document.getElementById("cancelBattleBtn").style.display = "inline-block";
   logClear?.();
-  log(`⚔️ เริ่มสู้ INF Stage ${currentInfStage} !`, "system");
+  log(`<span class=gicon-battle></span> เริ่มสู้ INF Stage ${currentInfStage} !`, "system");
   renderBattlefield();
   document.getElementById("infStageInfo").innerText = `Stage ${currentInfStage}`;
   runInfBattleLoop();
@@ -78,7 +78,7 @@ async function setInfStage(n) {
   if (battleRunning) return;
   currentInfStage = n;
 
-  // 🔒 ตอนจบด่านก่อนหน้า endInfBattle() เซ็ต battleRunning = false ไว้ชั่วคราวก่อนเรียกมาที่นี่
+  //  ตอนจบด่านก่อนหน้า endInfBattle() เซ็ต battleRunning = false ไว้ชั่วคราวก่อนเรียกมาที่นี่
   // — ช่วงว่างนั้น (ระหว่างรอ GameAPI.battleStart ด้านล่าง) ตัว safety-net lockPoll ของ HubUI
   // (เช็คทุก 300ms ว่า battleRunning ยังจริงไหม เผื่อบางโหมดลืมเรียก showResults/exitToSelect)
   // จะเห็นว่า battleRunning เป็น false แล้วสั่ง unlockUI() คลายล็อกทั้งที่จริงๆ แค่กำลังไปด่านถัดไป
@@ -96,8 +96,8 @@ async function setInfStage(n) {
 
   const startRes = await GameAPI.battleStart("inf", selectedIndexes, { stage: n, runId: currentInfRunId });
   if (!startRes || startRes.error) {
-    window.battleTransitioning = false; // 🔧 กันล็อกค้างถาวรถ้าไปด่านถัดไปไม่สำเร็จ
-    alert("❌ " + (startRes?.error || "ไปด่านถัดไปไม่สำเร็จ"));
+    window.battleTransitioning = false; // <span class=gicon-gear></span> กันล็อกค้างถาวรถ้าไปด่านถัดไปไม่สำเร็จ
+    alert(""+ (startRes?.error || "ไปด่านถัดไปไม่สำเร็จ"));
     return;
   }
   currentInfRunId = startRes.runId;
@@ -106,118 +106,23 @@ async function setInfStage(n) {
   enemyTeam = startRes.enemyTeam;
 
   logClear?.();
-  log(`⚔️ เริ่มสู้ INF Stage ${currentInfStage} !`, "system");
+  log(`<span class=gicon-battle></span> เริ่มสู้ INF Stage ${currentInfStage} !`, "system");
   renderBattlefield();
   document.getElementById("infStageInfo").innerText = `Stage ${currentInfStage}`;
   runInfBattleLoop();
 }
 
-const STAGE1_FIXED_STATS = {
-  Tank: { hp: 160, atk: 18, def: 16 },
-  Warrior: { hp: 120, atk: 24, def: 12 },
-  Healer: { hp: 96, atk: 16, def: 10 },
-  Rogue: { hp: 92, atk: 44, def: 6 },
-  Summoner: { hp: 104, atk: 8, def: 6 },
-  Trickster: { hp: 96, atk: 16, def: 9 },
-  Assassin: { hp: 99, atk: 19, def: 5 },
-  CC: { hp: 100, atk: 16, def: 9 },
-  Bomb: { hp: 84, atk: 40, def: 4 },
-  
-  Mage: { hp: 88, atk: 16, def: 6 },
-  Helper: { hp: 96, atk: 16, def: 9 }
-};
-// สกิลฐาน ไม่รวม L1-L3
-const STAGE1_BASE_SKILLS = {
-  Tank: ["Defense Buff", "AOE Defense Buff"],
-  Warrior: ["Power Strike", "AOE Attack", "Mirror", "Double Strike"],
-  Healer: ["Heal", "AOE Heal", "Revive", "Revive"],
-  Rogue: ["Critical", "Piercing Shot", "3 hit target"],
-  Summoner: ["Summon"],
-  Trickster: ["Poison", "Silence", , "Charm", "Blood Tribute", "AOE Silence"],
-  Assassin: ["Critical", "Power Strike", "Double Strike", "Lifesteal"],
-  
-  CC: ["Stun", "Time Stop", "AOE Stun", "AOE Time Stop"],
-  Bomb: ["Bomb"],
-  Mage: ["Burn"],
-  Helper: ["Cleanse", "Skill Boost", "Energy Boost"]
-};
-
-// ฟังก์ชันสุ่มเวอร์ชัน L1-L3 ตามเปอร์เซ็นต์ด่าน
-function getSkillVersion(baseSkill, percent) {
-  const rand = Math.random() * 100;
-  let level = "L1";
-  
-  if (percent <= 20) {
-    if (rand <= 80) level = "L1";
-    else if (rand <= 95) level = "L2";
-    else level = "L3";
-  } else if (percent <= 40) {
-    if (rand <= 60) level = "L1";
-    else if (rand <= 90) level = "L2";
-    else level = "L3";
-  } else if (percent <= 60) {
-    if (rand <= 40) level = "L1";
-    else if (rand <= 90) level = "L2";
-    else level = "L3";
-  } else if (percent <= 80) {
-    if (rand <= 20) level = "L1";
-    else if (rand <= 85) level = "L2";
-    else level = "L3";
-  } else {
-    if (rand <= 0) level = "L1";
-    else if (rand <= 49) level = "L2";
-    else level = "L3";
-  }
-  
-  return `${baseSkill} ${level}`;
-}
-
-function generateInfStage(stageNumber, teamSize = 4) {
-  const enemies = [];
-  const POSITION_POOLS = [
-    ["Tank", "Warrior"],
-    ["Warrior", "Assassin",  "Trickster","Helper", "CC"],
-    ["Rogue", "Trickster","Helper", "Bomb", "Healer", "Mage", "CC"],
-    ["Rogue", "Trickster","Helper", "Bomb", "Healer", "Mage", "Summoner", "CC"]
-  ];
-  
-  const usedClasses = new Set();
-  
-  for (let i = 0; i < teamSize; i++) {
-    let pool = POSITION_POOLS[i] || Object.keys(STAGE1_FIXED_STATS);
-    const available = pool.filter(cls => !usedClasses.has(cls));
-    if (available.length === 0) available.push(...pool);
-    
-    const cls = available[Math.floor(Math.random() * available.length)];
-    usedClasses.add(cls);
-    
-    const base = STAGE1_FIXED_STATS[cls];
-    const scale = 1 + (stageNumber - 1) * 0.05;
-    
-    const hp = Math.floor(base.hp * scale);
-    const atk = Math.floor(base.atk * scale);
-    const def = Math.floor(base.def * scale);
-    
-    const stagePercent = (stageNumber / 50) * 100; // ใช้สำหรับสกิล L1-L3
-    const baseSkills = STAGE1_BASE_SKILLS[cls];
-    const skill = getSkillVersion(baseSkills[Math.floor(Math.random() * baseSkills.length)], stagePercent);
-    
-    enemies.push({
-      name: `${cls} Lv${stageNumber}`,
-      class: cls,
-      hp,
-      atk,
-      def,
-      skill,
-      reward: Math.floor(stageNumber * 10 + Math.random() * 10)
-    });
-  }
-  
-  return enemies;
-}
+//  STAGE1_FIXED_STATS / STAGE1_BASE_SKILLS / getSkillVersion / generateInfStage /
+// MAX_INF_STAGE / INF_SHARD_TYPES / INF_SHARD_PIECE_RANGES / getInfShardPieceRange /
+// randomIntInclusive / generateInfShardDrop ย้ายไปรวมไว้จุดเดียวที่
+// js/shared/inf-data.js แล้ว (เดิมก็อปมาไว้ที่นี่กับ server/battle/inf-data.js
+// อีกชุด แก้สมดุล/สูตรต้อง 2 จุดพร้อมกัน — ระหว่างทางไฟล์ทั้งสองหลุดไม่ตรงกันไปแล้ว
+// จริงๆ ด้วย: ฝั่งนี้เคยมีลูกน้ำเกินใน STAGE1_BASE_SKILLS.Trickster ทำให้มีสมาชิก
+// undefined แฝงอยู่ในพูลสกิล ตอนนี้แก้แล้วในต้นฉบับเดียวที่ shared/inf-data.js)
+// ไฟล์นั้นถูกโหลดเป็น <script> ก่อนไฟล์นี้ (ดู pages/game.html) แล้ว attach เป็น
+// global เหมือนเดิม จึงเรียก generateInfStage(...) ฯลฯ ตรงนี้ได้โดยไม่ต้องแก้อะไรเพิ่ม
 
 // สร้างด่านทั้งหมด
-const MAX_INF_STAGE = 1000;
 const INF_STAGES = {};
 const INF_STAGE_REWARDS = {};
 
@@ -227,55 +132,9 @@ for (let s = 1; s <= MAX_INF_STAGE; s++) {
 }
 
 /* ============================
-   INF SHARD DROPS
-   - ทุกด่านดรอปชาร์ด สุ่มชนิด (จาก 6 ชนิด) และสุ่มจำนวนชิ้นตามช่วงด่าน
-   - ด่านสุดท้าย (MAX_INF_STAGE) ดรอปการันตีครบทุกชนิด ชนิดละ 1 ชิ้น
-   ============================ */
-const INF_SHARD_TYPES = ["shardGray", "shardBlue", "shardPurple", "shardGold", "shardRed","shardSky"];
-
-// ช่วงด่าน -> จำนวนชิ้นที่ดรอป (ต่อครั้งที่ชนะ) ปรับ/เพิ่มช่วงต่อได้ตามต้องการในอนาคต
-const INF_SHARD_PIECE_RANGES = [
-  { min: 1,   max: 99,   pieces: [1, 3] },
-  { min: 100, max: 222,  pieces: [2, 4] },
-  { min: 223, max: 500,  pieces: [3, 5] },
-  { min: 501, max: Infinity, pieces: [4, 5] }, // ตั้งแต่ 501 เป็นต้นไป (รวมถึงหากขยาย MAX_INF_STAGE เพิ่มในอนาคต)
-];
-
-function getInfShardPieceRange(stage) {
-  for (const r of INF_SHARD_PIECE_RANGES) {
-    if (stage >= r.min && stage <= r.max) return r.pieces;
-  }
-  return INF_SHARD_PIECE_RANGES[INF_SHARD_PIECE_RANGES.length - 1].pieces;
-}
-
-function randomIntInclusive(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-// สุ่มดรอปชาร์ดสำหรับด่าน INF หนึ่งด่าน
-function generateInfShardDrop(stage) {
-  // ด่านสุดท้ายสุด: การันตีครบทุกชนิด ชนิดละ 1 ชิ้น
-  if (stage === MAX_INF_STAGE) {
-    const finalDrop = {};
-    INF_SHARD_TYPES.forEach(type => { finalDrop[type] = 1; });
-    return finalDrop;
-  }
-
-  const [minPieces, maxPieces] = getInfShardPieceRange(stage);
-  const totalPieces = randomIntInclusive(minPieces, maxPieces);
-
-  const drop = {};
-  for (let i = 0; i < totalPieces; i++) {
-    const type = INF_SHARD_TYPES[Math.floor(Math.random() * INF_SHARD_TYPES.length)];
-    drop[type] = (drop[type] || 0) + 1;
-  }
-  return drop;
-}
-
-/* ============================
    PREPARE BATTLE
    ============================ */
-// 🔧 prepareInfBattle() เดิมอยู่ตรงนี้ (สร้าง enemyTeam/playerTeam จาก INF_STAGES ในเครื่อง)
+//  prepareInfBattle() เดิมอยู่ตรงนี้ (สร้าง enemyTeam/playerTeam จาก INF_STAGES ในเครื่อง)
 // ลบออกแล้ว เพราะตอนนี้ GameAPI.battleStart("inf", ...) ให้ทีมที่เซิฟสร้างจริงมาแทน
 // (ดู startInfGame()/setInfStage() ด้านบน)
 
@@ -296,7 +155,7 @@ async function runInfBattleLoop() {
 
     const turnRes = await GameAPI.battleTurn(currentInfBattleId);
     if (!turnRes || turnRes.error) {
-      log(`⚠️ เชื่อมต่อเซิฟไม่ได้ (${turnRes?.error || "network"}) — หยุดการต่อสู้`, "system");
+      log(`<span class=gicon-warning></span> เชื่อมต่อเซิฟไม่ได้ (${turnRes?.error || "network"}) — หยุดการต่อสู้`, "system");
       endInfBattle(false);
       return;
     }
@@ -306,7 +165,7 @@ async function runInfBattleLoop() {
       await delay(Math.max(120, getBattleSpeed() * 0.25));
     }
 
-    // 🔧 FIX: เล่นแอนิเมชันโจมตี/ตัวเลขดาเมจจริงจากเหตุการณ์ที่เซิฟส่งกลับมา และ sync สถิติ
+    //  FIX: เล่นแอนิเมชันโจมตี/ตัวเลขดาเมจจริงจากเหตุการณ์ที่เซิฟส่งกลับมา และ sync สถิติ
     // ดาเมจ "ทำ/รับ" ต่อหน่วยไปหน้าสรุปผล (ดู N-Mode.js สำหรับรายละเอียดเต็ม — root cause เดียวกัน)
     if (window.HubUI) HubUI.setDamageStats(turnRes.damageStats);
     if (typeof playTurnEvents === "function") await playTurnEvents(turnRes.events);
@@ -317,20 +176,20 @@ async function runInfBattleLoop() {
 
     if (turnRes.finished) {
       if (turnRes.win) {
-        log("🎉 ทีมศัตรูพ่ายแพ้ทั้งหมด!", "system");
-        updateResult("🎉 คุณชนะ!");
+        log("<span class=gicon-party></span> ทีมศัตรูพ่ายแพ้ทั้งหมด!", "system");
+        updateResult("<span class=gicon-party></span> คุณชนะ!");
         renderInfCheckpoints(); // may have just unlocked a new checkpoint (every 25 stages)
         if (turnRes.rewards) {
           applyServerMoney(turnRes.rewards.money);
           applyServerBag(turnRes.rewards.bag);
           for (const [key, amount] of Object.entries(turnRes.rewards.drops || {})) {
-            log(`🎁 ได้ ${amount}x ${key}`, "system");
+            log(`<span class=gicon-gift></span> ได้ ${amount}x ${key}`, "system");
           }
           if (window.HubUI) HubUI.addReward(turnRes.rewards.moneyGain, turnRes.rewards.drops);
         }
       } else {
-        log("💀 ทีมผู้เล่นพ่ายแพ้ทั้งหมด...", "system");
-        updateResult("💀 คุณแพ้... เริ่มใหม่ที่ Stage 1");
+        log("<span class=gicon-skull></span> ทีมผู้เล่นพ่ายแพ้ทั้งหมด...", "system");
+        updateResult("<span class=gicon-skull></span> คุณแพ้... เริ่มใหม่ที่ Stage 1");
       }
       endInfBattle(turnRes.win);
       return;
@@ -352,24 +211,24 @@ function endInfBattle(win = false) {
     if (currentInfStage < MAX_INF_STAGE) {
       // ยังไม่ใช่จุดจบของรัน (ยังไปต่อได้) — ไปด่านถัดไปเลย ไม่ต้องโชว์สรุปผล
       // (สถิติดาเมจ/รางวัลสะสมต่อเนื่องไปจนกว่าจะตายจริงหรือกดยกเลิก)
-      // 🔧 FIX: กันหน้าหลุดล็อกระหว่างช่วงนี้ — ดู isBattleRunning() ใน hub-ui.js
+      //  FIX: กันหน้าหลุดล็อกระหว่างช่วงนี้ — ดู isBattleRunning() ใน hub-ui.js
       window.battleTransitioning = true;
       currentInfStage++;
       setInfStage(currentInfStage);
     } else {
-      log("🏆 เคลียร์ครบทุก INF Stage!", "system");
-      updateResult("🏆 เคลียร์ครบทุก INF Stage!");
-      // 🔧 เดิมเรียก GameAPI.infRunFinish() ตรงนี้ แต่ routes/battle.js ปิด run ให้เองแล้ว
+      log("<span class=gicon-trophy></span> เคลียร์ครบทุก INF Stage!", "system");
+      updateResult("<span class=gicon-trophy></span> เคลียร์ครบทุก INF Stage!");
+      //  เดิมเรียก GameAPI.infRunFinish() ตรงนี้ แต่ routes/battle.js ปิด run ให้เองแล้ว
       // เมื่อไม่มีด่านถัดไป (ดู hasNextStage ใน turn handler)
       if (window.HubUI) {
         HubUI.showResults({
           win: true,
-          title: "🏆 เคลียร์ครบทุก INF Stage!",
+          title: "<span class=gicon-trophy></span> เคลียร์ครบทุก INF Stage!",
           playerTeam: [...playerTeam],
           enemyTeam: [...enemyTeam],
         });
       } else if (!autoMode) {
-        alert("🎉 คุณชนะทุกด่านแล้ว! เกมจบ");
+        alert("คุณชนะทุกด่านแล้ว! เกมจบ");
       }
       setTimeout(() => {
         currentInfStage = 1;
@@ -380,19 +239,19 @@ function endInfBattle(win = false) {
       }, 2000);
     }
   } else {
-    log("💀 ทีมผู้เล่นพ่ายแพ้ทั้งหมด...", "system");
-    updateResult("💀 แพ้... เริ่มใหม่ที่ Stage 1");
-    // 🔧 เดิมเรียก GameAPI.infRunFinish() ตรงนี้ แต่ routes/battle.js ปิด run ให้เองแล้วตอนแพ้
+    log("<span class=gicon-skull></span> ทีมผู้เล่นพ่ายแพ้ทั้งหมด...", "system");
+    updateResult("<span class=gicon-skull></span> แพ้... เริ่มใหม่ที่ Stage 1");
+    //  เดิมเรียก GameAPI.infRunFinish() ตรงนี้ แต่ routes/battle.js ปิด run ให้เองแล้วตอนแพ้
     if (window.HubUI) {
       HubUI.showResults({
         win: false,
-        title: "💀 คุณแพ้... เริ่มใหม่ที่ Stage 1",
+        title: "<span class=gicon-skull></span> คุณแพ้... เริ่มใหม่ที่ Stage 1",
         extraNote: `ไปได้ถึง INF Stage ${currentInfStage}`,
         playerTeam: [...playerTeam],
         enemyTeam: [...enemyTeam],
       });
     } else if (!autoMode) {
-      alert("💀 แพ้... เริ่มใหม่ที่ Stage 1");
+      alert("แพ้... เริ่มใหม่ที่ Stage 1");
     }
     setTimeout(() => {
       currentInfStage = 1;
@@ -407,19 +266,19 @@ function endInfBattle(win = false) {
 /* ============================
    CANCEL BATTLE
    ============================ */
-// 🟢 การกด cancelBattleBtn ตอนนี้ผูก onclick ไว้ใน setInfStage() แทน (ดูด้านบน)
+//  การกด cancelBattleBtn ตอนนี้ผูก onclick ไว้ใน setInfStage() แทน (ดูด้านบน)
 // เพราะหน้ารวมโหมดใช้ปุ่มยกเลิกร่วมกันทั้ง 3 โหมด
 
 function cancelInfBattle() {
   battleRunning = false;
   document.getElementById("cancelBattleBtn").style.display = "none";
-  log("⚠️ คุณกดยกเลิกการต่อสู้", "system");
-  updateResult("❌ การต่อสู้ถูกยกเลิก");
+  log("<span class=gicon-warning></span> คุณกดยกเลิกการต่อสู้", "system");
+  updateResult("<span class=gicon-x></span> การต่อสู้ถูกยกเลิก");
   if (window.HubUI) {
     HubUI.showResults({
       win: false,
       cancelled: true,
-      title: "❌ คุณยกเลิกการต่อสู้",
+      title: "<span class=gicon-x></span> คุณยกเลิกการต่อสู้",
       extraNote: `ไปได้ถึง INF Stage ${currentInfStage} — ได้รางวัลเท่าที่สะสมไว้เท่านั้น`,
       playerTeam: [...playerTeam],
       enemyTeam: [...enemyTeam],
@@ -455,7 +314,7 @@ async function renderInfCheckpoints() {
   // เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ หรือยังไม่ได้ล็อกอิน — บอกผู้เล่นตรงๆ แทนที่จะโชว์เหมือน
   // ยังไม่เคยผ่านด่าน 25 (ซึ่งอาจทำให้ผู้เล่นที่เคยปลดล็อกไว้แล้วงงว่าความคืบหน้าหาย)
   if (!ok) {
-    wrap.innerHTML = '<span style="opacity:.6;font-size:13px">⚠️ โหลดจุดเช็คพอยต์ไม่ได้ (ออฟไลน์ หรือยังไม่ได้ล็อกอิน) — เล่นได้ตั้งแต่ด่าน 1 ปกติ</span>';
+    wrap.innerHTML = '<span style="opacity:.6;font-size:13px"><span class=gicon-warning></span> โหลดจุดเช็คพอยต์ไม่ได้ (ออฟไลน์ หรือยังไม่ได้ล็อกอิน) — เล่นได้ตั้งแต่ด่าน 1 ปกติ</span>';
     return;
   }
 
@@ -474,7 +333,7 @@ async function renderInfCheckpoints() {
     wrap.appendChild(btn);
   }
 
-  // 🟢 เลื่อนแถบไปโชว์จุดเช็คพอยต์ล่าสุดเสมอ เหมือนแถบเลือกด่านโหมดปกติ — เดิมไม่มีจุดนี้
+  //  เลื่อนแถบไปโชว์จุดเช็คพอยต์ล่าสุดเสมอ เหมือนแถบเลือกด่านโหมดปกติ — เดิมไม่มีจุดนี้
   // เลยค้างอยู่ scrollLeft=0 (เช็คพอยต์แรกสุด) ทุกครั้งที่โหลดหน้า/แท็บใหม่
   const lastBtn = document.getElementById("btn-checkpoint-" + (unlockedCount * 25));
   if (lastBtn) lastBtn.scrollIntoView({ behavior: "auto", inline: "end", block: "nearest" });
