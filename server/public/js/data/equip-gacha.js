@@ -14,7 +14,7 @@ const EQUIP_GACHA_POOLS = {
       mode: "flat",
       rarity: "Legendary",
       bannerName: "ตู้อาวุธ & เกราะ",
-      icon: "⚔️"
+      icon: "<span class=gicon-battle></span>"
     },
     pool: [
       // ── Weapons ──
@@ -65,7 +65,7 @@ const EQUIP_GACHA_POOLS = {
       mode: "flat",
       rarity: "Legendary",
       bannerName: "ตู้เครื่องประดับ",
-      icon: "✨"
+      icon: "<span class=gicon-sparkle></span>"
     },
     pool: [
       // ── Accessories ──
@@ -166,7 +166,7 @@ function renderEquipGachaBoxes() {
     const bonusTxt = f.mode === "percent"
       ? `+${f.base}% ${f.stat.toUpperCase()}`
       : `+${f.base} ${f.stat.toUpperCase()}`;
-    const typeIcon = f.type === "Weapon" ? "⚔️" : f.type === "Armor" ? "🛡️" : "✨";
+    const typeIcon = f.type === "Weapon" ? "<span class=gicon-battle></span>" : f.type === "Armor" ? "<span class=gicon-shield></span>" : "<span class=gicon-sparkle></span>";
 
     const box = document.createElement("div");
     box.className = "gacha-box";
@@ -178,7 +178,7 @@ function renderEquipGachaBoxes() {
       <div class="gacha-featured">
         <div class="card rarity-${f.rarity}">
           <div class="title">${f.name}</div>
-          <div class="meta">${typeIcon} ${f.type} • ⭐ ${f.rarity}</div>
+          <div class="meta">${typeIcon} ${f.type} • <span class=gicon-star></span> ${f.rarity}</div>
           <div style="margin-top:4px; font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${bonusTxt}</div>
         </div>
       </div>
@@ -231,7 +231,7 @@ function showEquipRates(poolKey) {
             <div class="rarity-${it.rarity}"
                  style="cursor:pointer; ${isBlacklisted ? 'text-decoration: line-through; color:red;' : ''}"
                  onclick="toggleEquipBlacklist('${it.name.replace(/'/g, "\\'")}')">
-              • ${it.name} (${txt} ${it.stat.toUpperCase()}) ${isBlacklisted ? '❌' : ''}
+              • ${it.name} (${txt} ${it.stat.toUpperCase()}) ${isBlacklisted ? '<span class=gicon-x></span>' : ''}
             </div>`;
         }).join("")}
       </div>
@@ -243,7 +243,7 @@ function showEquipRates(poolKey) {
   document.body.classList.add("no-scroll");
 }
 
-// ✅ ติ๊กกากบาทในป๊อปอัพดูเรท — อุปกรณ์ที่ติ๊กไว้จะไม่เข้ากระเป๋าเมื่อสุ่มได้ (ลบทิ้งอัตโนมัติ)
+//  ติ๊กกากบาทในป๊อปอัพดูเรท — อุปกรณ์ที่ติ๊กไว้จะไม่เข้ากระเป๋าเมื่อสุ่มได้ (ลบทิ้งอัตโนมัติ)
 function toggleEquipBlacklist(name) {
   let blacklist = JSON.parse(localStorage.getItem("equip_gacha_blacklist") || "[]");
   if (blacklist.includes(name)) {
@@ -275,7 +275,7 @@ function closeEquipRatePopup() {
 // =========================
 async function gachaEquipPull(poolKey, count) {
   if (!window.GameAPI || !GameAPI.isLoggedIn || !GameAPI.isLoggedIn()) {
-    alert("⚠️ กรุณาเข้าสู่ระบบก่อนสุ่มอุปกรณ์");
+    alert("กรุณาเข้าสู่ระบบก่อนสุ่มอุปกรณ์");
     return;
   }
 
@@ -284,9 +284,9 @@ async function gachaEquipPull(poolKey, count) {
 
   if (!data || data.error) {
     if (data?.error === "not enough money") {
-      alert("💰 เงินไม่พอ!");
+      alert("เงินไม่พอ!");
     } else {
-      alert("⚠️ สุ่มอุปกรณ์ไม่สำเร็จ: " + (data?.error || "network error"));
+      alert("สุ่มอุปกรณ์ไม่สำเร็จ: "+ (data?.error || "network error"));
     }
     return;
   }
@@ -323,10 +323,10 @@ async function showEquipResults(results) {
   }
 
   function cardHTML(eq) {
-    const typeIcon = eq.type === "Weapon" ? "⚔️" : eq.type === "Armor" ? "🛡️" : "✨";
+    const typeIcon = eq.type === "Weapon" ? "<span class=gicon-battle></span>" : eq.type === "Armor" ? "<span class=gicon-shield></span>" : "<span class=gicon-sparkle></span>";
     return `
-      <div style="font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${typeIcon} ${eq.name} ${eq._blacklisted ? "❌" : ""}</div>
-      <div style="font-size:10px">⭐ ${eq.rarity}</div>
+      <div style="font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${typeIcon} ${eq.name} ${eq._blacklisted ? "<span class=gicon-x></span>" : ""}</div>
+      <div style="font-size:10px"><span class=gicon-star></span> ${eq.rarity}</div>
       <div style="font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${bonusText(eq)}</div>
     `;
   }
@@ -337,7 +337,7 @@ async function showEquipResults(results) {
 
     const wrap = document.createElement("div");
     wrap.className = "result-wrap";
-    // #gachaOverlay เป็น flex row → wrap เป็น flex item ที่ default จะ "หุบตามเนื้อหา"
+    // #gachaOverlay เป็น flex row  wrap เป็น flex item ที่ default จะ "หุบตามเนื้อหา"
     // (ไม่ยึดความกว้างจริงของจอ) ต้องบังคับ width:100% ไว้ ไม่งั้น grid ข้างในจะคำนวณ
     // ความกว้างแบบ max-content (พยายามยัดให้ครบคอลัมน์สุดตาม max-width) แล้วล้นจอมือถือ —
     // นี่คือสาเหตุที่อนิเมชั่นสุ่มอุปกรณ์ล้นจอ (max-width 600px ยัดได้ 3 คอลัมน์ = 504px
@@ -365,7 +365,7 @@ async function showEquipResults(results) {
       wrap.appendChild(bottomRow);
     } else {
       const container = document.createElement("div");
-      // 🟢 อิง --card-w จาก theme.css ตัวเดียว (ตัวแปรกลางเดียวกับทุกการ์ดในเกม)
+      //  อิง --card-w จาก theme.css ตัวเดียว (ตัวแปรกลางเดียวกับทุกการ์ดในเกม)
       // แทนใส่เลข px ซ้ำไว้ที่นี่ — แก้ขนาดการ์ดที่ theme.css ที่เดียวพอ
       container.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(var(--card-w),1fr));gap:12px;justify-content:center;justify-items:center;width:100%;max-width:600px;box-sizing:border-box;";
       sorted.forEach(eq => {
@@ -401,7 +401,7 @@ async function showEquipResults(results) {
     const eq = results[i];
     const el = document.createElement("div");
     el.className = `gacha-fly-card rarity-${eq.rarity}`;
-    el.innerHTML = `<div style="font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${eq.name} ${eq._blacklisted ? "❌" : ""}</div><div style="font-size:10px">⭐ ${eq.rarity}</div><div style="font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${bonusText(eq)}</div>`;
+    el.innerHTML = `<div style="font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${eq.name} ${eq._blacklisted ? "<span class=gicon-x></span>" : ""}</div><div style="font-size:10px"><span class=gicon-star></span> ${eq.rarity}</div><div style="font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${bonusText(eq)}</div>`;
     overlay.appendChild(el);
 
     if (i === 0) skipBtn.classList.remove("hidden");

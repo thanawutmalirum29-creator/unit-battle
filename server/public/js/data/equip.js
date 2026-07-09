@@ -18,45 +18,17 @@ function getDeck() {
 function getEquipBag() {
   return JSON.parse(localStorage.getItem("equipBag") || "[]");
 }
-function getRenderStats(card) {
-  const baseHp  = card.baseHp ?? card.hp ?? 0;
-  const baseAtk = card.baseAtk ?? card.atk ?? 0;
-  const baseDef = card.baseDef ?? card.def ?? 0;
-
-  let hp = baseHp;
-  let atk = baseAtk;
-  let def = baseDef;
-
-  let hpPct = 0, atkPct = 0, defPct = 0;
-
-  (card.equips || []).forEach(eq => {
-    const mode = eq.mode || "flat"; // ✅ fallback ถ้า item เก่าไม่มี mode
-
-    if (mode === "percent") {
-      if (eq.stat === "hp")  hpPct  += eq.bonus;
-      if (eq.stat === "atk") atkPct += eq.bonus;
-      if (eq.stat === "def") defPct += eq.bonus;
-    } else {
-      if (eq.stat === "hp")  hp  += eq.bonus;
-      if (eq.stat === "atk") atk += eq.bonus;
-      if (eq.stat === "def") def += eq.bonus;
-    }
-  });
-
-  // ✅ apply % bonuses หลังจากรวม flat แล้ว
-  hp  = Math.floor(hp  * (1 + hpPct  / 100));
-  atk = Math.floor(atk * (1 + atkPct / 100));
-  def = Math.floor(def * (1 + defPct / 100));
-
-  return { hp, atk, def };
-}
+// getRenderStats ย้ายไปรวมไว้จุดเดียวที่ js/shared/battle-math.js แล้ว (เดิมก็อป
+// มาไว้ที่นี่ กับ core/render.js และ server/battle/team-builder.js อีกรวม 3 จุด —
+// คอมเมนต์เดิมใน team-builder.js บอกตรงๆ ว่า "ported verbatim") โหลดเป็น global
+// function ก่อนไฟล์นี้แล้ว (ดู pages/*.html) เรียก getRenderStats(...) ได้เหมือนเดิม
 // =========================
 // การจัดการ UI
 // =========================
 let currentPage = 1;
 const pageSize = 12;
 
-const EQUIP_TYPE_ICON = { Weapon: "⚔️", Armor: "🛡️", Accessory: "✨" };
+const EQUIP_TYPE_ICON = { Weapon: "<span class=gicon-battle></span>", Armor: "<span class=gicon-shield></span>", Accessory: "<span class=gicon-sparkle></span>" };
 
 async function deleteAllCommonItems() {
   await deleteEquipByRarity("Common");
@@ -75,15 +47,15 @@ function renderEquipBag() {
   const toolbar = document.createElement("div");
   toolbar.className = "equip-bag-toolbar";
   toolbar.innerHTML = `
-    <button id="deleteCommonBtn">🗑️ ลบ Common</button>
-    <button id="deleteRareBtn">🗑️ ลบ Rare</button>
+    <button id="deleteCommonBtn"><span class=gicon-trash></span> ลบ Common</button>
+    <button id="deleteRareBtn"><span class=gicon-trash></span> ลบ Rare</button>
   `;
   panel.appendChild(toolbar);
 
   if (bag.length === 0) {
     const empty = document.createElement("p");
     empty.className = "equip-bag-empty";
-    empty.textContent = "❌ ยังไม่มีอุปกรณ์ในกระเป๋า — ลองไปสุ่มที่กาชาอุปกรณ์ดูสิ";
+    empty.textContent = "<span class=gicon-x></span> ยังไม่มีอุปกรณ์ในกระเป๋า — ลองไปสุ่มที่กาชาอุปกรณ์ดูสิ";
     panel.appendChild(empty);
     div.appendChild(panel);
 
@@ -114,7 +86,7 @@ function renderEquipBag() {
     const bonusTxt = eq.mode === "percent" ?
       `+${eq.bonus}% ${eq.stat.toUpperCase()}` :
       `+${eq.bonus} ${eq.stat.toUpperCase()}`;
-    const icon = EQUIP_TYPE_ICON[eq.type] || "❔";
+    const icon = EQUIP_TYPE_ICON[eq.type] || "<span class=gicon-help></span>";
 
     const el = document.createElement("div");
     el.className = `equip-card rarity-${eq.rarity}`;
@@ -122,7 +94,7 @@ function renderEquipBag() {
     el.innerHTML = `
       <div class="equip-card-icon">${icon}</div>
       <div class="equip-card-name">${eq.name}</div>
-      <div class="equip-card-rarity">⭐ ${eq.rarity}</div>
+      <div class="equip-card-rarity"><span class=gicon-star></span> ${eq.rarity}</div>
       <div class="equip-card-bonus">${bonusTxt}</div>
     `;
     el.onclick = async () => {
@@ -142,7 +114,7 @@ function renderEquipBag() {
     nav.className = "equip-bag-pager";
 
     const prev = document.createElement("button");
-    prev.textContent = "⬅️";
+    prev.textContent = "<span class=gicon-arrow-left></span>";
     prev.onclick = () => {
       currentPage = currentPage === 1 ? totalPages : currentPage - 1;
       renderEquipBag();
@@ -154,7 +126,7 @@ function renderEquipBag() {
     nav.appendChild(label);
 
     const next = document.createElement("button");
-    next.textContent = "➡️";
+    next.textContent = "<span class=gicon-arrow-right></span>";
     next.onclick = () => {
       currentPage = currentPage === totalPages ? 1 : currentPage + 1;
       renderEquipBag();
@@ -177,7 +149,7 @@ async function deleteEquipByRarity(rarity) {
   const before = getEquipBag().length;
   const data = await GameAPI.deleteEquipByRarityServer(rarity);
   if (!data || data.error) {
-    alert("⚠️ ลบอุปกรณ์ไม่สำเร็จ: " + (data?.error || "network error"));
+    alert("ลบอุปกรณ์ไม่สำเร็จ: "+ (data?.error || "network error"));
     return;
   }
   if (data.equipBag.length === before) {
@@ -188,7 +160,7 @@ async function deleteEquipByRarity(rarity) {
 async function deleteEquipItem(equipId) {
   const data = await GameAPI.deleteEquip(equipId);
   if (!data || data.error) {
-    alert("⚠️ ลบอุปกรณ์ไม่สำเร็จ: " + (data?.error || "network error"));
+    alert("ลบอุปกรณ์ไม่สำเร็จ: "+ (data?.error || "network error"));
     return;
   }
   applyServerEquipBag(data.equipBag); // รีเฟรช UI ผ่าน renderEquipBag ใน applyServerEquipBag
@@ -212,7 +184,7 @@ if (card.baseDef == null) card.baseDef = card.def ?? 0;
     const armor  = card.equips.find(e => e.type === "Armor");
     const acc    = card.equips.find(e => e.type === "Accessory");
 
-    // ✅ ใช้ระบบกลางแทน getFinalStats
+    //  ใช้ระบบกลางแทน getFinalStats
     const hpFinal  = getFinalHp(card);
     const atkFinal = getFinalAtk(card);
     const defFinal = getFinalDef(card);
@@ -223,7 +195,7 @@ if (card.baseDef == null) card.baseDef = card.def ?? 0;
     function slotLabel(label, eq) {
   if (!eq) return `${label}: -`;
 
-  const rarity = eq.rarity ?? "Common"; // ✅ fallback ถ้าไม่มี
+  const rarity = eq.rarity ?? "Common"; // <span class=gicon-check></span> fallback ถ้าไม่มี
   const rarityClass = `equip-rarity-${rarity}`;
 
   const bonusTxt = eq.mode === "percent"
@@ -241,9 +213,9 @@ if (card.baseDef == null) card.baseDef = card.def ?? 0;
 el.innerHTML = `
   <b>${card.name}</b> (Lv.${card.level || 1})<br>
   HP:${stats.hp} • ATK:${stats.atk} • DEF:${stats.def}<br>
-  ${slotLabel("⚔️ อาวุธ", weapon)}<br>
-  ${slotLabel("🛡️ เกราะ", armor)}<br>
-  ${slotLabel("✨ เสริม", acc)}<br>
+  ${slotLabel("<span class=gicon-battle></span> อาวุธ", weapon)}<br>
+  ${slotLabel("<span class=gicon-shield></span> เกราะ", armor)}<br>
+  ${slotLabel("<span class=gicon-sparkle></span> เสริม", acc)}<br>
 `;
 
     const equipBtn = document.createElement("button");
@@ -273,7 +245,7 @@ el.innerHTML = `
 async function unequipItem(cardId, equipId) {
   const data = await GameAPI.unequipItemFromCard(cardId, equipId);
   if (!data || data.error) {
-    alert("⚠️ ถอดอุปกรณ์ไม่สำเร็จ: " + (data?.error || "network error"));
+    alert("ถอดอุปกรณ์ไม่สำเร็จ: "+ (data?.error || "network error"));
     return;
   }
   applyServerDeck(data.deck);
@@ -286,12 +258,12 @@ async function unequipItem(cardId, equipId) {
 function chooseEquipForCard(cardId) {
   const bag = getEquipBag();
   if (bag.length === 0) {
-    alert("❌ ไม่มีอุปกรณ์ในกระเป๋า");
+    alert("ไม่มีอุปกรณ์ในกระเป๋า");
     return;
   }
 
   const popup = document.getElementById("equipPopup");
-  popup.innerHTML = `<div class="equip-popup-close" onclick="closeEquipPopup()">❌</div><h3>เลือกอุปกรณ์</h3>`;
+  popup.innerHTML = `<div class="equip-popup-close" onclick="closeEquipPopup()"><span class=gicon-x></span></div><h3>เลือกอุปกรณ์</h3>`;
 
   const start = (currentPage - 1) * pageSize;
   const end = start + pageSize;
@@ -328,16 +300,16 @@ async function equipItem(cardId, equipId) {
   const data = await GameAPI.equipItemOnCard(cardId, equipId);
   if (!data || data.error) {
     if (data?.error === "card already has 3 equips") {
-      alert("❌ ใส่อุปกรณ์ได้สูงสุด 3 ชิ้นเท่านั้น");
+      alert("ใส่อุปกรณ์ได้สูงสุด 3 ชิ้นเท่านั้น");
     } else {
-      alert("⚠️ ใส่อุปกรณ์ไม่สำเร็จ: " + (data?.error || "network error"));
+      alert("ใส่อุปกรณ์ไม่สำเร็จ: "+ (data?.error || "network error"));
     }
     return;
   }
   applyServerDeck(data.deck);
   applyServerEquipBag(data.equipBag);
 }
-// ⭐ เรียงอุปกรณ์ในกระเป๋า: rarity แรร์สุดอยู่บนก่อน แล้วค่อยตาม bonus
+//  เรียงอุปกรณ์ในกระเป๋า: rarity แรร์สุดอยู่บนก่อน แล้วค่อยตาม bonus
 function sortEquipByRarityFirst(a, b) {
   const rarityOrder = ["Legendary", "Epic", "Rare", "Common"];
   const rDiff = rarityOrder.indexOf(a.rarity) - rarityOrder.indexOf(b.rarity);
@@ -354,20 +326,20 @@ function sortEquipByPercentAndRarity(a, b) {
 
   // 2. ถ้าเป็น mode เดียวกัน
   if (a.mode === "percent" && b.mode === "percent") {
-    // เรียง bonus (มาก → น้อย)
+    // เรียง bonus (มาก  น้อย)
     if (b.bonus !== a.bonus) {
       return b.bonus - a.bonus;
     }
   }
 
   if (a.mode !== "percent" && b.mode !== "percent") {
-    // เรียง bonus (มาก → น้อย)
+    // เรียง bonus (มาก  น้อย)
     if (b.bonus !== a.bonus) {
       return b.bonus - a.bonus;
     }
   }
 
-  // 3. ถ้า bonus เท่ากัน → เรียงตาม rarity
+  // 3. ถ้า bonus เท่ากัน  เรียงตาม rarity
   return rarityOrder.indexOf(a.rarity) - rarityOrder.indexOf(b.rarity);
 }
 // =========================

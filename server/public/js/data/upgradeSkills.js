@@ -18,7 +18,7 @@ function goBack(){
   }
 }
 
-// ✅ กำหนดเลเวลสูงสุด (ต้องตรงกับ SKILL_UPGRADE_MAX_LEVEL บนเซิฟ)
+//  กำหนดเลเวลสูงสุด (ต้องตรงกับ SKILL_UPGRADE_MAX_LEVEL บนเซิฟ)
 const MAX_LEVEL = 3;
 
 const SHARD_KEY_BY_RARITY = {
@@ -43,15 +43,27 @@ function renderUpgradeDeck() {
     return (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0);
   });
 
+  const countBadge = document.getElementById("deckCount");
+  if (countBadge) countBadge.textContent = `${deck.length} ใบ`;
+
   deck.forEach(card => {
     const el = document.createElement("div");
     const rarityClass = card.rarity ? card.rarity.toLowerCase() : "common";
     el.className = `card-box ${rarityClass}`;
+
+    // ระดับสกิลปัจจุบัน แกะจาก "ชื่อสกิล LN" เพื่อโชว์ป้ายเลเวล + ริบบิ้น MAX
+    // บนตัวการ์ดเอง (ไม่ต้องกดเข้าไปดูรายละเอียดก่อนถึงจะรู้ว่าใบไหนตันแล้ว)
+    const skillMatch = typeof card.skill === "string" ? card.skill.match(/L(\d+)/) : null;
+    const skillLevel = skillMatch ? parseInt(skillMatch[1], 10) : 0;
+    const isMax = skillLevel >= MAX_LEVEL;
+
     el.innerHTML = `
-      <b>${card.name}</b>
-      <div>⭐${card.stars || 1} | ${card.rarity || "Common"}</div>
-      <div>Skill: ${card.skill}</div>
-      <br><button class="card-select-btn" onclick="showSkillDetail('${card.id}')">เลือก</button>
+      ${isMax ? '<span class="max-ribbon">MAX</span>' : ""}
+      <div class="title"><b>${card.name}</b>${skillLevel ? `<span class="skill-lv-pill">Lv.${skillLevel}</span>` : ""}</div>
+      <div class="stars-row"><span class="glow-stars">${"<span class=gicon-star></span>".repeat(Math.min(card.stars || 1, 6))}</span></div>
+      <div class="meta">${card.rarity || "Common"}</div>
+      <div class="meta card-skill-line"><span class="ico ico-bolt" aria-hidden="true"></span>${card.skill}</div>
+      <button class="card-select-btn" onclick="showSkillDetail('${card.id}')">เลือก</button>
     `;
     div.appendChild(el);
   });
@@ -85,28 +97,45 @@ function showSkillDetail(id) {
   const shardName = shardKey ? (SHARD_NAME_BY_KEY[shardKey] || shardKey) : "";
   const shardIcon = shardKey && typeof itemIconHTML === "function" ? itemIconHTML(shardKey) : "";
 
+  // หัวการ์ด: วงกลมอักษรย่อสีตาม rarity + ชื่อ + ป้าย rarity — ให้รู้ทันทีว่ากำลัง
+  // ดูใบไหนอยู่ โดยไม่ต้องเลื่อนสายตาไปมองการ์ดที่เลือกไว้ด้านบนอีกที
+  const rarity = card.rarity || "Common";
+  const headHtml = `
+    <div class="skill-detail-head">
+      <span class="skill-emblem rarity-${rarity}">${(card.name || "?").charAt(0)}</span>
+      <div class="skill-detail-title">
+        <b>${card.name}</b>
+        <span class="rarity-pill rarity-${rarity}">${rarity}</span>
+      </div>
+    </div>`;
+
   let barHtml = `<div class="progress-bar"><div id="progress-bar" class="progress-fill"></div></div>`;
   let btnHtml;
 
   if (nextSkill) {
     const loggedIn = window.GameAPI && GameAPI.isLoggedIn && GameAPI.isLoggedIn();
     const disabled = (!loggedIn || have < cost) ? "disabled" : "";
-    btnHtml = `<button class="upgrade-btn" onclick="upgradeSkill('${id}')" ${disabled}>
-                  ⬆ อัปเกรดเป็น ${nextSkill}
-                  <br>(ใช้ ${have}/${cost} ${shardIcon}${shardName})
-                  <br>💡 โอกาสสำเร็จ: ${chance}
-               </button>
-               ${!loggedIn ? '<div class="muted" style="margin-top:6px">ต้องเข้าสู่ระบบ (username + PIN) ก่อนอัปเกรด</div>' : ''}`;
+    const shortHtml = have < cost ? '<span class="stat-pill warn">ชาร์ดไม่พอ</span>' : '';
+    btnHtml = `
+      <div class="stat-pills">
+        <span class="stat-pill">${shardIcon}${have}/${cost} ${shardName}</span>
+        <span class="stat-pill chance"><span class="ico ico-spark" aria-hidden="true"></span>โอกาสสำเร็จ ${chance}</span>
+        ${shortHtml}
+      </div>
+      <button class="upgrade-btn" onclick="upgradeSkill('${id}')" ${disabled}>
+        <span class="ico ico-up" aria-hidden="true"></span>อัปเกรดเป็น ${nextSkill}
+      </button>
+      ${!loggedIn ? '<div class="muted" style="margin-top:6px">ต้องเข้าสู่ระบบ (username + PIN) ก่อนอัปเกรด</div>' : ''}`;
   } else {
     barHtml = `<div class="progress-bar">
                  <div class="progress-fill" style="width:100%; background:linear-gradient(90deg,#06d6a0,#07f5b5)"></div>
                </div>`;
-    btnHtml = `<p><b>Skill MAX</b></p>`;
+    btnHtml = `<p class="skill-max-tag"><span class="ico ico-medal" aria-hidden="true"></span><b>Skill MAX</b> — อัปเกรดสกิลใบนี้ครบแล้ว</p>`;
   }
 
   container.innerHTML = `
-    <p><b>${card.name}</b></p>
-    <p>Skill ปัจจุบัน: ${card.skill}</p>
+    ${headHtml}
+    <p class="skill-current-line">Skill ปัจจุบัน: <b>${card.skill}</b></p>
     ${barHtml}
     ${btnHtml}
   `;

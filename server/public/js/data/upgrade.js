@@ -1,9 +1,9 @@
 function goBack(){
   if (document.referrer) {
-    // ถ้ามี referrer → กลับไปหน้านั้น
+    // ถ้ามี referrer  กลับไปหน้านั้น
     window.location.href = document.referrer;
   } else {
-    // ถ้าไม่มี (เช่นเปิดตรงๆ) → กลับไปหน้า game.html เป็นค่า default
+    // ถ้าไม่มี (เช่นเปิดตรงๆ)  กลับไปหน้า game.html เป็นค่า default
     window.location.href = "game.html";
   }
 }
@@ -70,14 +70,14 @@ function ensureRole(c){
 }
 
 function applyLevelGrowth(c){
-  // ถ้าไม่มี hpReal → ใช้ hp เป็นค่าเริ่มต้น
+  // ถ้าไม่มี hpReal  ใช้ hp เป็นค่าเริ่มต้น
   c.hpReal = c.hpReal ?? c.hp;
   c.atkReal = c.atkReal ?? c.atk;
   c.defReal = c.defReal ?? c.def;
 
   const r = rarityStep(c);
 
-  // ✅ ใช้สูตรเดียวกันสำหรับทุกอาชีพ
+  //  ใช้สูตรเดียวกันสำหรับทุกอาชีพ
   c.hpReal  = c.hpReal  * 1.029575 * r;
   c.atkReal = c.atkReal * 1.029575 * r;
   c.defReal = c.defReal * 1.029575 * r;
@@ -112,7 +112,7 @@ function sortDeck() {
 
 
 function renderDeck() {
-  // 🔐 อ่านจาก localStorage สดทุกครั้ง แทนที่จะพึ่ง `deck` ตัวแปรค้าง — สำคัญตอนนี้
+  //  อ่านจาก localStorage สดทุกครั้ง แทนที่จะพึ่ง `deck` ตัวแปรค้าง — สำคัญตอนนี้
   // เพราะ applyServerDeck() (deck.js) เขียน localStorage แล้วเรียก renderDeck() ต่อ
   deck = JSON.parse(localStorage.getItem("deck") || "[]");
 
@@ -131,7 +131,7 @@ function renderDeck() {
     const rarity = card.rarity || "Common";
     const isMaxed = card.maxed === true;
 
-    // 🟢 การแสดงเลเวล
+    //  การแสดงเลเวล
     let lvDisplay = "";
     if (isMaxed) {
       lvDisplay = "MAX";
@@ -141,7 +141,7 @@ function renderDeck() {
       } else if (card.stars < 8) {
         lvDisplay = "MAX ";
       } else {
-        lvDisplay = "MAX";   // ⭐8 Lv.10 → MAX
+        lvDisplay = "MAX";   // <span class=gicon-star></span>8 Lv.10 <span class=gicon-arrow-right></span> MAX
         card.maxed = true;
       }
     } else {
@@ -149,7 +149,7 @@ function renderDeck() {
     }
 
     function getStarsDisplay(stars, isMaxed) {
-      let out = (stars <= 5) ? "⭐".repeat(stars) : "🌟".repeat(stars - 5);
+      let out = (stars <= 5) ? "<span class=gicon-star></span>".repeat(stars) : "<span class=gicon-star></span>".repeat(stars - 5);
       return isMaxed ? `<span class="glow-stars">${out}</span>` : out;
     }
     const starsDisplay = getStarsDisplay(card.stars, isMaxed);
@@ -157,11 +157,11 @@ function renderDeck() {
     let extraHTML = "";
     if (!isMaxed) {
       if (card.stars >= 8 && card.level >= MAX_LEVEL) {
-        // 🟢 8⭐ Lv.10 → MAX ทันที ไม่ต้องอัปต่อ
+        //  8 Lv.10  MAX ทันที ไม่ต้องอัปต่อ
         extraHTML = `<div class="meta" style="color:#ffd700;font-weight:bold;">MAX LEVEL</div>`;
         card.maxed = true;
       } else if (card.level >= MAX_LEVEL && card.stars >= 5 && card.stars < 8) {
-        // ⭐5–7 ที่ Lv.10 → ใช้การ์ดซ้ำขึ้นดาว
+        // 5–7 ที่ Lv.10  ใช้การ์ดซ้ำขึ้นดาว
         const sim = simulateNextUpgrade(card);
         const rarity = card.rarity || "Common";
 const rarityFactor = DUPLICATE_COST_BY_RARITY[rarity] || 1;
@@ -170,10 +170,10 @@ const need = (card.stars - 4) * rarityFactor;
         const cantStarUp = have < need;
         extraHTML = `
           <div class="meta" style="color:#ffeb3b;font-weight:bold;"></div>
-          <div class="meta">🌟 ต้องใช้การ์ด: ${have}/${need}</div>
-          <div class="meta">${sim.note}: HP → ${sim.next.hp} | ATK → ${sim.next.atk} | DEF → ${sim.next.def}</div>
+          <div class="meta"><span class=gicon-star></span> ต้องใช้การ์ด: ${have}/${need}</div>
+          <div class="meta">${sim.note}: HP <span class=gicon-arrow-right></span> ${sim.next.hp} | ATK <span class=gicon-arrow-right></span> ${sim.next.atk} | DEF <span class=gicon-arrow-right></span> ${sim.next.def}</div>
           <div class="progress-bar"><div id="progress-${idx}" class="progress-fill" style="width:${Math.min(100,(have/need)*100)}%"></div></div>
-          <button id="upgrade-btn-${idx}" onclick="upgradeCard(${idx})" ${cantStarUp ? "disabled title=\"การ์ดซ้ำไม่พอ\"" : ""}>⬆️ ขึ้นดาว</button>
+          <button id="upgrade-btn-${idx}" onclick="upgradeCard(${idx})" ${cantStarUp ? "disabled title=\"การ์ดซ้ำไม่พอ\"" : ""}><span class=gicon-arrow-up></span> ขึ้นดาว</button>
         `;
       } else {
         // การอัปเกรดปกติ
@@ -183,9 +183,9 @@ const successRate = Math.max(1, (SUCCESS_RATE_TABLE[card.level] ?? 50) - (card.s
 
 
         const sim = simulateNextUpgrade(card);
-        const maxNote = sim.willMax ? ` <span style="color:#80e27e;font-weight:bold;">→ จะเป็น MAX</span>` : "";
+        const maxNote = sim.willMax ? ` <span style="color:#80e27e;font-weight:bold;"><span class=gicon-arrow-right></span> จะเป็น MAX</span>` : "";
 
-        // 🟢 เพิ่มส่วนการันตีด้วยชาร์ด
+        //  เพิ่มส่วนการันตีด้วยชาร์ด
         const shardMap = {
           Common: "shardGray",
           Rare: "shardBlue",
@@ -207,10 +207,10 @@ const successRate = Math.max(1, (SUCCESS_RATE_TABLE[card.level] ?? 50) - (card.s
         const shardIcon = typeof itemIconHTML === "function" ? itemIconHTML(shardKey) : "";
 
         extraHTML = `
-          <div class="meta"><span class=gicon-coin></span> Cost: ${cost} | 🎯 Success: ${successRate}%</div>
-          <div class="meta">: HP → ${sim.next.hp} | ATK → ${sim.next.atk} | DEF → ${sim.next.def}${maxNote}</div>
+          <div class="meta"><span class=gicon-coin></span> Cost: ${cost} | <span class=gicon-target></span> Success: ${successRate}%</div>
+          <div class="meta">: HP <span class=gicon-arrow-right></span> ${sim.next.hp} | ATK <span class=gicon-arrow-right></span> ${sim.next.atk} | DEF <span class=gicon-arrow-right></span> ${sim.next.def}${maxNote}</div>
           <div class="progress-bar"><div id="progress-${idx}" class="progress-fill"></div></div>
-          <button id="upgrade-btn-${idx}" onclick="upgradeCard(${idx})" ${cantAffordMoney ? "disabled title=\"เงินไม่พอ\"" : ""}>⬆️ อัพเกรด</button>
+          <button id="upgrade-btn-${idx}" onclick="upgradeCard(${idx})" ${cantAffordMoney ? "disabled title=\"เงินไม่พอ\"" : ""}><span class=gicon-arrow-up></span> อัพเกรด</button>
           <button onclick="guaranteeUpgrade(${idx})" ${cantAffordGuarantee ? `disabled title="${haveShards < needShards ? "ชาร์ดไม่พอ" : "เงินไม่พอ"}"` : ""}>${shardIcon}การันตี (${haveShards}/${needShards}) — <span class=gicon-coin></span>${cost}</button>
         `;
       }
@@ -221,7 +221,7 @@ const successRate = Math.max(1, (SUCCESS_RATE_TABLE[card.level] ?? 50) - (card.s
     const def = card.def !== undefined ? card.def : "?";
 
     if (card.borrowed) {
-      extraHTML = `<div class="meta" style="color:#7dd3fc;font-weight:bold;">🤝 ยืมจาก ${card.lenderName || "เพื่อน"} — ใช้ต่อสู้ได้ แต่อัพเกรด/ขายไม่ได้</div>`;
+      extraHTML = `<div class="meta" style="color:#7dd3fc;font-weight:bold;"><span class=gicon-handshake></span> ยืมจาก ${card.lenderName || "เพื่อน"} — ใช้ต่อสู้ได้ แต่อัพเกรด/ขายไม่ได้</div>`;
     }
 
     const el = document.createElement("div");
@@ -237,7 +237,7 @@ const successRate = Math.max(1, (SUCCESS_RATE_TABLE[card.level] ?? 50) - (card.s
   });
 }
 
-// 🔐 อัปเกรดการ์ด (เสียเงิน + สุ่มสำเร็จ) — เดิมทั้งหมดนี้คำนวณและตัดสินผลฝั่ง
+//  อัปเกรดการ์ด (เสียเงิน + สุ่มสำเร็จ) — เดิมทั้งหมดนี้คำนวณและตัดสินผลฝั่ง
 // client เอง (หักเงินเอง สุ่มเอง บวกสเตตัสเอง) ตอนนี้เซิฟเป็นคนหัก/สุ่ม/บวก
 // สเตตัสทั้งหมด (ดู routes/economy.js POST /upgrade/paid และ /upgrade/duplicate)
 // ตัวเลข cost/successRate ที่คำนวณในเครื่องยังใช้แค่ "โชว์ preview" ใน UI เท่านั้น
@@ -266,7 +266,7 @@ async function upgradeCard(i) {
 
   const lv = c.level;
 
-  // ⭐5–7 ที่เลเวล 10 → ใช้การ์ดซ้ำขึ้นดาว (ฟรี ไม่เสียเงิน แต่ต้องมีการ์ดซ้ำพอ)
+  // 5–7 ที่เลเวล 10  ใช้การ์ดซ้ำขึ้นดาว (ฟรี ไม่เสียเงิน แต่ต้องมีการ์ดซ้ำพอ)
   if (lv >= MAX_LEVEL && c.stars >= 5 && c.stars < 8) {
     const rarity = c.rarity || "Common";
     const rarityFactor = DUPLICATE_COST_BY_RARITY[rarity] || 1;
@@ -275,7 +275,7 @@ async function upgradeCard(i) {
     const duplicateCardIds = sameCards.slice(0, need).map(cc => cc.id);
 
     if (sameCards.length < need) {
-      alert(`❌ ต้องใช้การ์ด ${c.name} อีก ${need} ใบ`);
+      alert(`ต้องใช้การ์ด ${c.name} อีก ${need} ใบ`);
       setUpgradeButtonsDisabled(i, false);
       return;
     }
@@ -287,11 +287,11 @@ async function upgradeCard(i) {
       return;
     }
     applyServerDeck(result.deck);
-    alert(`🌟 ${result.card.name} ขึ้นเป็น ${result.card.stars}⭐ Lv.1 แล้ว!`);
+    alert(`${result.card.name} ขึ้นเป็น ${result.card.stars} Lv.1 แล้ว!`);
     return;
   }
 
-  // === กรณีปกติ (⭐1–4 หรือ ⭐5–7 ที่ยังไม่ MAX) — เสียเงิน + สุ่มสำเร็จบนเซิฟ ===
+  // === กรณีปกติ (1–4 หรือ 5–7 ที่ยังไม่ MAX) — เสียเงิน + สุ่มสำเร็จบนเซิฟ ===
   const bar = document.getElementById("progress-" + i);
   if (bar) bar.style.width = "0%";
 
@@ -317,7 +317,7 @@ async function upgradeCard(i) {
   if (bar) bar.style.width = percent + "%";
 
   setTimeout(() => {
-    applyServerDeck(result.deck); // renderDeck() ไม่ sort → อยู่ตำแหน่งเดิม
+    applyServerDeck(result.deck); // renderDeck() ไม่ sort <span class=gicon-arrow-right></span> อยู่ตำแหน่งเดิม
     setUpgradeButtonsDisabled(i, false);
   }, 1200);
 }
@@ -327,12 +327,12 @@ function simulateNextUpgrade(card) {
   const currAtk = clone.atk || 0;
   const currDef = clone.def || 0;
 
-  // ⭐5–7 MAX → ใช้การ์ดซ้ำขึ้นดาว
+  // 5–7 MAX  ใช้การ์ดซ้ำขึ้นดาว
   if (clone.level >= MAX_LEVEL && clone.stars >= 5 && clone.stars < 8) {
     return { note: "", next: { hp: currHp, atk: currAtk, def: currDef }, willMax: false };
   }
 
-  // 🟢 8⭐ ที่ Lv.10 → MAX ทันที
+  //  8 ที่ Lv.10  MAX ทันที
   if (clone.stars >= 8 && clone.level >= MAX_LEVEL) {
     return {
       note: "MAX แล้ว",
@@ -356,7 +356,7 @@ function simulateNextUpgrade(card) {
     }
   }
 
-  // 🟢 ใช้สูตรเดียวกับอัปจริง
+  //  ใช้สูตรเดียวกับอัปจริง
   if (!clone.maxed && nextLevel !== "MAX") {
     clone.level = nextLevel;
     applyClassUpgrade(clone);
@@ -364,7 +364,7 @@ function simulateNextUpgrade(card) {
 
   return { note: "อัปเกรดปกติ", next: { hp: clone.hp, atk: clone.atk, def: clone.def }, willMax };
 }
-// 🔐 อัปเกรดการันตีด้วยชาร์ด — เดิมหักชาร์ดและบวกสเตตัสฝั่ง client เอง (แถมยัง
+//  อัปเกรดการันตีด้วยชาร์ด — เดิมหักชาร์ดและบวกสเตตัสฝั่ง client เอง (แถมยัง
 // ไม่ตรงกับ endpoint /upgrade/guaranteed ที่มีอยู่แล้วบนเซิฟเลย) ตอนนี้เรียก
 // เซิฟจริง เซิฟเป็นคนเช็คชาร์ด หัก และบวกสเตตัสให้
 async function guaranteeUpgrade(i) {
@@ -385,13 +385,13 @@ async function guaranteeUpgrade(i) {
   const bag = loadBag();
   const needShards = 10;
   if ((bag[shardKey] || 0) < needShards) {
-    alert(`❌ ต้องใช้ ${needShards} ${shardKey} แต่มี ${bag[shardKey] || 0}`);
+    alert(`ต้องใช้ ${needShards} ${shardKey} แต่มี ${bag[shardKey] || 0}`);
     return;
   }
   // Guarantee also costs money now (same as the normal roll-based cost).
   const cost = calcUpgradeCost(c);
   if (money < cost) {
-    alert(`❌ เงินไม่พอ ต้องใช้ ${cost}`);
+    alert(`เงินไม่พอ ต้องใช้ ${cost}`);
     return;
   }
 
@@ -411,7 +411,7 @@ async function guaranteeUpgrade(i) {
   if (bar) bar.style.width = "100%";
 
   setTimeout(() => {
-    // deck ไม่ได้ส่งกลับมาจาก endpoint นี้ (มีแค่ card เดียว) → sync ทั้งก้อนจากเซิฟ
+    // deck ไม่ได้ส่งกลับมาจาก endpoint นี้ (มีแค่ card เดียว)  sync ทั้งก้อนจากเซิฟ
     syncDeckFromServer();
     setUpgradeButtonsDisabled(i, false);
   }, 1200);

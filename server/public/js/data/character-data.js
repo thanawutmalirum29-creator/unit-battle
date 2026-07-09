@@ -62,9 +62,9 @@ const CHARACTER_DB = {
 // ไอคอนต่อ rarity (ใช้กับ featuredCard ของกาชา)
 const RARITY_ICON = {
   Common: "",
-  Rare: "🩵",
-  Epic: "💜",
-  Legendary: "💛"
+  Rare: "<span class=gicon-heart-blue></span>",
+  Epic: "<span class=gicon-heart-purple></span>",
+  Legendary: "<span class=gicon-heart-yellow></span>"
 };
 
 // ดึงสเตตัสเต็มของตัวละครจากชื่อ คืนค่าเป็น object ใหม่เสมอ (กัน mutate ของเดิม)
