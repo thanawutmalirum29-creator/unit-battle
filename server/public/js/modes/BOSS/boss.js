@@ -12,7 +12,7 @@ function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
 /* =======================
    Stage Reward by Damage
-   🔧 เดิม addBossDamage() ตรงนี้เป็นคนยิง GameAPI.bossClaimTier เอง ทุกครั้งที่ดาเมจสะสม
+   <span class=gicon-gear></span> เดิม addBossDamage() ตรงนี้เป็นคนยิง GameAPI.bossClaimTier เอง ทุกครั้งที่ดาเมจสะสม
    ข้ามเกณฑ์ — ตอนนี้ routes/battle.js (payoutBossTiers) จ่ายให้อัตโนมัติทุกเทิร์นแล้ว
    (ดู turnRes.rewards ใน startBattle() ด้านล่าง) เหลือแค่ resetStageRewards() ไว้เคลียร์
    ตัวแปรแสดงผล damageDone/stageRewardGiven ตอนเริ่มสู้บอสตัวใหม่
@@ -46,9 +46,9 @@ const BOSS_THEME_CLASS = ["boss-theme-1", "boss-theme-2", "boss-theme-3", "boss-
 function renderBossButtons(){
   const div = document.getElementById("bossList");
   if (!div) return;
-  // 🔧 เดิม CSS ของการ์ดบอส (.boss-card/.boss-btn/.boss-card-info-btn) ถูก inject แบบ lazy
-  // ตอนกดเปิดป๊อปอัป❗ครั้งแรกเท่านั้น (ensureBossInfoOverlay) ทำให้ตอนโหลดหน้าครั้งแรก
-  // การ์ดยังไม่มีสไตล์เลย เลยยืดเต็มความกว้างแบบไม่มีขีดจำกัด และปุ่ม❗หลุดไปอยู่บรรทัดถัดไป
+  //  เดิม CSS ของการ์ดบอส (.boss-card/.boss-btn/.boss-card-info-btn) ถูก inject แบบ lazy
+  // ตอนกดเปิดป๊อปอัปครั้งแรกเท่านั้น (ensureBossInfoOverlay) ทำให้ตอนโหลดหน้าครั้งแรก
+  // การ์ดยังไม่มีสไตล์เลย เลยยืดเต็มความกว้างแบบไม่มีขีดจำกัด และปุ่มหลุดไปอยู่บรรทัดถัดไป
   // แทนที่จะลอยมุมขวาบนของการ์ด — เรียกตรงนี้เลยให้พร้อมใช้ตั้งแต่ render ครั้งแรก
   injectBossInfoStyles();
   div.className = "boss-list";
@@ -68,16 +68,16 @@ function renderBossButtons(){
     btn.innerHTML = `
       <span class="boss-btn-icon"><span class=${iconClass}></span></span>
       <span class="boss-btn-name">${b.name}</span>
-      <span class="boss-btn-cta">ต่อสู้ →</span>
+      <span class="boss-btn-cta">ต่อสู้ <span class=gicon-arrow-right></span></span>
     `;
     btn.onclick = ()=> setBoss(key);
 
-    // ❗ ข้อมูล/ของดรอปของบอสตัวนี้ตัวเดียว — แยกของใครของมัน ไม่รวมกับบอสตัวอื่น
+    //  ข้อมูล/ของดรอปของบอสตัวนี้ตัวเดียว — แยกของใครของมัน ไม่รวมกับบอสตัวอื่น
     const infoBtn = document.createElement("button");
     infoBtn.type = "button";
     infoBtn.className = "boss-info-btn boss-card-info-btn";
     infoBtn.setAttribute("aria-label", `รายละเอียด ${b.name} และของดรอป`);
-    infoBtn.textContent = "❗";
+    infoBtn.textContent = "<span class=gicon-warning></span>";
     infoBtn.onclick = (e) => {
       e.stopPropagation();
       openBossInfo(key);
@@ -90,7 +90,7 @@ function renderBossButtons(){
 }
 
 /* =======================
-   Boss Info Popup (❗ ปุ่มบนการ์ดของแต่ละบอส)
+   Boss Info Popup (<span class=gicon-warning></span> ปุ่มบนการ์ดของแต่ละบอส)
    แสดงสเตตัส/สกิล/ของดรอปของ "บอสตัวที่กดเท่านั้น" ของใครของมัน ไม่รวมทุกตัวไว้
    ในลิสต์เดียว (เดิมรวมหมดยาวเกินไป) อ่านตรงจาก BOSSES (bossmap.js) เลย
    เพิ่ม/แก้บอสหรือของดรอปที่ไฟล์นั้นไฟล์เดียว popup นี้จะอัปเดตตามอัตโนมัติ
@@ -141,7 +141,7 @@ function injectBossInfoStyles(){
   color:#fff;
 }
 
-/* การ์ดบอสแต่ละใบในลิสต์ — ปุ่มเลือกสู้ + ปุ่ม❗ข้อมูลของบอสตัวนั้นลอยอยู่มุมเดียวกัน */
+/* การ์ดบอสแต่ละใบในลิสต์ — ปุ่มเลือกสู้ + ปุ่มข้อมูลของบอสตัวนั้นลอยอยู่มุมเดียวกัน */
 .boss-card{
   position:relative;
   border-radius:var(--radius,14px);
@@ -320,22 +320,22 @@ function renderBossInfoPanel(panel, boss, overlay){
 
   const title = document.createElement("div");
   title.className = "boss-info-title";
-  title.textContent = `📖 รายละเอียด & ของดรอป`;
+  title.textContent = `<span class=gicon-note></span> รายละเอียด & ของดรอป`;
   panel.appendChild(title);
 
   const entry = document.createElement("div");
   entry.className = "boss-info-entry";
 
   const h4 = document.createElement("h4");
-  h4.textContent = `🐉 ${boss.name}`;
+  h4.textContent = `<span class=gicon-dragon></span> ${boss.name}`;
   entry.appendChild(h4);
 
   const stats = document.createElement("div");
   stats.className = "boss-info-stats";
   const hp = boss.hp !== undefined ? boss.hp : 100000; // ค่า default เดียวกับตอนสร้างบอสจริง (prepareBossBattle)
   stats.textContent =
-    `❤️ HP ${hp.toLocaleString()}  ⚔️ ATK ${boss.atk ?? "-"}  🛡️ DEF ${boss.def ?? "-"}` +
-    (boss.skill ? `  ✨ สกิล: ${boss.skill}` : "");
+    `<span class=gicon-heart></span> HP ${hp.toLocaleString()}  <span class=gicon-battle></span> ATK ${boss.atk ?? "-"}  <span class=gicon-shield></span> DEF ${boss.def ?? "-"}` +
+    (boss.skill ? `  <span class=gicon-sparkle></span> สกิล: ${boss.skill}` : "");
   entry.appendChild(stats);
 
   (boss.stages || []).forEach((stage, idx) => {
@@ -352,8 +352,8 @@ function renderBossInfoPanel(panel, boss, overlay){
 
     row.innerHTML =
       `<b>Stage ${idx + 1}</b> (ดาเมจสะสม ${stage.dmg.toLocaleString()}+) ` +
-      `→ <span class=gicon-coin></span> ${moneyText} <br>` +
-      `<span class="boss-info-drops">🎁 ${dropsText}</span>`;
+      `<span class=gicon-arrow-right></span> <span class=gicon-coin></span> ${moneyText} <br>` +
+      `<span class="boss-info-drops"><span class=gicon-gift></span> ${dropsText}</span>`;
     entry.appendChild(row);
   });
 
@@ -383,7 +383,7 @@ async function setBoss(key){
   startBattle();
 }
 
-// 🔧 หมายเหตุ: enemyTeam/playerTeam ตรงนี้เป็นแค่ "พรีวิว" ให้เห็นก่อนกดสู้ — พอ startBattle()
+//  หมายเหตุ: enemyTeam/playerTeam ตรงนี้เป็นแค่ "พรีวิว" ให้เห็นก่อนกดสู้ — พอ startBattle()
 // เรียก GameAPI.battleStart() จริง ทีมจริง (stat จากเด็ค+อุปกรณ์ที่เซิฟเก็บเอง) จะมาทับตรงนี้
 function prepareBossBattle(){
   if (!currentBoss) return;
@@ -406,7 +406,7 @@ function prepareBossBattle(){
   if (window.HubUI) { HubUI.resetDamageStats(); HubUI.resetRewards(); }
 
   logClear?.();
-  log(`🐉 เลือกบอส: ${currentBoss.name}`, "system");
+  log(`<span class=gicon-dragon></span> เลือกบอส: ${currentBoss.name}`, "system");
   renderBattlefield();
   updateAllHpBars();
 }
@@ -437,7 +437,7 @@ async function startBattle(){
   currentBossRunId = startRes.runId;
 
   battleRunning = true;
-  bossResultsShown = false; // 🟢 รีเซ็ตทุกครั้งที่เริ่มสู้ใหม่ กันเคสจบสู้ก่อนหน้าด้วย endBattle() แค่ครั้งเดียว
+  bossResultsShown = false; // <span class=gicon-dot-green></span> รีเซ็ตทุกครั้งที่เริ่มสู้ใหม่ กันเคสจบสู้ก่อนหน้าด้วย endBattle() แค่ครั้งเดียว
   if (window.HubUI) HubUI.enterBattle();
 
   playerTeam = startRes.playerTeam;
@@ -448,14 +448,14 @@ async function startBattle(){
   if (cancelBtn){
     cancelBtn.style.display="inline-block";
     cancelBtn.onclick = async ()=>{
-      if (await uiConfirm("❌ ยกเลิกการต่อสู้?")){
-        log("⚠️ การต่อสู้ถูกยกเลิก", "system");
+      if (await uiConfirm("<span class=gicon-x></span> ยกเลิกการต่อสู้?")){
+        log("<span class=gicon-warning></span> การต่อสู้ถูกยกเลิก", "system");
         GameAPI.battleForfeit(battleId); // fire-and-forget
         if (window.HubUI) {
           HubUI.showResults({
             win: false,
             cancelled: true,
-            title: "❌ คุณยกเลิกการต่อสู้",
+            title: "<span class=gicon-x></span> คุณยกเลิกการต่อสู้",
             extraNote: "การยกเลิกกลางคันนับเป็นแพ้ — ได้รางวัลตามดาเมจที่ทำได้จริงเท่านั้น",
             playerTeam: [...playerTeam],
             enemyTeam: [...enemyTeam],
@@ -473,7 +473,7 @@ async function startBattle(){
 
     const turnRes = await GameAPI.battleTurn(battleId);
     if (!turnRes || turnRes.error) {
-      log(`⚠️ เชื่อมต่อเซิฟไม่ได้ (${turnRes?.error || "network"}) — หยุดการต่อสู้`, "system");
+      log(`<span class=gicon-warning></span> เชื่อมต่อเซิฟไม่ได้ (${turnRes?.error || "network"}) — หยุดการต่อสู้`, "system");
       endBattle(false);
       return;
     }
@@ -483,7 +483,7 @@ async function startBattle(){
       await sleep(Math.max(120, getBattleSpeed() * 0.25));
     }
 
-    // 🔧 FIX: เล่นแอนิเมชันโจมตี/ตัวเลขดาเมจจริงจากเหตุการณ์ที่เซิฟส่งกลับมา และ sync สถิติ
+    //  FIX: เล่นแอนิเมชันโจมตี/ตัวเลขดาเมจจริงจากเหตุการณ์ที่เซิฟส่งกลับมา และ sync สถิติ
     // ดาเมจ "ทำ/รับ" ต่อหน่วยไปหน้าสรุปผล (ดู N-Mode.js สำหรับรายละเอียดเต็ม — root cause เดียวกัน)
     if (window.HubUI) HubUI.setDamageStats(turnRes.damageStats);
     if (typeof playTurnEvents === "function") await playTurnEvents(turnRes.events);
@@ -495,19 +495,19 @@ async function startBattle(){
     renderBattlefield();
     updateAllHpBars();
 
-    // 🎯 รางวัลไล่ tier ที่เซิฟจ่ายจริงระหว่างสู้ (ทุกเทิร์นที่ดาเมจสะสมข้ามเกณฑ์ใหม่)
+    //  รางวัลไล่ tier ที่เซิฟจ่ายจริงระหว่างสู้ (ทุกเทิร์นที่ดาเมจสะสมข้ามเกณฑ์ใหม่)
     if (turnRes.rewards) {
       applyServerMoney(turnRes.rewards.money);
       applyServerBag(turnRes.rewards.bag);
       if (turnRes.rewards.moneyGain) log(`<span class=gicon-coin></span> ได้ ${turnRes.rewards.moneyGain} เหรียญ`, "system");
       for (const [key, amount] of Object.entries(turnRes.rewards.drops || {})) {
-        log(`🎁 ได้ ${amount}x ${key}`, "system");
+        log(`<span class=gicon-gift></span> ได้ ${amount}x ${key}`, "system");
       }
       if (window.HubUI) HubUI.addReward(turnRes.rewards.moneyGain, turnRes.rewards.drops);
     }
 
     if (turnRes.finished) {
-      log(turnRes.win ? "🎉 โค่นบอสสำเร็จ!" : "💀 ทีมผู้เล่นพ่ายแพ้...", "system");
+      log(turnRes.win ? "<span class=gicon-party></span> โค่นบอสสำเร็จ!" : "<span class=gicon-skull></span> ทีมผู้เล่นพ่ายแพ้...", "system");
       endBattle(turnRes.win);
       return;
     }
@@ -538,7 +538,7 @@ function checkWinLose(){
   const playersAlive = playerTeam.some(u => u && u.hp>0);
 
   if (!playersAlive){
-    log("💀 ทีมผู้เล่นพ่ายแพ้...", "system");
+    log("<span class=gicon-skull></span> ทีมผู้เล่นพ่ายแพ้...", "system");
     endBattle(false);
     return true;
   }
@@ -552,10 +552,10 @@ function endBattle(win){
   const cancelBtn = document.getElementById("cancelBattleBtn");
   if (cancelBtn) cancelBtn.style.display="none";
   renderBossButtons();
-  // 🔧 เดิมเรียก GameAPI.bossRunFinish() ตรงนี้ แต่ตอนนี้ routes/battle.js ปิด run ให้เองแล้ว
+  //  เดิมเรียก GameAPI.bossRunFinish() ตรงนี้ แต่ตอนนี้ routes/battle.js ปิด run ให้เองแล้ว
   // ทุกครั้งที่ไฟต์จบ (ชนะ/แพ้/ยกเลิก) ไม่ต้องมีจุดเรียกซ้ำจาก client อีก
 
-  // 🟢 ป้องกันโชว์ผลซ้ำ — เส้นทางฆ่าบอสมีจุดเรียก endBattle(true) มากกว่า 1 จุด
+  //  ป้องกันโชว์ผลซ้ำ — เส้นทางฆ่าบอสมีจุดเรียก endBattle(true) มากกว่า 1 จุด
   // (ทั้งจาก handleDeath และจากลูปโจมตีธรรมดาโดยตรง) ส่วนกรณียกเลิกกลางคัน
   // ตัวปุ่มยกเลิกโชว์ผลของตัวเองไปแล้วก่อนเรียก endBattle(false) จึงข้ามตรงนี้
   if (bossResultsShown) { bossResultsShown = false; return; }
@@ -563,7 +563,7 @@ function endBattle(win){
   if (window.HubUI) {
     HubUI.showResults({
       win,
-      title: win ? "🎉 คุณชนะ! โค่นบอสสำเร็จ" : "💀 คุณแพ้... ทีมถูกโค่นทั้งหมด",
+      title: win ? "<span class=gicon-party></span> คุณชนะ! โค่นบอสสำเร็จ" : "<span class=gicon-skull></span> คุณแพ้... ทีมถูกโค่นทั้งหมด",
       playerTeam: [...playerTeam],
       enemyTeam: [...enemyTeam],
     });
@@ -629,17 +629,17 @@ function updateUnitHpBar(unit){
 }
 function handleDeath(unit){
   unit.hp = 0;
-  log(`☠️ ${unit.name} ตายแล้ว`, "system");
+  log(`<span class=gicon-skull></span> ${unit.name} ตายแล้ว`, "system");
   updateAllHpBars();
 
-  // ถ้าเป็นบอส → จบการต่อสู้
+  // ถ้าเป็นบอส  จบการต่อสู้
   if (unit.instanceId === "BOSS"){
-    log(`🎉 ผู้เล่นชนะ! ${unit.name} ถูกโค่น`, "system");
+    log(`<span class=gicon-party></span> ผู้เล่นชนะ! ${unit.name} ถูกโค่น`, "system");
     endBattle(true);
   } else {
     // ฝั่งผู้เล่นตายไปเรื่อย ๆ
     if (playerTeam.every(u => !u || u.hp <= 0)){
-      log("💀 ทีมผู้เล่นพ่ายแพ้...", "system");
+      log("<span class=gicon-skull></span> ทีมผู้เล่นพ่ายแพ้...", "system");
       endBattle(false);
     }
   }
@@ -679,7 +679,7 @@ function tryMiniBossPassive(user, allies) {
     allies.splice(idx, 0, ...summons);
 
     user.hasSummoned = true;
-    log(`🧟 ${user.name} เรียกลูกน้อง 2 ตัวออกมา (Passive)`, "enemy");
+    log(`<span class=gicon-skull></span> ${user.name} เรียกลูกน้อง 2 ตัวออกมา (Passive)`, "enemy");
 
     renderBattlefield();
     updateAllHpBars();
@@ -703,7 +703,7 @@ function tryMidBossPassive(user, allies) {
     allies.splice(idx, 0, summon);
 
     user.hasSummoned = true;
-    log(`🧟 ${user.name} ซัมมอนลูกน้อง 1 ตัว (Passive MidBoss)`, "enemy");
+    log(`<span class=gicon-skull></span> ${user.name} ซัมมอนลูกน้อง 1 ตัว (Passive MidBoss)`, "enemy");
 
     renderBattlefield();
     updateAllHpBars();
@@ -727,7 +727,7 @@ function tryBigBossPassive(user, allies) {
     allies.splice(idx, 0, summon);
 
     user.hasSummoned = true;
-    log(`🧟 ${user.name} ซัมมอนลูกน้อง 1 ตัว (Passive BigBoss)`, "enemy");
+    log(`<span class=gicon-skull></span> ${user.name} ซัมมอนลูกน้อง 1 ตัว (Passive BigBoss)`, "enemy");
 
     renderBattlefield();
     updateAllHpBars();
@@ -752,7 +752,7 @@ function tryUltraBossPassive(user, allies) {
     allies.splice(idx, 0, summon);
 
     user.hasSummoned = true;
-    log(`👑 ${user.name} ซัมมอน MiniBoss ลูกน้องออกมา!`, "enemy");
+    log(`<span class=gicon-crown></span> ${user.name} ซัมมอน MiniBoss ลูกน้องออกมา!`, "enemy");
 
     renderBattlefield();
     updateAllHpBars();
@@ -764,7 +764,7 @@ function tryPhantomBossPassive(user) {
       const shield = Math.floor(user.maxHp * 0.1);
       addStatusEffect(user, { type: "Shield", turns: 999, value: shield });
       user.shadowShieldUsed = true;
-      log(`🛡️ ${user.name} เปิดใช้ Shadow Shield (+${shield} Shield ครั้งเดียว)`, "enemy");
+      log(`<span class=gicon-shield></span> ${user.name} เปิดใช้ Shadow Shield (+${shield} Shield ครั้งเดียว)`, "enemy");
       updateAllHpBars();
     }
   }
@@ -780,8 +780,8 @@ async function tryFoxBossPassive(user, allies, enemies) {
     const players = playerTeam.filter(p => p.hp > 0);
     if (players.length > 1) {
       if (hpPercent < 0.3) {
-        // 🦊 HP < 30% → ทีมสับสนทั้งทีม
-        log(`🦊 ${user.name} ปล่อยพลังสะกด! ผู้เล่นทั้งทีมสับสนและหันมาตีกันเอง!`, "enemy");
+        //  HP < 30%  ทีมสับสนทั้งทีม
+        log(`<span class=gicon-wolf></span> ${user.name} ปล่อยพลังสะกด! ผู้เล่นทั้งทีมสับสนและหันมาตีกันเอง!`, "enemy");
         for (let attacker of players) {
           let target = players[Math.floor(Math.random() * players.length)];
           while (target === attacker) {
@@ -789,17 +789,17 @@ async function tryFoxBossPassive(user, allies, enemies) {
           }
           let dmg = Math.max(1, attacker.atk - target.def);
           dmg = Math.floor(dmg * 1.5); // แรงขึ้น
-          await applyDamage(attacker, target, dmg, `💥 ${attacker.name} (สับสน) โจมตี ${target.name} -${dmg} HP`, { noMove:true });
+          await applyDamage(attacker, target, dmg, `<span class=gicon-impact></span> ${attacker.name} (สับสน) โจมตี ${target.name} -${dmg} HP`, { noMove:true });
         }
       } else {
-        // 🦊 ปกติ → แค่ 1 คนสับสน
+        //  ปกติ  แค่ 1 คนสับสน
         const attacker = players[Math.floor(Math.random() * players.length)];
         let target = players[Math.floor(Math.random() * players.length)];
         while (target === attacker) {
           target = players[Math.floor(Math.random() * players.length)];
         }
         let dmg = Math.max(1, attacker.atk - target.def);
-        log(`🦊 ${user.name} ทำให้ ${attacker.name} สับสน! โจมตี ${target.name} -${dmg} HP`, "enemy");
+        log(`<span class=gicon-wolf></span> ${user.name} ทำให้ ${attacker.name} สับสน! โจมตี ${target.name} -${dmg} HP`, "enemy");
         await applyDamage(attacker, target, dmg, null, { noMove:true });
       }
     }

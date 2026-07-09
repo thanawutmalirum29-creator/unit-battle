@@ -5,7 +5,7 @@ const BOSSES = {
     atk: 85,
     def: 40,
     class: "BigBoss",
-    skill: "AOE Attack Boss",   // ✅ บอสสกิลพิษ
+    skill: "AOE Attack Boss",   // <span class=gicon-check></span> บอสสกิลพิษ
     stages: [
       { dmg: 300,  reward: { money:[50,100],  items:{ shardGray:[1,2] } } },
       { dmg: 1000,  reward: { money:[100,200], items:{ shardGray:[1,2] } } },
@@ -78,7 +78,7 @@ const BOSSES = {
     name: "Ancient Golem",
     atk: 60,
     def: 50,
-    skill: "Stun L2",   // ✅ บอสสกิลสตัน
+    skill: "Stun L2",   // <span class=gicon-check></span> บอสสกิลสตัน
     stages: [
       { dmg: 8000,  reward: { money:[500,800],  items:{ shardGray:[3,5] } } },
       { dmg: 20000, reward: { money:[1200,1800], items:{ shardGold:[1,2] } } },
@@ -89,7 +89,7 @@ const BOSSES = {
     name: "เทพเจ้า",
     atk: 60,
     def: 50,
-    skill: "Stun L2",   // ✅ บอสสกิลสตัน
+    skill: "Stun L2",   // <span class=gicon-check></span> บอสสกิลสตัน
     stages: [
       { dmg: 8000,  reward: { money:[500,800],  items:{ shardGray:[3,5] } } },
       { dmg: 20000, reward: { money:[1200,1800], items:{ shardGold:[1,2] } } },
