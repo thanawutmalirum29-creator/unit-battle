@@ -94,7 +94,7 @@
       ensureDom();
       box.className = "ui-popup-box ui-popup-alert";
       iconEl.style.display = "block";
-      iconEl.textContent = opts.icon || "ℹ";
+      iconEl.innerHTML = opts.icon || "ℹ";
       msgEl.textContent = message == null ? "" : String(message);
       inputEl.style.display = "none";
       overlay.dataset.dismissable = "0";
