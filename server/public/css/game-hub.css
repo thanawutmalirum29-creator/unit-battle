@@ -1,0 +1,336 @@
+/* ============================================================
+   COMMAND DECK — visual identity for the main battle hub (game.html)
+   ------------------------------------------------------------
+   Direction: this screen is a strike-force control panel, not a
+   menu. Every mode gets its own signal colour (Normal = steel/cyan
+   campaign line, Boss = ember/crimson alert, Infinity = void violet),
+   panels read as beveled console plating instead of soft rounded
+   cards, and the stage picker becomes a connected "campaign trail"
+   of nodes instead of a row of plain buttons.
+
+   Scope: loaded ONLY on game.html (after theme.css + battle-hub.css),
+   and only adds to / re-skins the exact IDs and classes the existing
+   JS already renders — no markup or behaviour is assumed beyond what
+   game.html + hub-ui.js/render.js/boss.js already produce.
+   ============================================================ */
+
+:root{
+  --mode-normal:   #49d3ff;
+  --mode-normal-2: #1f6fd6;
+  --mode-boss:     #ff4d4f;
+  --mode-boss-2:   #8f1116;
+  --mode-inf:      #b26bff;
+  --mode-inf-2:    #4c1d95;
+
+  /* active signal colour — defaults to Normal, re-pointed per tab below */
+  --hub-accent:   var(--mode-normal);
+  --hub-accent-2: var(--mode-normal-2);
+
+  --hud-line:      rgba(148,178,255,.14);
+  --hud-line-soft: rgba(148,178,255,.06);
+  --hud-notch:     10px;
+}
+
+/* re-point the signal colour once a mode tab is actually active —
+   pure enhancement; if :has() isn't supported the page simply keeps
+   the Normal-mode signal colour everywhere, nothing breaks */
+body:has(.mode-tab-btn[data-mode="boss"].active){
+  --hub-accent: var(--mode-boss);
+  --hub-accent-2: var(--mode-boss-2);
+}
+body:has(.mode-tab-btn[data-mode="inf"].active){
+  --hub-accent: var(--mode-inf);
+  --hub-accent-2: var(--mode-inf-2);
+}
+
+/* ---------------- AMBIENT BACKDROP ---------------- */
+/* faint schematic grid + a slow drifting scan glow, fixed behind
+   everything — sells "control room" without fighting readability */
+.hub-bgfx{
+  position:fixed;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  background-image:
+    linear-gradient(var(--hud-line-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--hud-line-soft) 1px, transparent 1px);
+  background-size:34px 34px;
+  -webkit-mask-image:radial-gradient(1200px 800px at 50% 0%, #000 0%, transparent 75%);
+  mask-image:radial-gradient(1200px 800px at 50% 0%, #000 0%, transparent 75%);
+  opacity:.6;
+}
+.hub-bgfx::after{
+  content:"";
+  position:absolute;
+  left:-20%; right:-20%; top:-30%; height:60%;
+  background:radial-gradient(700px 320px at 50% 0%, color-mix(in srgb, var(--hub-accent) 20%, transparent), transparent 70%);
+  animation:hubScan 9s ease-in-out infinite;
+  transition:background 1.2s var(--ease,ease);
+}
+@keyframes hubScan{
+  0%,100%{ transform:translateY(0); opacity:.65; }
+  50%{ transform:translateY(60px); opacity:1; }
+}
+@media (prefers-reduced-motion:reduce){
+  .hub-bgfx::after{ animation:none; }
+}
+
+/* ---------------- MISSION BAR (topbar) ---------------- */
+body header.topbar{
+  padding:12px 16px 12px 14px !important;
+  clip-path:polygon(0 0, 100% 0, 100% 100%, var(--hud-notch) 100%, 0 calc(100% - var(--hud-notch)));
+  border-color:color-mix(in srgb, var(--hub-accent) 35%, var(--border)) !important;
+}
+body header.topbar::after{
+  background:linear-gradient(90deg, transparent, var(--hub-accent), var(--hub-accent-2), transparent) !important;
+  transition:background 1.2s var(--ease,ease);
+}
+.topbar h1{
+  gap:10px !important;
+}
+.topbar h1::before{
+  content:"";
+  width:9px; height:9px;
+  flex:0 0 auto;
+  background:var(--hub-accent);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--hub-accent) 22%, transparent), 0 0 12px var(--hub-accent);
+  clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);
+  animation:hubPip 2.4s ease-in-out infinite;
+  transition:background .3s ease;
+}
+@keyframes hubPip{
+  0%,100%{ opacity:1; }
+  50%{ opacity:.45; }
+}
+#moneyWindow{
+  clip-path:polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px);
+}
+
+/* ---------------- MODE TABS — signal selector wedges ---------------- */
+.mode-tabs{
+  gap:6px !important;
+  padding:4px;
+  background:rgba(0,0,0,.18);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+}
+.mode-tab-btn{
+  position:relative;
+  overflow:hidden;
+  border-radius:6px !important;
+  background:transparent !important;
+  border-color:transparent !important;
+  letter-spacing:.4px;
+}
+.mode-tab-btn::before{
+  content:"";
+  position:absolute; inset:0;
+  background:currentColor;
+  opacity:0;
+  transition:opacity .18s ease;
+}
+.mode-tab-btn:hover{ background:transparent; }
+.mode-tab-btn:hover::before{ opacity:.08; }
+.mode-tab-btn[data-mode="normal"]{ color:var(--mode-normal); }
+.mode-tab-btn[data-mode="boss"]{ color:var(--mode-boss); }
+.mode-tab-btn[data-mode="inf"]{ color:var(--mode-inf); }
+.mode-tab-btn > *{ position:relative; z-index:1; }
+
+.mode-tab-btn.active{
+  color:#0a0e16 !important;
+  box-shadow:none !important;
+  transform:none !important;
+}
+.mode-tab-btn[data-mode="normal"].active{
+  background:linear-gradient(135deg,var(--mode-normal),var(--mode-normal-2)) !important;
+  box-shadow:0 4px 16px color-mix(in srgb, var(--mode-normal) 45%, transparent) !important;
+}
+.mode-tab-btn[data-mode="boss"].active{
+  background:linear-gradient(135deg,var(--mode-boss),var(--mode-boss-2)) !important;
+  box-shadow:0 4px 16px color-mix(in srgb, var(--mode-boss) 45%, transparent) !important;
+  color:#160404 !important;
+}
+.mode-tab-btn[data-mode="inf"].active{
+  background:linear-gradient(135deg,var(--mode-inf),var(--mode-inf-2)) !important;
+  box-shadow:0 4px 16px color-mix(in srgb, var(--mode-inf) 45%, transparent) !important;
+  color:#0e0620 !important;
+}
+
+/* ---------------- SPEED ROW — segmented dial ---------------- */
+.speed-row{
+  padding:8px 10px;
+  background:var(--panel-soft);
+  border:1px solid var(--border);
+  border-radius:999px;
+}
+.speed-row-label{ margin-left:2px; }
+.speed-btn{
+  position:relative;
+  min-width:38px;
+  font-family:var(--font-display);
+  font-variant-numeric:tabular-nums;
+}
+.speed-btn.active, .speed-btn[aria-pressed="true"]{
+  background:linear-gradient(135deg,var(--hub-accent),var(--hub-accent-2)) !important;
+  box-shadow:0 0 14px color-mix(in srgb, var(--hub-accent) 45%, transparent);
+  color:#0a0e16;
+  transition:background .3s ease;
+}
+
+/* ---------------- SECTION HEADERS ---------------- */
+.section-header h3, #normalSelect > h3{
+  color:var(--hub-accent) !important;
+  transition:color .3s ease;
+}
+.section-header h3::before, h3::before{
+  background:linear-gradient(180deg,var(--hub-accent),var(--hub-accent-2)) !important;
+  transition:background .3s ease;
+}
+
+/* ---------------- MODE PANELS — beveled console plating ---------------- */
+.mode-panel.panel, #normalSelect.panel, #bossSelect.panel, #infSelect.panel{
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.035), transparent 40%),
+    linear-gradient(160deg, color-mix(in srgb, var(--hub-accent) 6%, var(--panel)), var(--panel) 60%) !important;
+  clip-path:polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+  border-color:color-mix(in srgb, var(--hub-accent) 28%, var(--border)) !important;
+  transition:border-color .3s ease, background .3s ease;
+}
+
+/* ---------------- CAMPAIGN TRAIL — normal-mode stage picker ---------------- */
+.stage-list{
+  position:relative;
+  align-items:center;
+  padding-top:22px !important;
+  margin-top:4px !important;
+}
+.stage-list::before{
+  content:"";
+  position:absolute;
+  left:2px; right:2px; top:calc(22px + 19px);
+  height:2px;
+  background:linear-gradient(90deg, var(--mode-normal), color-mix(in srgb, var(--mode-normal) 35%, transparent));
+  opacity:.55;
+  z-index:0;
+}
+.stage-btn{
+  z-index:1;
+  clip-path:polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
+  border-color:color-mix(in srgb, var(--mode-normal) 30%, var(--border)) !important;
+  background:color-mix(in srgb, var(--mode-normal) 6%, var(--panel-soft)) !important;
+}
+/* node "pip" above each chip: hollow = locked, filled+pulsing = current, solid = cleared */
+.stage-btn::before{
+  content:"";
+  position:absolute;
+  left:50%; top:-19px;
+  width:9px; height:9px;
+  transform:translateX(-50%) rotate(45deg);
+  background:var(--mode-normal);
+  opacity:.85;
+}
+.stage-btn:disabled::before{
+  background:transparent;
+  border:2px solid var(--muted);
+  opacity:.5;
+}
+.stage-btn.stage-selected::before{
+  animation:hubPip 1.6s ease-in-out infinite;
+  box-shadow:0 0 10px var(--mode-normal);
+}
+.stage-btn:hover:not(:disabled){ border-color:var(--mode-normal) !important; }
+.stage-btn.milestone:not(:disabled){
+  background:linear-gradient(135deg,#ff8a3d,#ff5f2e) !important;
+}
+.stage-btn.milestone::before{ background:#ffb300; }
+.stage-btn.stage-selected{
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--mode-normal) 55%, transparent), 0 4px 14px color-mix(in srgb, var(--mode-normal) 35%, transparent) !important;
+}
+
+.bigstage-btn{
+  clip-path:polygon(7px 0, 100% 0, 100% 100%, 0 100%, 0 7px);
+}
+
+/* ---------------- BOSS LIST — alert plating ---------------- */
+#bossSelect .boss-card{
+  clip-path:polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  border:1px solid color-mix(in srgb, var(--mode-boss) 22%, transparent);
+}
+#bossSelect .boss-card::after{
+  content:"RAID";
+  position:absolute;
+  top:8px; left:-24px;
+  width:90px;
+  text-align:center;
+  font-family:var(--font-display);
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:1.5px;
+  color:#fff;
+  background:linear-gradient(90deg,var(--mode-boss-2),var(--mode-boss));
+  transform:rotate(-40deg);
+  padding:2px 0;
+  box-shadow:0 2px 6px rgba(0,0,0,.4);
+  pointer-events:none;
+  opacity:.9;
+}
+#bossSelect .boss-info-btn{ z-index:2; }
+
+/* ---------------- INFINITY — void plating ---------------- */
+#infSelect .inf-stage-card{
+  border-color:color-mix(in srgb, var(--mode-inf) 35%, var(--border));
+  background:radial-gradient(120px 60px at 50% 0%, color-mix(in srgb, var(--mode-inf) 16%, transparent), var(--panel-soft));
+  clip-path:polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px);
+}
+#infSelect .inf-stage-value{ color:var(--mode-inf); }
+#infSelect .inf-auto-btn{
+  background:linear-gradient(135deg,var(--mode-inf),var(--mode-inf-2)) !important;
+}
+.checkpoint-list .checkpoint-btn{
+  clip-path:polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
+}
+
+/* ---------------- BATTLE SCREEN — HUD corner brackets ---------------- */
+#battleScreen .battlefield-panel{
+  position:relative;
+}
+#battleScreen .battlefield-panel h3{
+  text-align:center;
+  justify-content:center;
+}
+#cancelBattleBtn{
+  clip-path:polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px);
+}
+
+/* ---------------- RESULTS OVERLAY — cinematic debrief ---------------- */
+.results-panel{
+  position:relative;
+  clip-path:polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px));
+  overflow:hidden;
+}
+.results-panel::before{
+  content:"";
+  position:absolute; inset:0;
+  background:radial-gradient(420px 200px at 50% -10%, rgba(255,255,255,.08), transparent 70%);
+  pointer-events:none;
+}
+.results-panel h2{
+  font-family:var(--font-display);
+  letter-spacing:.5px;
+  text-transform:uppercase;
+  font-size:22px !important;
+}
+.results-panel h2.result-win{
+  text-shadow:0 0 18px rgba(124,252,124,.55);
+}
+.results-panel h2.result-lose{
+  text-shadow:0 0 18px rgba(255,112,67,.5);
+}
+.results-continue-btn{
+  clip-path:polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px);
+  letter-spacing:.4px;
+}
+
+@media (max-width:420px){
+  #bossSelect .boss-card::after{ font-size:8px; top:7px; left:-26px; width:84px; }
+}

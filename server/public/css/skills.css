@@ -25,19 +25,19 @@
   animation-timing-function: ease;
   animation-fill-mode: forwards;
 }
-/* 🔥 Fire skills */
+/*  Fire skills */
 .aoe-fire { animation: aoeFire 0.4s ease-out; }
 @keyframes aoeFire { 0% { filter: brightness(2) drop-shadow(0 0 10px orange);} 100% { filter:none; } }
 .aoe-fire-hit { animation: burnHit 0.6s ease-out; }
 @keyframes burnHit { 0% { background:rgba(255,100,0,0.6);} 100%{background:transparent;} }
 
-/* ❄️ Freeze skills */
+/*  Freeze skills */
 .freeze { animation: freezeCast 0.4s ease-out; }
 @keyframes freezeCast { 0% { filter:drop-shadow(0 0 8px cyan);} 100%{filter:none;} }
 .freeze-hit { animation: freezeHit 0.7s ease-out; }
 @keyframes freezeHit { 0% { background:rgba(0,200,255,0.6);} 100%{background:transparent;} }
 
-/* 💚 Heal skills */
+/*  Heal skills */
 .heal { animation: healCast 0.5s ease-out; }
 @keyframes healCast { 0% { filter:drop-shadow(0 0 10px lime);} 100%{filter:none;} }
 .heal-hit { animation: healGlow 0.8s ease-in-out; }
@@ -53,7 +53,7 @@
   100% { box-shadow: none; transform: scale(1); }
 }
 
-/* ☠️ Poison skills */
+/*  Poison skills */
 .poison { animation: poisonCast 0.4s ease-out; }
 @keyframes poisonCast { 0% { filter:drop-shadow(0 0 10px purple);} 100%{filter:none;} }
 .poison-hit { animation: poisonHit 0.7s ease-out; }
@@ -77,11 +77,11 @@
   border-radius: 10px;
 }
 
-/* 💢 Berserk */
+/*  Berserk */
 .berserk { animation: berserkCast 0.5s ease-in-out; }
 @keyframes berserkCast { 0% { transform:scale(1.1); filter:drop-shadow(0 0 10px red);} 100%{transform:scale(1); filter:none;} }
 
-/* ✨ Rebirth */
+/*  Rebirth */
 .rebirth { animation: rebirthCast 0.8s ease-in-out; }
 @keyframes rebirthCast { 0% { filter:drop-shadow(0 0 12px gold);} 100%{filter:none;} }
 /* ⏳ Time Stop */
@@ -93,7 +93,7 @@
   50%  { filter: grayscale(100%) brightness(1.4); }
   100% { filter: none; transform: scale(1); }
 }
-/* ✨ Revive */
+/*  Revive */
 .revive {
   animation: reviveAnim 1.2s ease-out;
 }
@@ -102,7 +102,7 @@
   50%  { filter: brightness(3) drop-shadow(0 0 25px yellow); transform: scale(1.1); opacity: 1; }
   100% { filter: none; transform: scale(1); opacity: 1; }
 }
-/* ⚡ Energy Boost */
+/*  Energy Boost */
 .energy {
   animation: energyBoost 0.6s ease-out;
 }
@@ -111,7 +111,7 @@
   50%  { box-shadow: 0 0 30px 10px yellow; transform: scale(1.15); }
   100% { box-shadow: none; transform: scale(1); }
 }
-/* 💧 Cleanse */
+/*  Cleanse */
 .cleanse {
   animation: cleanseAnim 0.8s ease-out;
 }
@@ -120,7 +120,7 @@
   50%  { filter: brightness(2) saturate(1.5); box-shadow: 0 0 20px 6px lightblue; }
   100% { filter: none; transform: scale(1); box-shadow: none; }
 }
-/* 🔇 Silence */
+/*  Silence */
 .silence {
   animation: silenceAnim 1s ease-in-out;
 }
@@ -129,7 +129,7 @@
   50%  { filter: grayscale(100%) brightness(1.4); text-shadow: 0 0 10px purple; }
   100% { filter: none; transform: scale(1); text-shadow: none; }
 }
-/* ✨ Skill Boost */
+/*  Skill Boost */
 .skillboost {
   animation: skillBoostAnim 0.8s ease-out;
 }
@@ -138,7 +138,7 @@
   50%  { filter: brightness(2) saturate(1.5); box-shadow: 0 0 20px 6px gold; }
   100% { filter: none; transform: scale(1); box-shadow: none; }
 }
-/* 🪨 Summon (caster effect) */
+/*  Summon (caster effect) */
 .summon {
   animation: summonCast 1.2s ease-out;
 }
@@ -147,7 +147,7 @@
   100% { box-shadow: none; transform: scale(1); }
 }
 
-/* 🌟 ตัวที่ถูกซัมมอน */
+/*  ตัวที่ถูกซัมมอน */
 .summoned {
   animation: summonedAppear ease-out;
 }
@@ -158,7 +158,7 @@
   100% { opacity: 1; transform: scale(1); filter: none; }
 }
 
-/* ✨ Flash glow รอบตัวตอน summon */
+/*  Flash glow รอบตัวตอน summon */
 .summon-flash {
   animation: summonFlash 0.8s ease-out;
 }
@@ -180,7 +180,7 @@
   70%  { transform: scale(1.1) translate(6px, 0); }
   100% { transform: scale(1) translate(0,0); box-shadow: none; }
 }
-/* 🌀 Power Strike Charge */
+/*  Power Strike Charge */
 .power-charge {
   animation: powerChargeAnim ease-out;
 }
@@ -190,7 +190,7 @@
   50%  { transform: scale(1.1); filter: drop-shadow(0 0 20px red); }
   100% { transform: scale(1); filter: none; }
 }
-/* 🔥 AOE Attack (ผู้ร่าย) */
+/*  AOE Attack (ผู้ร่าย) */
 .aoe-cast {
   animation: aoeCastAnim 0.6s ease-out;
 }
@@ -199,7 +199,7 @@
   100% { transform: scale(1); box-shadow: none; }
 }
 
-/* 🔥 AOE Attack (ศัตรูที่โดนตี) */
+/*  AOE Attack (ศัตรูที่โดนตี) */
 .aoe-hit {
   animation: aoeHitAnim 0.6s ease-out;
 }
@@ -207,7 +207,7 @@
   0%   { filter: brightness(2) contrast(1.5); transform: scale(1.05); }
   100% { filter: none; transform: scale(1); }
 }
-/* 💣 Bomb cast (ผู้ใช้สกิล) */
+/*  Bomb cast (ผู้ใช้สกิล) */
 .bomb-cast {
   animation: bombCastAnim 0.8s ease-out;
 }
@@ -252,7 +252,7 @@
   100% { transform: scale(1); filter: brightness(1); }
 }
 
-/* 🐲 เพลิงมังกร - เอฟเฟกต์ตอนร่าย */
+/*  เพลิงมังกร - เอฟเฟกต์ตอนร่าย */
 .dragonfire-cast {
   animation: dragonCastAnim 1s ease-out;
 }
@@ -262,7 +262,7 @@
   100% { transform: scale(1); box-shadow: none; filter: none; }
 }
 
-/* 🐲 เพลิงมังกร - เอฟเฟกต์ที่เป้าหมาย */
+/*  เพลิงมังกร - เอฟเฟกต์ที่เป้าหมาย */
 .dragonfire-hit {
   animation: dragonHitAnim 1s ease-out;
 }
@@ -271,7 +271,7 @@
   50%  { filter: brightness(2.5) drop-shadow(0 0 25px red); }
   100% { filter: none; transform: scale(1); }
 }
-/* 💥 Critical Hit */
+/*  Critical Hit */
 .critical-hit {
   animation: critAnim 0.6s ease-out;
 }
@@ -280,7 +280,7 @@
   50%  { filter: brightness(2.5) contrast(2.5); transform: scale(1.3) rotate(2deg); text-shadow: 0 0 20px orange; }
   100% { filter: none; transform: scale(1) rotate(0); text-shadow: none; }
 }
-/* 🗡️ Double Strike */
+/*  Double Strike */
 .double-strike-hit {
   animation: doubleStrikeAnim 0.3s ease-out;
 }
@@ -289,7 +289,7 @@
   50%  { filter: brightness(1.5); transform: scale(1) rotate(3deg); }
   100% { filter: none; transform: scale(1) rotate(0); }
 }
-/* 🎯 Piercing Shot - ผู้ร่าย */
+/*  Piercing Shot - ผู้ร่าย */
 .pierce-cast {
   animation: pierceCastAnim 0.4s ease-out;
 }
@@ -298,7 +298,7 @@
   100% { transform: scale(1); box-shadow: none; }
 }
 
-/* 🎯 Piercing Shot - เป้าหมาย */
+/*  Piercing Shot - เป้าหมาย */
 .pierce-hit {
   animation: pierceHitAnim 0.4s ease-out;
 }
@@ -307,7 +307,7 @@
   50%  { filter: brightness(2.5) drop-shadow(0 0 20px cyan); }
   100% { filter: none; transform: scale(1); }
 }
-/* 💢 Berserk Mode */
+/*  Berserk Mode */
 .berserk-mode {
   animation: berserkAnim 1s ease-in-out;
 }
@@ -316,7 +316,7 @@
   50%  { transform: scale(1.05); filter: brightness(2) contrast(2); box-shadow: 0 0 20px crimson; }
   100% { transform: scale(1); filter: none; box-shadow: none; }
 }
-/* 💢 Multi-hit */
+/*  Multi-hit */
 .triple-hit {
   animation: tripleHitAnim 0.6s ease-out;
 }
@@ -337,7 +337,7 @@
   /* จบ */
   100% { transform: scale(1) translateX(0); filter: none; }
 }
-/* ❄️ Freeze effect */
+/*  Freeze effect */
 .freeze {
   animation: freezeAnim 0.8s ease-in-out;
 }
@@ -346,7 +346,7 @@
   50%  { filter: brightness(2) drop-shadow(0 0 15px cyan); }
   100% { filter: none; transform: scale(1); }
 }
-/* ☠️ Poison effect */
+/*  Poison effect */
 .poisoned {
   animation: poisonAnim 1.2s ease-in-out;
 }
@@ -354,7 +354,7 @@
   0%   { filter: hue-rotate(90deg) brightness(1.2); transform: scale(1.05); }
   50%  { filter: hue-rotate(120deg) brightness(0.8); box-shadow: 0 0 15px limegreen; }
   100% { filter: none; transform: scale(1); box-shadow: none; }
-}/* 🔥 Burn effect */
+}/*  Burn effect */
 .burned {
   animation: burnAnim 1.2s ease-in-out;
 }
@@ -364,7 +364,7 @@
   60%  { filter: brightness(1.5) drop-shadow(0 0 20px red); }
   100% { filter: none; transform: scale(1); }
 }
-/* 💫 Stun effect */
+/*  Stun effect */
 .stunned {
   animation: stunAnim 1.2s ease-in-out;
 }
@@ -374,7 +374,7 @@
   50%  { transform: rotate(-5deg) scale(1.05); filter: brightness(2) drop-shadow(0 0 10px yellow); }
   75%  { transform: rotate(5deg) scale(1.05); }
   100% { transform: rotate(0deg) scale(1); filter: none; }
-}/* 💘 Charm effect */
+}/*  Charm effect */
 .charmed {
   animation: charmAnim 1.2s ease-in-out;
 }
@@ -383,7 +383,7 @@
   50%  { transform: scale(1.05) rotate(3deg); filter: brightness(2) drop-shadow(0 0 15px hotpink); }
   100% { transform: scale(1) rotate(0); filter: none; }
 }
-/* 🩸 เอฟเฟกต์ดูดเลือด (ใส่ให้ศัตรูเวลาโดน) */
+/*  เอฟเฟกต์ดูดเลือด (ใส่ให้ศัตรูเวลาโดน) */
 .damaged.blood-tribute {
   animation: bloodDrainAnim 1s ease-in-out;
 }
@@ -393,7 +393,7 @@
   100% { filter: none; transform: scale(1); }
 }
 
-/* 💖 เอฟเฟกต์ Heal */
+/*  เอฟเฟกต์ Heal */
 .healed {
   animation: healAnim 1s ease-in-out;
 }
@@ -402,7 +402,7 @@
   50%  { filter: brightness(2) drop-shadow(0 0 15px hotpink); }
   100% { filter: none; transform: scale(1); }
 }
-/* 🪞 Mirror effect */
+/*  Mirror effect */
 .mirror-on {
   animation: mirrorAnim 1s ease-in-out;
 }
@@ -411,7 +411,7 @@
   50%  { filter: brightness(2) drop-shadow(0 0 25px skyblue); }
   100% { filter: none; transform: scale(1); }
 }
-/* 🩸 Lifesteal Heal effect */
+/*  Lifesteal Heal effect */
 
 .lifesteal-heal {
   animation: lifestealAnim 1.2s ease-out;
@@ -471,7 +471,7 @@
   100% { filter: none; }
 }
 /* ============================================================
-   🏷️ FLOATING SKILL/ATTACK LABEL + DAMAGE-HEAL NUMBERS
+    FLOATING SKILL/ATTACK LABEL + DAMAGE-HEAL NUMBERS
    ป้ายชื่อสกิล/ประเภทการโจมตี ลอยขึ้นเหนือตัวที่ร่าย
    ตัวเลข -ดาเมจ/+ฮีล ลอยขึ้นเหนือเป้าหมาย ให้เห็นชัดเจนไม่ต้องเดา
    ============================================================ */

@@ -56,9 +56,17 @@ input, textarea{
 
   --radius:14px;
   --radius-sm:9px;
+  --radius-lg:20px;
   --shadow:0 8px 24px rgba(0,0,0,.45);
+  --shadow-soft:0 2px 10px rgba(0,0,0,.3);
+  --shadow-lift:0 14px 34px rgba(0,0,0,.5);
+  --ease:cubic-bezier(.2,.8,.25,1);
 
-  /* 🟢 ขนาดการ์ดกลาง ใช้ค่าเดียวกันทั้งเกม ไม่ว่าจะเป็นการ์ดร้านค้า/กาชา/เด็ค/สนามรบ/
+  /*  ความกว้างสูงสุดของเนื้อหา ปรับตามขนาดจอจริงแทนค่าตายตัวเดียว (1180px เดิม
+     แคบไปสำหรับจอเดสก์ท็อป/แท็บเล็ตแนวนอน ทำให้ดูเหมือนเว็บมือถือถูกยืดขยาย) */
+  --content-max:1180px;
+
+  /*  ขนาดการ์ดกลาง ใช้ค่าเดียวกันทั้งเกม ไม่ว่าจะเป็นการ์ดร้านค้า/กาชา/เด็ค/สนามรบ/
      ใส่อุปกรณ์/เลือกทีม PvP ก็ตาม — ถ้าเนื้อหาในการ์ดไม่พอ ให้ลดขนาดตัวอักษรแทน
      การขยายกล่องการ์ด (ดู .card, .card-box, .equip-card, .gacha-fly-card,
      .gacha-static-card, .pick-card ด้านล่าง และ pvp.html / equip.html ที่ import ค่านี้) */
@@ -79,18 +87,31 @@ html{
     radial-gradient(700px 500px at 50% 110%, #0d1a2e 0%, transparent 60%),
     linear-gradient(180deg,var(--bg-0),var(--bg-1) 40%,var(--bg-0));
   background-attachment:fixed;
+  scrollbar-color:#283246 transparent;
 }
 
 body{
   margin:0 auto;
-  padding:14px 14px 32px;
+  padding:clamp(10px,3vw,14px) clamp(10px,3vw,14px) 32px;
   width:100%;
-  max-width:1180px;
+  max-width:var(--content-max);
   background:transparent;
   color:var(--text);
   font-family:var(--font);
   overflow-x:hidden;
   animation:pageFadeIn .35s ease both;
+}
+/*  จอแคบมาก (พับได้/มือถือเก่า) ลดขอบ padding อีกชั้นให้เนื้อหาไม่ถูกบีบเกินจำเป็น
+    จอกว้างมาก (เดสก์ท็อป/แท็บเล็ตแนวนอน) ขยายพื้นที่เนื้อหาแทนปล่อยให้เหลือขอบขาวโล่งสองข้าง —
+   ไม่กระทบขนาดการ์ด/กริดใดๆ เพราะทุกกริดอิง auto-fill/auto-fit กับพื้นที่ที่มีอยู่แล้ว */
+@media (max-width:340px){
+  body{ padding-left:8px; padding-right:8px; }
+}
+@media (min-width:1400px){
+  :root{ --content-max:1320px; }
+}
+@media (min-width:1700px){
+  :root{ --content-max:1480px; }
 }
 @keyframes pageFadeIn{ from{ opacity:0; transform:translateY(4px); } to{ opacity:1; transform:none; } }
 @media (prefers-reduced-motion:reduce){
@@ -103,20 +124,27 @@ hr{ border:none; border-top:1px solid var(--border); margin:16px 0; }
 
 ::-webkit-scrollbar{ height:8px; width:8px; }
 ::-webkit-scrollbar-thumb{ background:#283246; border-radius:8px; }
+::-webkit-scrollbar-thumb:hover{ background:#374357; }
+
+/* focus outline ที่มองเห็นชัดสำหรับผู้ใช้คีย์บอร์ด/gamepad โดยไม่โผล่ตอนใช้เมาส์/นิ้วแตะ */
+:focus-visible{ outline:2px solid var(--accent-2); outline-offset:2px; border-radius:4px; }
+button:focus-visible, .card:focus-visible, .card-box:focus-visible{ outline-offset:3px; }
 
 button, a > button, .mode-button, input, select{ font-family:var(--font-display); letter-spacing:.2px; }
 
 /* ---------------- TOP BAR ---------------- */
 .topbar, header, header.panel{
-  background:linear-gradient(180deg,rgba(20,29,43,.95),rgba(15,21,31,.95)) !important;
+  background:
+    radial-gradient(600px 120px at 0% 0%, rgba(92,139,255,.10), transparent 70%),
+    linear-gradient(180deg,rgba(22,31,46,.96),rgba(15,21,31,.96)) !important;
   border:1px solid var(--border) !important;
-  border-radius:var(--radius) !important;
-  padding:14px 16px !important;
+  border-radius:var(--radius-lg) !important;
+  padding:14px 18px !important;
   display:flex !important;
   flex-wrap:wrap;
   align-items:center !important;
   gap:10px 14px;
-  box-shadow:var(--shadow);
+  box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.05);
   margin:0 0 14px;
   position:relative;
   overflow:hidden;
@@ -139,7 +167,7 @@ button, a > button, .mode-button, input, select{ font-family:var(--font-display)
   100%{ background-position:-200% 0; }
 }
 .topbar h1, header h1{
-  font-size:19px !important;
+  font-size:clamp(17px,2.4vw,21px) !important;
   font-weight:700 !important;
   margin:0 !important;
   flex:1 1 auto;
@@ -319,7 +347,7 @@ a{ text-decoration:none; }
   overflow-y:visible !important;
   gap:12px !important;
 }
-/* 🟢 การ์ดขนาดเดียวกันทั้งเกม: ใช้ --card-w/--card-h เหมือนที่อื่น แค่ตัด flex-basis
+/*  การ์ดขนาดเดียวกันทั้งเกม: ใช้ --card-w/--card-h เหมือนที่อื่น แค่ตัด flex-basis
    ของ deck-wrapper ทิ้ง (แนวนอนเลื่อน) เพราะหน้านี้เป็นกริดห่อบรรทัดแทน */
 #deck-wrapper.upgrade-grid .card,
 #deck-wrapper.upgrade-grid .card-box{
@@ -330,13 +358,14 @@ a{ text-decoration:none; }
 
 /* ---------------- GENERIC PANEL ---------------- */
 .panel{
-  background:linear-gradient(180deg, rgba(255,255,255,.025), transparent 40%), var(--panel) !important;
+  background:linear-gradient(180deg, rgba(255,255,255,.03), transparent 45%), var(--panel) !important;
   border:1px solid var(--border) !important;
   border-radius:var(--radius) !important;
-  padding:14px !important;
+  padding:16px !important;
   box-shadow:var(--shadow), inset 0 1px 0 var(--panel-edge);
   margin:0 0 14px;
   position:relative;
+  transition:box-shadow .2s var(--ease);
 }
 
 section{ margin:0 0 16px; }
@@ -347,16 +376,23 @@ button{
   color:var(--text);
   border:1px solid var(--border);
   border-radius:var(--radius-sm);
-  padding:9px 14px;
+  padding:10px 15px;
   font-weight:600;
   font-size:13px;
   cursor:pointer;
-  transition:.15s;
+  transition:transform .15s var(--ease), background .15s, box-shadow .15s, border-color .15s;
+  min-height:38px;
 }
-button:hover{ background:rgba(255,255,255,.1); transform:translateY(-1px); }
+button:hover{ background:rgba(255,255,255,.1); transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,.25); }
 button:active{ transform:translateY(0) scale(.97); }
 button:disabled, button[disabled]{
-  opacity:.45; cursor:not-allowed; transform:none;
+  opacity:.45; cursor:not-allowed; transform:none; box-shadow:none;
+}
+
+/* จอสัมผัส: กันปุ่มเล็กเกินไปจนกดพลาด (แนะนำ WCAG ~44px) โดยไม่ขยาย padding ของปุ่ม
+   ในการ์ด (ที่ตั้งใจให้เล็กเพื่อยัดในกล่องขนาดตายตัวอยู่แล้ว) */
+@media (hover:none) and (pointer:coarse){
+  button:not(.card button):not(.card-box button):not(.equip-card button){ min-height:40px; }
 }
 
 #cancelBattleBtn{
@@ -398,7 +434,7 @@ input[type="text"], select{
 input[type="text"]{ flex:1 1 200px; }
 
 /* ---------------- CARD GRID (shop / gacha) ---------------- */
-/* 🟢 เดิมบังคับ 2 คอลัมน์เสมอแม้บนจอมือถือแคบๆ ทำให้การ์ด (ชื่อ+ATK/HP/DEF+สกิล+ราคา+ปุ่ม 2 ปุ่ม)
+/*  เดิมบังคับ 2 คอลัมน์เสมอแม้บนจอมือถือแคบๆ ทำให้การ์ด (ชื่อ+ATK/HP/DEF+สกิล+ราคา+ปุ่ม 2 ปุ่ม)
    ถูกบีบจนเบียดกัน — ตอนนี้จอแคบกว่า 480px ใช้ 1 คอลัมน์ก่อน แล้วค่อยขยับเป็น 2/3/4 ตามความกว้าง */
 .grid{
   display:grid !important;
@@ -416,10 +452,13 @@ input[type="text"]{ flex:1 1 200px; }
 @media (min-width:900px){
   .grid{ grid-template-columns:repeat(4,1fr) !important; }
 }
+@media (min-width:1400px){
+  .grid{ grid-template-columns:repeat(5,1fr) !important; }
+}
 
 .gacha-container{
   display:grid !important;
-  /* 🟢 อิงจาก --card-w ตัวเดียว (ผ่าน calc) แทนตัวเลขคงที่แยกต่างหาก เผื่อพื้นที่
+  /*  อิงจาก --card-w ตัวเดียว (ผ่าน calc) แทนตัวเลขคงที่แยกต่างหาก เผื่อพื้นที่
      ให้หัวข้อแบนเนอร์ + การ์ดตัวอย่างข้างใน — แก้ --card-w ที่เดียวพอ ไม่ต้องมาตาม
      แก้เลขนี้เองอีก */
   grid-template-columns:repeat(auto-fill,minmax(calc(var(--card-w) + 38px),1fr)) !important;
@@ -448,7 +487,7 @@ input[type="text"]{ flex:1 1 200px; }
   width:var(--card-w);
 }
 
-/* 🟢 การ์ดขนาดเดียวกันทั้งเกม ไม่ว่าจะเป็นการ์ดอะไร (.card ตัวละครในร้าน/เด็ค,
+/*  การ์ดขนาดเดียวกันทั้งเกม ไม่ว่าจะเป็นการ์ดอะไร (.card ตัวละครในร้าน/เด็ค,
    .card-box ในสนามรบ, .equip-card ในกระเป๋าอุปกรณ์) ใช้ --card-w/--card-h ตายตัว
    จากตรงนี้เป็นค่ากลาง — ถ้าเนื้อหาในการ์ดไม่พอ ให้ไปลดที่ font-size ของแต่ละ
    context แทนการเพิ่ม width/height ตรงนี้ (ดู .gacha-fly-card/.gacha-static-card
@@ -462,21 +501,22 @@ input[type="text"]{ flex:1 1 200px; }
 }
 
 .card, .card-box, .gacha-box, .equip-card{
-  background:rgba(255,255,255,.035);
+  background:linear-gradient(165deg, rgba(255,255,255,.05), rgba(255,255,255,.015) 55%), rgba(255,255,255,.03);
   border:1px solid var(--border);
   border-radius:var(--radius);
   padding:10px;
-  box-shadow:0 4px 10px rgba(0,0,0,.3);
+  box-shadow:var(--shadow-soft), inset 0 1px 0 rgba(255,255,255,.05);
   display:flex;
   flex-direction:column;
   justify-content:space-between;
   gap:3px;
-  transition:transform .15s, box-shadow .15s;
+  transition:transform .2s var(--ease), box-shadow .2s var(--ease), border-color .2s;
   contain:content;
 }
 .card:hover, .card-box:hover, .gacha-box:hover, .equip-card:hover{
   transform:translateY(-4px);
-  box-shadow:0 10px 20px rgba(0,0,0,.45);
+  box-shadow:var(--shadow-lift), inset 0 1px 0 rgba(255,255,255,.08);
+  border-color:rgba(255,255,255,.2);
 }
 
 .card .title, .card-box .title, .gacha-header{
@@ -487,13 +527,13 @@ input[type="text"]{ flex:1 1 200px; }
 
 .stats{ font-size:10.5px; opacity:.85; display:grid; grid-template-columns:1fr 1fr; gap:2px 8px; }
 .muted{ opacity:.65; font-size:10px; }
-/* 🟢 .meta ไม่เคยถูกกำหนดสไตล์เลยในไฟล์นี้ เลยใช้ font-size เริ่มต้นของ browser (16px)
+/*  .meta ไม่เคยถูกกำหนดสไตล์เลยในไฟล์นี้ เลยใช้ font-size เริ่มต้นของ browser (16px)
    ซึ่งใหญ่เกินไปสำหรับการ์ดแคบๆ ในสนามรบ เป็นอีกสาเหตุที่การ์ดสูงไม่เท่ากัน
    (ตอนนี้การ์ดสูงเท่ากันหมดโดยดีไซน์อยู่แล้วผ่าน --card-h แต่ยังคงลด font ไว้
    เพื่อให้เนื้อหายัดพอดีกล่องที่ตายตัวแล้ว) */
 .meta{ opacity:.7; font-size:9.5px; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-/* 🟢 หน้าตีดาว/อัพเกรด (.upgrade-grid) มีเนื้อหาในการ์ดเยอะที่สุดในเกม (ชื่อ+สถานะ+
+/*  หน้าตีดาว/อัพเกรด (.upgrade-grid) มีเนื้อหาในการ์ดเยอะที่สุดในเกม (ชื่อ+สถานะ+
    HP/ATK/DEF+สกิล+ต้นทุนอัพเกรด+โปรเกรสบาร์+ปุ่ม 1-2 ปุ่ม) บีบ progress-bar/ปุ่ม
    ให้เล็กลงอีกชั้น เพื่อให้ยัดพอในกล่อง --card-h เดียวกับการ์ดอื่นทั้งเกม */
 .card .progress-bar, .card-box .progress-bar{ height:7px; margin-top:2px; }
@@ -519,7 +559,7 @@ button.buy{
 }
 button.buy[disabled]{ background:#374151 !important; color:#9ca3af !important; }
 
-/* 🟢 ปุ่ม/สกิลเลเบล ฯลฯ ที่อยู่ "ในการ์ด" (กล่องขนาดตายตัวแล้ว) ต้องเล็กลงเพื่อให้พอดี
+/*  ปุ่ม/สกิลเลเบล ฯลฯ ที่อยู่ "ในการ์ด" (กล่องขนาดตายตัวแล้ว) ต้องเล็กลงเพื่อให้พอดี
    กล่อง ไม่กระทบปุ่มทั่วไปนอกการ์ด */
 .card button, .card-box button, .equip-card button{
   font-size:10px;
@@ -529,14 +569,14 @@ button.buy[disabled]{ background:#374151 !important; color:#9ca3af !important; }
 
 .card.locked, .card-box.locked{ opacity:.4; pointer-events:none; filter:grayscale(.4); }
 
-/* ✅ กรอบไฮไลท์การ์ดที่ถูกเลือกเข้าทีม */
+/*  กรอบไฮไลท์การ์ดที่ถูกเลือกเข้าทีม */
 .card.selected{
   border:2px solid var(--good, #2fd47a) !important;
   box-shadow:0 0 0 2px rgba(47,212,122,.35), 0 0 14px rgba(47,212,122,.6) !important;
   transform:translateY(-2px);
 }
 
-/* 🔢 เลขลำดับทีม มุมซ้ายบน */
+/*  เลขลำดับทีม มุมซ้ายบน */
 .team-order-badge{
   position:absolute;
   top:4px;
@@ -679,10 +719,263 @@ button.upgrade-btn:disabled{ background:#3a3f4a; color:#9aa1ab; }
   padding-bottom:calc(14px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
+/* ============================================================
+    SKILL UPGRADE PAGE — REDESIGN (upgradeskills.html)
+   ทุกคลาสด้านล่างนี้ใช้เฉพาะหน้าอัปเกรดสกิล (ไม่ชนกับหน้าอื่น) — แต่ละบล็อก
+   คอมเมนต์ไว้ว่า "วาดอะไร" เพื่อให้แก้ไขทีหลังง่าย โดยไม่ต้องไล่เดา selector เอง
+   ============================================================ */
+
+/*  บรรทัดคำอธิบายเล็กๆ ใต้หัวข้อ " อัปเกรดสกิล" ในแถบหัวเรื่อง — วาดเป็นตัวหนังสือ
+   จางๆ ต่อท้าย h1 ให้รู้ทันทีว่าหน้านี้ทำอะไร โดยไม่แย่งความสนใจจากหัวข้อหลัก */
+.page-head-sub{
+  display:block;
+  font-family:var(--font);
+  font-size:11px;
+  font-weight:400;
+  opacity:.6;
+  letter-spacing:0;
+  text-shadow:none;
+  margin-top:2px;
+}
+
+/*  หัวแถบของกล่อง "เลือกตัวละคร/การ์ด" — วาง h3 กับป้ายนับจำนวนการ์ด (เช่น "12 ใบ")
+   ให้อยู่คนละฝั่งซ้าย-ขวาของแถวเดียวกัน แทนที่ h3 จะลอยเดี่ยวๆ เหมือนเดิม */
+.panel-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:4px;
+}
+.panel-head h3{ margin:0; } /* ตัด margin เดิมของ h3 ทิ้ง ไม่งั้นจะดันป้ายจำนวนการ์ดเยื้องแนวกับหัวข้อ */
+/* ป้ายวงรีจำนวนการ์ดในเด็ค มุมขวาของหัวแถบ */
+.deck-count-badge{
+  flex:0 0 auto;
+  background:var(--panel-soft);
+  border:1px solid var(--border);
+  color:var(--accent-2);
+  font-size:11px;
+  font-weight:700;
+  padding:4px 10px;
+  border-radius:999px;
+}
+
+/*  ริบบิ้น "MAX" มุมขวาบนของการ์ดที่อัปสกิลจนสุดแล้ว — ให้กวาดตาหาการ์ดที่ยังอัปได้
+   บนกริดได้ทันทีโดยไม่ต้องกดเข้าไปดูทีละใบ */
+.card-box{ position:relative; } /* จุดอ้างอิงตำแหน่งของ .max-ribbon ด้านล่าง */
+.max-ribbon{
+  position:absolute;
+  top:4px; right:4px;
+  background:linear-gradient(90deg,#06d6a0,#07f5b5);
+  color:#04150f;
+  font-size:8.5px;
+  font-weight:800;
+  letter-spacing:.4px;
+  padding:2px 6px;
+  border-radius:999px;
+  box-shadow:0 0 8px rgba(6,214,160,.5);
+  z-index:2;
+}
+/* ป้ายเลเวลสกิลปัจจุบัน ต่อท้ายชื่อการ์ดในกริด (เช่น "Lv.2") */
+.skill-lv-pill{
+  flex:0 0 auto;
+  font-size:8.5px;
+  font-weight:800;
+  color:var(--accent-2);
+  background:rgba(123,214,255,.12);
+  border:1px solid rgba(123,214,255,.35);
+  border-radius:999px;
+  padding:1px 5px;
+  margin-left:auto;
+}
+.stars-row{ line-height:1; } /* แถวดาว  ใต้ชื่อการ์ด — บีบ line-height ไม่ให้เผื่อที่ว่างเกิน */
+/* บรรทัดชื่อสกิลในการ์ดกริด — ตัดคำด้วย ellipsis กันล้นกล่องขนาดตายตัว (--card-w/--card-h) */
+.card-skill-line{
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+/*  ข้อความชวนแตะการ์ด ตอนยังไม่ได้เลือกใบไหนเลย (ค่าเริ่มต้นของ #skillDetail) */
+.skill-empty-hint{
+  margin:6px 0;
+  font-size:12px;
+  opacity:.7;
+  text-align:center;
+}
+
+/*  หัวการ์ดในแผงรายละเอียดสกิล (ล่างสุดของจอ) — วงกลมอักษรย่อสีตาม rarity อยู่ซ้าย
+   ชื่อการ์ด + ป้าย rarity อยู่ขวา แทนที่จะเป็นแค่ <p><b>ชื่อ</b></p> โล้นๆ เหมือนเดิม */
+.skill-detail-head{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:4px;
+}
+/* วงกลมอักษรย่อชื่อการ์ด สีพื้น/ขอบเปลี่ยนตาม rarity (ใช้ตัวแปรสีชุดเดียวกับระบบ rarity
+   ทั้งเกม var(--c-common)/var(--c-rare)/... ไม่ผูกสีเอาเอง) */
+.skill-emblem{
+  flex:0 0 auto;
+  width:38px; height:38px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display);
+  font-weight:800; font-size:16px;
+  color:#fff;
+  background:rgba(255,255,255,.06);
+  border:2px solid var(--c-common);
+  text-shadow:0 0 6px rgba(0,0,0,.5);
+}
+/* จากนี้คือ 5 บรรทัดสีเฉพาะของแต่ละ rarity — ทับสีขอบ+เรืองแสง (box-shadow) ของ
+   .skill-emblem ฐาน (สีเทา var(--c-common)) ด้านบน ทีละเฉด: */
+.skill-emblem.rarity-Rare{ border-color:var(--c-rare); box-shadow:0 0 10px rgba(47,139,255,.5); } /* วงกลม+เรืองฟ้า สำหรับการ์ด Rare */
+.skill-emblem.rarity-Epic{ border-color:var(--c-epic); box-shadow:0 0 10px rgba(168,85,247,.5); } /* วงกลม+เรืองม่วง สำหรับการ์ด Epic */
+.skill-emblem.rarity-Legendary{ border-color:var(--c-legend); box-shadow:0 0 10px rgba(255,179,0,.5); } /* วงกลม+เรืองทอง สำหรับการ์ด Legendary */
+.skill-emblem.rarity-Mythical{ border-color:var(--c-mythical); box-shadow:0 0 10px rgba(255,61,166,.5); } /* วงกลม+เรืองชมพู สำหรับการ์ด Mythical */
+.skill-emblem.rarity-Cosmic{ border-color:var(--c-cosmic); box-shadow:0 0 10px rgba(127,0,255,.55); } /* วงกลม+เรืองม่วงเข้ม สำหรับการ์ด Cosmic */
+
+/* กล่องข้อความข้างวงกลมอักษรย่อ: เรียงชื่อการ์ด (บรรทัดบน) กับป้าย rarity (บรรทัดล่าง) ซ้อนกันแนวตั้ง */
+.skill-detail-title{ display:flex; flex-direction:column; gap:2px; }
+.skill-detail-title b{ font-size:14px; } /* ชื่อการ์ดตัวหนา ในแผงรายละเอียด */
+/* ป้าย rarity เล็กๆ ใต้ชื่อการ์ด ในแผงรายละเอียด (ทรงแคปซูล พื้นโปร่งใส + สีขอบ/ตัวอักษรตาม rarity) */
+.rarity-pill{
+  display:inline-block;
+  width:fit-content;
+  font-size:9.5px;
+  font-weight:700;
+  padding:1px 7px;
+  border-radius:999px;
+  border:1px solid var(--c-common);
+  background:rgba(255,255,255,.05);
+}
+/* สีขอบป้าย rarity ทีละเฉด ทับสีเทา var(--c-common) ของ .rarity-pill ฐานด้านบน — พื้นหลัง/ตัวอักษรใช้ค่าเดิม เปลี่ยนแค่กรอบให้ตรง rarity: */
+.rarity-pill.rarity-Rare{ border-color:var(--c-rare); } /* กรอบฟ้า: Rare */
+.rarity-pill.rarity-Epic{ border-color:var(--c-epic); } /* กรอบม่วง: Epic */
+.rarity-pill.rarity-Legendary{ border-color:var(--c-legend); } /* กรอบทอง: Legendary */
+.rarity-pill.rarity-Mythical{ border-color:var(--c-mythical); } /* กรอบชมพู: Mythical */
+.rarity-pill.rarity-Cosmic{ border-color:var(--c-cosmic); } /* กรอบม่วงเข้ม: Cosmic */
+
+/* บรรทัด "Skill ปัจจุบัน: ..." ใต้หัวการ์ด */
+.skill-current-line{ font-size:12px; margin:4px 0 2px; opacity:.85; }
+
+/*  แถวป้ายข้อมูลก่อนปุ่มอัปเกรด — ต้นทุนชาร์ด / โอกาสสำเร็จ / เตือนชาร์ดไม่พอ
+   วางเป็นป้ายแคปซูลเรียงติดกันแทนข้อความสามบรรทัดซ้อนกันเหมือนเดิม อ่านง่ายกว่า
+   และงอกป้ายเตือนเพิ่มได้โดยไม่ทำให้ปุ่มอัปเกรดเปลี่ยนรูปร่าง */
+.stat-pills{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin:8px 0;
+}
+.stat-pill{
+  display:inline-flex;
+  align-items:center;
+  font-size:11px;
+  font-weight:600;
+  padding:4px 10px;
+  border-radius:999px;
+  background:var(--panel-soft);
+  border:1px solid var(--border);
+  color:var(--text);
+}
+.stat-pill.chance{ color:var(--accent-2); border-color:rgba(123,214,255,.35); } /* ป้าย "โอกาสสำเร็จ" ย้อมสีฟ้าให้เด่นกว่าป้ายทั่วไป */
+.stat-pill.warn{ color:#ffb4b4; border-color:rgba(239,68,68,.4); background:rgba(239,68,68,.1); } /* ป้ายเตือน "ชาร์ดไม่พอ" ย้อมสีแดง โผล่เฉพาะตอนชาร์ดไม่พอจริง */
+
+/*  ข้อความ "Skill MAX" แทนที่ปุ่มอัปเกรด เมื่อสกิลใบนั้นอัปครบแล้ว */
+.skill-max-tag{
+  text-align:center;
+  font-size:13px;
+  padding:10px;
+  border-radius:var(--radius-sm);
+  background:rgba(6,214,160,.1);
+  border:1px solid rgba(6,214,160,.35);
+  color:#8dfad0;
+}
+
+/* ============================================================
+    ICON SET — วาดด้วย CSS ล้วนๆ แทนอิโมจิ (เฉพาะหน้าอัปเกรดสกิล)
+   ใช้เทคนิคเดียวกับ item-icon ใน bag.js (วาดรูปทรงเรขาคณิตด้วย CSS
+   ไม่ใช้รูปภาพ/อิโมจิ) เพื่อให้หน้าตาคมชัดเท่ากันทุกอุปกรณ์/ทุกฟอนต์
+   ระบบ แทนที่จะพึ่งอิโมจิที่หน้าตาไม่เหมือนกันในแต่ละมือถือ/OS
+   .ico คือคลาสฐาน (ระยะห่าง+จัดกึ่งกลางแนวตั้ง), .ico-xxx คือรูปทรงแต่ละแบบ
+   ============================================================ */
+.ico{
+  display:inline-block;
+  vertical-align:middle;
+  margin-right:5px;
+  flex:0 0 auto;
+}
+
+/*  ไอคอนหัวข้อหน้า (แทน ) — สี่เหลี่ยมข้าวหลามตัด ไล่สีฟ้า พร้อมแสงเรือง
+   สื่อถึง "พลัง/การอัปเกรด" แบบเดียวกับโทนสี HUD ของหัวข้อทุกหน้า */
+.ico-power{
+  width:14px; height:14px;
+  background:linear-gradient(135deg,var(--accent-2),var(--accent));
+  clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);
+  box-shadow:0 0 8px rgba(92,139,255,.6);
+}
+
+/*  ไอคอน "แตะตรงนี้" (แทน ) ใต้กล่องรายละเอียดสกิลตอนยังไม่เลือกการ์ด —
+   วงแหวนที่เต้นเป็นจังหวะ (pulse) ชวนให้สายตาสังเกตว่าต้องกดอะไรสักอย่าง */
+.ico-tap{
+  width:9px; height:9px;
+  border-radius:50%;
+  border:2px solid var(--accent-2);
+  animation:icoTapPulse 1.6s ease-out infinite;
+}
+@keyframes icoTapPulse{
+  0%{ box-shadow:0 0 0 0 rgba(123,214,255,.55); }
+  70%{ box-shadow:0 0 0 7px rgba(123,214,255,0); }
+  100%{ box-shadow:0 0 0 0 rgba(123,214,255,0); }
+}
+@media (prefers-reduced-motion:reduce){ .ico-tap{ animation:none; } }
+
+/* ▲ ลูกศรขึ้น (แทน ) ในปุ่มอัปเกรด — สามเหลี่ยมล้วนๆ จากเทคนิค border-trick
+   (ไม่ใช้ clip-path เพื่อความเข้ากันได้สูงสุด) ใช้ currentColor เกาะสีตัวหนังสือ
+   ปุ่มเอง เลยเปลี่ยนสีตามสถานะปุ่มอัตโนมัติ (ปกติ/ตอน disabled) โดยไม่ต้องเขียนซ้ำ */
+.ico-up{
+  width:0; height:0;
+  border-left:5px solid transparent;
+  border-right:5px solid transparent;
+  border-bottom:8px solid currentColor;
+}
+
+/*  ไอคอนสายฟ้า (แทน ) หน้าบรรทัดชื่อสกิลในการ์ดกริด — สื่อถึง "ความสามารถ/สกิล" */
+.ico-bolt{
+  width:9px; height:13px;
+  background:var(--accent-2);
+  clip-path:polygon(60% 0%, 0% 60%, 45% 60%, 35% 100%, 100% 35%, 55% 35%);
+}
+
+/*  ไอคอนประกาย 4 แฉก (แทน ) หน้าป้าย "โอกาสสำเร็จ" — สื่อถึงดวง/โอกาส */
+.ico-spark{
+  width:11px; height:11px;
+  background:var(--accent-2);
+  clip-path:polygon(50% 0%,65% 35%,100% 50%,65% 65%,50% 100%,35% 65%,0% 50%,35% 35%);
+  box-shadow:0 0 6px rgba(123,214,255,.45);
+}
+
+/*  ไอคอนเหรียญรางวัล (แทน ) หน้าข้อความ "Skill MAX" — วงกลมทอง + หางริบบิ้น
+   สองเส้นด้านล่าง (วาดด้วย ::before/::after) ให้หน้าตาเหมือนเหรียญจริงๆ */
+.ico-medal{
+  position:relative;
+  width:13px; height:13px;
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 30%, #fff6d0, var(--gold) 60%, #b8860b 100%);
+  box-shadow:0 0 6px rgba(255,213,79,.6);
+}
+.ico-medal::before, .ico-medal::after{
+  content:"";
+  position:absolute;
+  top:9px;
+  width:4px; height:8px;
+  background:var(--gold);
+}
+.ico-medal::before{ left:0; transform:skewX(-12deg); } /* หางริบบิ้นซ้าย */
+.ico-medal::after{ right:0; transform:skewX(12deg); }  /* หางริบบิ้นขวา */
+
 /* ---------------- BATTLEFIELD ---------------- */
 .right{ display:flex; flex-direction:column; gap:14px; max-width:100%; }
 
-/* 🖥️ ทำให้กรอบ "สนามต่อสู้" กว้างเต็มขอบจอ ทะลุ container ที่ถูกจำกัด max-width ของ body */
+/*  ทำให้กรอบ "สนามต่อสู้" กว้างเต็มขอบจอ ทะลุ container ที่ถูกจำกัด max-width ของ body */
 .battlefield-panel{
   width:100vw !important;
   max-width:100vw !important;
@@ -707,7 +1000,7 @@ button.upgrade-btn:disabled{ background:#3a3f4a; color:#9aa1ab; }
   border:1px dashed var(--border);
   border-radius:var(--radius-sm);
   padding:8px;
-  /* 🟢 เดิมไม่มีการจัดวางลูกๆ เลย การ์ดแต่ละใบเลยเรียงต่อกันแบบ block
+  /*  เดิมไม่มีการจัดวางลูกๆ เลย การ์ดแต่ละใบเลยเรียงต่อกันแบบ block
      (คอลัมน์แคบๆ ตรงกลางจอ) พอมีตัวเยอะเลยเบียดกันสูงท่วม ตอนนี้ให้เป็น
      กริดจริงๆ ที่ห่อบรรทัดได้ และช่องว่างเท่ากันเสมอ */
   display:flex;
@@ -756,9 +1049,10 @@ button.upgrade-btn:disabled{ background:#3a3f4a; color:#9aa1ab; }
 }
 .popup.hidden{ display:none; }
 .popup-content{
-  background:var(--panel); border:1px solid var(--border);
-  border-radius:var(--radius); padding:20px; max-width:90%; width:380px;
-  box-shadow:var(--shadow);
+  background:linear-gradient(180deg, var(--panel), var(--bg-2));
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:22px; max-width:90%; width:380px;
+  box-shadow:var(--shadow-lift), inset 0 1px 0 rgba(255,255,255,.06);
 }
 
 #equipOverlay{
@@ -800,7 +1094,7 @@ body.no-scroll{ overflow:hidden; height:100%; }
   box-shadow:0 4px 14px rgba(214,40,40,.4);
 }
 
-/* 🟢 การ์ดผลสุ่มกาชา (fly/static) ใช้ขนาดเดียวกับการ์ดทุกที่ในเกม (--card-w/--card-h)
+/*  การ์ดผลสุ่มกาชา (fly/static) ใช้ขนาดเดียวกับการ์ดทุกที่ในเกม (--card-w/--card-h)
    แทนที่จะยืด/หดตามความยาวชื่อ/สกิลเหมือนเดิม — ตัวอักษรภายในถูกลดขนาดแทน
    (ดู inline font-size ใน GACHA.html ที่ปรับให้เล็กลงคู่กัน) */
 .gacha-fly-card, .gacha-static-card{
@@ -895,7 +1189,7 @@ body.no-scroll{ overflow:hidden; height:100%; }
   position:relative;      /* จุดยึดของป้ายสกิล/ตัวเลขดาเมจที่ลอยขึ้น */
   overflow:visible;       /* อย่า clip ป้าย/เลขที่ลอยออกไปนอกกรอบการ์ด */
   flex:0 0 auto;
-  /* 🟢 ใช้ --card-w/--card-h ตัวเดียวกับการ์ดทุกที่ในเกม (เดิมล็อกไว้ 132x150 เฉพาะการ์ด
+  /*  ใช้ --card-w/--card-h ตัวเดียวกับการ์ดทุกที่ในเกม (เดิมล็อกไว้ 132x150 เฉพาะการ์ด
      สนามรบ ทำให้ขนาดไม่ตรงกับการ์ดที่อื่น) */
   width:var(--card-w);
   height:var(--card-h);
@@ -963,7 +1257,7 @@ body.no-scroll{ overflow:hidden; height:100%; }
   margin:12px 0 24px;
   justify-items:center;
 }
-/* 🟢 การ์ดตัวละครในหน้าใส่อุปกรณ์ ใช้ขนาดเดียวกับการ์ดทุกที่ในเกม (--card-w/--card-h)
+/*  การ์ดตัวละครในหน้าใส่อุปกรณ์ ใช้ขนาดเดียวกับการ์ดทุกที่ในเกม (--card-w/--card-h)
    เนื้อหาที่นี่ยาวกว่าที่อื่น (ชื่อ+เลเวล, HP/ATK/DEF, ช่องอาวุธ/เกราะ/เสริม, ปุ่ม)
    จึงลด font-size/line-height ลงแทนการขยายกล่อง แล้วให้ overflow:hidden (มาจาก
    base rule) ตัดส่วนเกินถ้ายังไม่พอจริงๆ */
