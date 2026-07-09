@@ -26,6 +26,64 @@
   // ตัว ring เอง จะได้ไม่ต้องคำนวณอะไรซ้ำตรงนี้
   const FRAME_GEMS_HTML = '<span class="frame-gem gem-top"></span><span class="frame-gem gem-left"></span><span class="frame-gem gem-right"></span>';
 
+  // ---- กรอบพิเศษเฉพาะ "กรอบตำนานลีดเดอร์บอร์ด" (Top 10) ----
+  // ทำเป็นดีไซน์เฉพาะกรอบนี้กรอบเดียว (ไม่ใช่ระบบ tier-based gem ทั่วไปข้างบน) ตามภาพอ้างอิง
+  // ที่ผู้ใช้ส่งมา: วงแหวนทอง 2 ชั้น + เรืองน้ำเงินด้านใน, มงกุฎ+ป้าย TOP 10 ด้านบน, ปีกยื่นสองข้าง,
+  // เพชรน้ำเงินซ้าย-ขวา, พวงลอเรล+ป้ายถ้วยรางวัลด้านล่าง — วาดเป็น SVG วางล้นออกจากกรอบวงกลม
+  // จริง (viewBox กว้าง/สูงกว่าตัว ring) เพื่อให้ส่วนยื่น (มงกุฎ/ปีก/เพชร) ไม่โดนตัดขอบ
+  const TOP10_FRAME_KEY = "frame_leaderboard_top10";
+  const TOP10_FRAME_SVG = `<svg class="frame-top10-svg" viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="t10Gold" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#fff6c8"/><stop offset="45%" stop-color="#ffd447"/><stop offset="100%" stop-color="#b8860b"/>
+      </linearGradient>
+      <linearGradient id="t10Blue" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#9ed7ff"/><stop offset="100%" stop-color="#1e4fb8"/>
+      </linearGradient>
+      <filter id="t10Glow" x="-60%" y="-60%" width="220%" height="220%">
+        <feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <g fill="url(#t10Gold)" opacity=".95">
+      <path d="M60 58 L18 40 L30 62 L10 66 L26 82 L46 78 L54 92 L60 70 Z"/>
+      <path d="M140 58 L182 40 L170 62 L190 66 L174 82 L154 78 L146 92 L140 70 Z"/>
+    </g>
+    <circle cx="100" cy="118" r="70" fill="none" stroke="url(#t10Blue)" stroke-width="5" filter="url(#t10Glow)"/>
+    <circle cx="100" cy="118" r="76" fill="none" stroke="url(#t10Gold)" stroke-width="4"/>
+    <circle cx="100" cy="118" r="64" fill="none" stroke="url(#t10Gold)" stroke-width="2" opacity=".8"/>
+    <g transform="translate(100 26)" fill="url(#t10Gold)">
+      <path d="M-20 18 L-20 6 L-11 13 L-4 -8 L4 13 L11 6 L20 18 L20 22 L-20 22 Z"/>
+      <circle cx="-4" cy="-9" r="2.6"/><circle cx="4" cy="-9" r="2.6"/><circle cx="0" cy="-13" r="3"/>
+    </g>
+    <g transform="translate(100 54)">
+      <path d="M-26 -6 L26 -6 L26 14 L0 26 L-26 14 Z" fill="#111827" stroke="url(#t10Gold)" stroke-width="3"/>
+      <text x="0" y="4" text-anchor="middle" font-family="Arial Black, sans-serif" font-weight="900" font-size="9" fill="url(#t10Gold)">TOP</text>
+      <text x="0" y="16" text-anchor="middle" font-family="Arial Black, sans-serif" font-weight="900" font-size="12" fill="url(#t10Gold)">10</text>
+    </g>
+    <g fill="url(#t10Blue)" stroke="url(#t10Gold)" stroke-width="2">
+      <rect x="12" y="108" width="16" height="16" transform="rotate(45 20 116)"/>
+      <rect x="172" y="108" width="16" height="16" transform="rotate(45 180 116)"/>
+    </g>
+    <g fill="url(#t10Gold)" opacity=".95">
+      <path d="M46 168 Q30 172 26 186 Q40 182 46 174 Q34 186 32 198 Q48 190 52 176 Z"/>
+      <path d="M154 168 Q170 172 174 186 Q160 182 154 174 Q166 186 168 198 Q152 190 148 176 Z"/>
+    </g>
+    <g transform="translate(100 190)">
+      <path d="M-16 -10 L16 -10 L16 6 L0 16 L-16 6 Z" fill="#111827" stroke="url(#t10Gold)" stroke-width="3"/>
+      <path d="M-6 -5 h12 v6 a6 6 0 0 1 -12 0 z" fill="url(#t10Gold)"/>
+      <rect x="-2" y="1" width="4" height="4" fill="url(#t10Gold)"/>
+    </g>
+  </svg>`;
+
+  // เลือก markup ตกแต่งของ ring: กรอบ Top 10 ใช้ SVG พิเศษด้านบน กรอบอื่นใช้เพชรทั่วไปตาม tier
+  function frameDecorHtml(frameKey) {
+    return frameKey === TOP10_FRAME_KEY ? TOP10_FRAME_SVG : FRAME_GEMS_HTML;
+  }
+  // เลือกคลาสของ ring: กรอบ Top 10 ใช้คลาสพิเศษของตัวเอง (ปิดเอฟเฟกต์ rarity-X ทั่วไปไม่ให้ซ้อนกัน)
+  function frameVisualClass(frameKey, rarityClass) {
+    return frameKey === TOP10_FRAME_KEY ? "frame-special-top10" : rarityClass;
+  }
+
   function tierRarityClass(tier) {
     return tier >= 4 ? "rarity-Mythical" : tier === 3 ? "rarity-Legendary" : tier === 2 ? "rarity-Epic" : "rarity-Rare";
   }
@@ -269,6 +327,16 @@
 
 @keyframes frameFxSpin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
 @keyframes frameFxPulse{ 0%,100%{ filter:brightness(1); } 50%{ filter:brightness(1.3); } }
+
+/* ---- กรอบพิเศษ "กรอบตำนานลีดเดอร์บอร์ด" (Top 10) — ดีไซน์เฉพาะกรอบนี้กรอบเดียว วาดจาก
+   SVG inline (TOP10_FRAME_SVG) แทนระบบเพชร/วงแหวนหมุนทั่วไปข้างบน ปิดเส้นขอบ/เรืองแสงเดิม
+   ของ ring ทิ้งเพราะ SVG วาดวงแหวนของตัวเองมาแล้ว แล้ววาง SVG ให้ล้นออกจากกรอบวงกลมจริง
+   (ใหญ่กว่า ring 230%) เพื่อให้มงกุฎ/ปีก/เพชรที่ยื่นออกมาไม่โดนตัดขอบ ---- */
+.frame-special-top10{ border-color:transparent!important; box-shadow:none!important; }
+.frame-special-top10 .frame-top10-svg{
+  position:absolute; left:50%; top:50%; width:230%; height:230%;
+  transform:translate(-50%,-46%); pointer-events:none; z-index:4; overflow:visible;
+}
 .acct-settings-row{ margin-top:16px; }
 .acct-settings-row label{ display:block; font-size:13px; color:var(--muted); margin-bottom:8px; }
 .acct-settings-scale-control{ display:flex; align-items:center; gap:10px; }
@@ -789,19 +857,19 @@
     const ring = document.getElementById("acctAvatarRing");
     const avatar = _cosmeticsState.avatar.catalog.find((a) => a.key === _cosmeticsState.avatar.current);
     const avatarHtml = avatar ? avatar.icon : "<span class=gicon-shield></span>";
-    ring.innerHTML = avatarHtml + FRAME_GEMS_HTML;
 
-    ring.classList.remove("rarity-Rare", "rarity-Epic", "rarity-Legendary", "rarity-Mythical");
+    ring.classList.remove("rarity-Rare", "rarity-Epic", "rarity-Legendary", "rarity-Mythical", "frame-special-top10");
     const equippedKey = _cosmeticsState.frames.equipped;
     const frame = equippedKey ? _cosmeticsState.frames.catalog.find((f) => f.key === equippedKey) : null;
-    const frameClass = frame ? tierRarityClass(frame.tier) : null;
+    const frameClass = frame ? frameVisualClass(frame.key, tierRarityClass(frame.tier)) : null;
+    ring.innerHTML = avatarHtml + frameDecorHtml(frame ? frame.key : null);
     if (frameClass) ring.classList.add(frameClass);
     document.getElementById("acctFrameEquippedName").textContent = frame ? frame.name : "ไม่มี";
 
     // ให้แถบกลางด้านบนใช้ปกและกรอบเดียวกันเป๊ะๆ
     const gpbRing = document.getElementById("gpbAvatarRing");
-    gpbRing.innerHTML = avatarHtml + FRAME_GEMS_HTML;
-    gpbRing.classList.remove("rarity-Rare", "rarity-Epic", "rarity-Legendary", "rarity-Mythical");
+    gpbRing.classList.remove("rarity-Rare", "rarity-Epic", "rarity-Legendary", "rarity-Mythical", "frame-special-top10");
+    gpbRing.innerHTML = avatarHtml + frameDecorHtml(frame ? frame.key : null);
     if (frameClass) gpbRing.classList.add(frameClass);
   }
 
@@ -837,10 +905,11 @@
     mount.innerHTML = cards.map((f) => {
       const isEquipped = _cosmeticsState.frames.equipped === f.key;
       const rarityCls = tierRarityClass(f.tier);
+      const ringCls = frameVisualClass(f.key, rarityCls);
       const cls = ["acct-badge-card", "acct-frame-card", rarityCls, f.unlocked ? "" : "locked", isEquipped ? "equipped" : ""].filter(Boolean).join(" ");
       return `<div class="${cls}" data-key="${f.key}">
         ${isEquipped ? '<div class="equipped-check"><span class=gicon-check></span></div>' : ""}
-        <div class="frame-preview-ring frame-fx ${rarityCls}"><span class=gicon-frame></span>${FRAME_GEMS_HTML}</div>
+        <div class="frame-preview-ring frame-fx ${ringCls}"><span class=gicon-frame></span>${frameDecorHtml(f.key)}</div>
         <div class="name">${f.name}</div>
         <div class="desc">${f.unlocked ? f.desc : (f.source === "guild_shop" ? "ซื้อได้ที่ร้านค้ากิลด์" : f.desc)}</div>
         <div class="source-tag">${f.categoryLabel}</div>
