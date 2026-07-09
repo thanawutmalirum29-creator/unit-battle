@@ -111,7 +111,7 @@
         <button id="authui-toggle">ยังไม่มีบัญชี? สมัครใหม่</button>
         <div id="authui-error"></div>
         <div id="authui-guest-divider" style="text-align:center;color:#778;font-size:12px;margin:10px 0;">หรือ</div>
-        <button id="authui-guest">🎮 เล่นแบบไม่ล็อกอิน (ชั่วคราว)</button>
+        <button id="authui-guest"><span class=gicon-gear></span> เล่นแบบไม่ล็อกอิน (ชั่วคราว)</button>
       </div>
     `;
     // แปะใต้ <html> ไม่ใช่ <body> กันโดน UI scale (zoom ที่ <body>) ดันตำแหน่งเพี้ยน
@@ -168,7 +168,7 @@
       const proceed = window.uiConfirm
         ? await uiConfirm(
             "บัญชีชั่วคราว: ข้อมูล (เงิน/การ์ด/ความคืบหน้า) จะหายทันทีถ้าลบแอป/ล้างข้อมูลเบราว์เซอร์ กู้คืนไม่ได้ และจะ เข้ากิลด์ไม่ได้ กับ เพิ่มเพื่อนไม่ได้ ต้องการเล่นแบบนี้ต่อไหม?",
-            { icon: "⚠️", okText: "เข้าใจแล้ว เล่นเลย", cancelText: "ยกเลิก" }
+            { icon: "<span class=gicon-warning></span>", okText: "เข้าใจแล้ว เล่นเลย", cancelText: "ยกเลิก" }
           )
         : window.confirm("บัญชีชั่วคราว: ข้อมูลจะหายถ้าลบแอป/ล้างข้อมูลเบราว์เซอร์ และเข้ากิลด์/เพิ่มเพื่อนไม่ได้ ยืนยันหรือไม่?");
       if (!proceed) return;
@@ -177,7 +177,7 @@
       guestBtn.textContent = "กำลังสร้างบัญชีชั่วคราว...";
       const result = await GameAPI.loginAsGuest();
       guestBtn.disabled = false;
-      guestBtn.textContent = "🎮 เล่นแบบไม่ล็อกอิน (ชั่วคราว)";
+      guestBtn.textContent = "<span class=gicon-gear></span> เล่นแบบไม่ล็อกอิน (ชั่วคราว)";
 
       if (result && result.token) {
         overlay.remove();
@@ -209,7 +209,7 @@
   // GameAPI.js ตรวจจับ 401 ที่เกิดจากกรณีนี้แล้วเรียก handler นี้ผ่าน setSessionKickedHandler
   function showSessionKickedModal() {
     const notify = window.uiAlert
-      ? uiAlert("มีการเข้าสู่ระบบบัญชีนี้จากอุปกรณ์หรือเบราว์เซอร์อื่น ระบบจึงออกจากระบบเครื่องนี้ให้อัตโนมัติ", { icon: "🔒" })
+      ? uiAlert("มีการเข้าสู่ระบบบัญชีนี้จากอุปกรณ์หรือเบราว์เซอร์อื่น ระบบจึงออกจากระบบเครื่องนี้ให้อัตโนมัติ", { icon: "<span class=gicon-lock></span>" })
       : Promise.resolve(window.alert("มีการเข้าสู่ระบบบัญชีนี้จากอุปกรณ์หรือเบราว์เซอร์อื่น ระบบจึงออกจากระบบเครื่องนี้ให้อัตโนมัติ"));
     notify.then(() => location.reload());
   }
@@ -266,10 +266,10 @@
 
     overlay.innerHTML = `
       <div id="acctblock-box" class="${isBanned ? "banned" : "suspended"}">
-        <div class="acctblock-icon">${isBanned ? "⛔" : "⏳"}</div>
+        <div class="acctblock-icon">${isBanned ? "<span class=gicon-block></span>" : "⏳"}</div>
         <h2>${isBanned ? "บัญชีของคุณถูกแบน" : "บัญชีของคุณถูกระงับชั่วคราว"}</h2>
         ${lines.join("")}
-        <button id="acctblock-exit">🚪 ออกจากเกม</button>
+        <button id="acctblock-exit"><span class=gicon-door></span> ออกจากเกม</button>
       </div>
     `;
     // แปะใต้ <html> ไม่ใช่ <body> เหตุผลเดียวกับกล่อง login ด้านบน

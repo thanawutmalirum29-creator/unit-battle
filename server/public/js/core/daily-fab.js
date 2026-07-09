@@ -32,7 +32,7 @@
     return typeof itemIconHTML === "function" ? itemIconHTML(key) : "";
   }
 
-  // ย่อรางวัลเป็น HTML เดียว: "🪙 500 · [icon]ชาร์ดเทา × 20"
+  // ย่อรางวัลเป็น HTML เดียว: " 500 · [icon]ชาร์ดเทา × 20"
   function rewardHTML(reward) {
     const parts = [];
     if (reward.money > 0) parts.push(`<span class="gicon-coin"></span> ${reward.money.toLocaleString()}`);
@@ -195,7 +195,7 @@
     ball.id = "dailyFabBall";
     ball.type = "button";
     ball.setAttribute("aria-label", "ล็อกอินรายวัน / ภารกิจรายวัน");
-    ball.innerHTML = `🎁<span id="dailyFabDot"></span>`;
+    ball.innerHTML = `<span class=gicon-gift></span><span id="dailyFabDot"></span>`;
     ball.addEventListener("contextmenu", (e) => e.preventDefault());
     return ball;
   }
@@ -211,8 +211,8 @@
 
     modal.innerHTML = `
       <div class="daily-fab-header">
-        <strong>🎁 ล็อกอิน &amp; ภารกิจรายวัน</strong>
-        <button type="button" id="dailyFabCloseBtn" aria-label="ปิด">✕</button>
+        <strong><span class=gicon-gift></span> ล็อกอิน &amp; ภารกิจรายวัน</strong>
+        <button type="button" id="dailyFabCloseBtn" aria-label="ปิด"><span class=gicon-x></span></button>
       </div>
       <div class="daily-fab-tabs">
         <button type="button" class="daily-fab-tab active" id="dailyFabTabLogin">ล็อกอินรายวัน</button>
@@ -266,7 +266,7 @@
     const streakRow = days.map((info) => `
       <div class="daily-fab-streak-day${info.isDone ? " done" : ""}${info.isToday ? " today" : ""}">
         <div class="daily-fab-streak-day-num">วัน ${info.d}</div>
-        <div class="daily-fab-streak-day-reward">${info.isDone ? "✓" : "🎁"}</div>
+        <div class="daily-fab-streak-day-reward">${info.isDone ? "<span class=gicon-check></span>" : "<span class=gicon-gift></span>"}</div>
       </div>`).join("");
 
     return `
@@ -275,7 +275,7 @@
         <div class="daily-fab-login-streak-label">สตรีคล็อกอินต่อเนื่อง: <strong>${login.streak}</strong> วัน</div>
         <div class="daily-fab-login-reward">${rewardHTML(login.nextReward)}</div>
         ${login.claimedToday
-          ? `<span class="daily-fab-claimed-label">✓ รับรางวัลวันนี้แล้ว</span>`
+          ? `<span class="daily-fab-claimed-label"><span class=gicon-check></span> รับรางวัลวันนี้แล้ว</span>`
           : `<button type="button" class="daily-fab-claim-btn" id="dailyFabLoginClaimBtn">รับรางวัลวันนี้</button>`}
       </div>
     `;
@@ -285,7 +285,7 @@
     const missionsHtml = status.missions.map((m) => {
       const pct = Math.min(100, Math.round((m.progress / m.target) * 100));
       let action;
-      if (m.claimed) action = `<span class="daily-fab-claimed-label">✓ รับแล้ว</span>`;
+      if (m.claimed) action = `<span class="daily-fab-claimed-label"><span class=gicon-check></span> รับแล้ว</span>`;
       else if (m.done) action = `<button type="button" class="daily-fab-mission-claim" data-key="${m.key}">รับรางวัล</button>`;
       else action = `<span class="daily-fab-mission-progress-text">ยังไม่ครบ</span>`;
 
@@ -305,7 +305,7 @@
 
     const bonus = status.bonus;
     const bonusAction = bonus.claimed
-      ? `<span class="daily-fab-claimed-label">✓ รับแล้ว</span>`
+      ? `<span class="daily-fab-claimed-label"><span class=gicon-check></span> รับแล้ว</span>`
       : bonus.available
         ? `<button type="button" class="daily-fab-mission-claim" id="dailyFabBonusClaimBtn">รับโบนัส</button>`
         : `<span class="daily-fab-mission-progress-text">ทำภารกิจให้ครบก่อน</span>`;
@@ -313,7 +313,7 @@
     return `
       ${missionsHtml}
       <div class="daily-fab-bonus">
-        <span>🌟 โบนัสทำครบทุกภารกิจ: ${rewardHTML(bonus.reward)}</span>
+        <span><span class=gicon-star></span> โบนัสทำครบทุกภารกิจ: ${rewardHTML(bonus.reward)}</span>
         ${bonusAction}
       </div>
     `;

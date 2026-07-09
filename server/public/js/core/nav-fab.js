@@ -12,17 +12,17 @@
 
   // ปลายทางเมนู — เรียงตามลำดับเดิมของแถบปุ่มที่เคยมีในทุกหน้า
   const NAV_ITEMS = [
-    { href: "game.html", icon: "⚔️", label: "ต่อสู้" },
+    { href: "game.html", icon: "<span class=gicon-battle></span>", label: "ต่อสู้" },
     { href: "deck.html", icon: "🃏", label: "จัดเด็ค" },
-    { href: "shop.html", icon: "🏪", label: "SHOP" },
-    { href: "upgrade.html", icon: "🌟", label: "UPGRADE" },
-    { href: "upgradeskills.html", icon: "💪", label: "SKILLS" },
-    { href: "GACHA.html", icon: "🔮", label: "GACHA" },
-    { href: "GACHAE.html", icon: "🎰", label: "กาชาอุปกรณ์" },
-    { href: "equip.html", icon: "🛡️", label: "สวมอุปกรณ์" },
-    { href: "friends.html", icon: "👥", label: "เพื่อน" },
-    { href: "guild.html", icon: "🛡️", label: "กิลด์" },
-    { href: "pvp.html", icon: "🏆", label: "สมรภูมิ" },
+    { href: "shop.html", icon: "<span class=gicon-store></span>", label: "SHOP" },
+    { href: "upgrade.html", icon: "<span class=gicon-star></span>", label: "UPGRADE" },
+    { href: "upgradeskills.html", icon: "<span class=gicon-muscle></span>", label: "SKILLS" },
+    { href: "GACHA.html", icon: "<span class=gicon-gem></span>", label: "GACHA" },
+    { href: "GACHAE.html", icon: "", label: "กาชาอุปกรณ์" },
+    { href: "equip.html", icon: "<span class=gicon-shield></span>", label: "สวมอุปกรณ์" },
+    { href: "friends.html", icon: "<span class=gicon-users></span>", label: "เพื่อน" },
+    { href: "guild.html", icon: "<span class=gicon-shield></span>", label: "กิลด์" },
+    { href: "pvp.html", icon: "<span class=gicon-trophy></span>", label: "สมรภูมิ" },
   ];
 
   const BALL_SIZE = 56;
@@ -141,7 +141,7 @@
     ball.id = "navFabBall";
     ball.type = "button";
     ball.setAttribute("aria-label", "เมนูเปลี่ยนหน้า");
-    ball.textContent = "☰";
+    ball.textContent = "<span class=gicon-menu></span>";
     ball.addEventListener("contextmenu", (e) => e.preventDefault());
     return ball;
   }
@@ -290,8 +290,8 @@
     const banner = document.createElement("div");
     banner.id = "guestBanner";
     banner.innerHTML = `
-      <span class="msg">⚠️ บัญชีชั่วคราว — ข้อมูลจะหายถ้าลบแอป/ล้างข้อมูลเบราว์เซอร์ กู้คืนไม่ได้ และเข้ากิลด์/เพิ่มเพื่อนไม่ได้</span>
-      <button id="guestBannerUpgrade">🔒 ตั้งชื่อ+PIN เก็บข้อมูลไว้</button>
+      <span class="msg"><span class=gicon-warning></span> บัญชีชั่วคราว — ข้อมูลจะหายถ้าลบแอป/ล้างข้อมูลเบราว์เซอร์ กู้คืนไม่ได้ และเข้ากิลด์/เพิ่มเพื่อนไม่ได้</span>
+      <button id="guestBannerUpgrade"><span class=gicon-lock></span> ตั้งชื่อ+PIN เก็บข้อมูลไว้</button>
     `;
     const host = document.querySelector("header.topbar") || document.body;
     host.insertAdjacentElement("afterend", banner);

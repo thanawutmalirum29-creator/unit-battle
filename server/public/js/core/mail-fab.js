@@ -84,7 +84,7 @@
 .mail-fab-overlay{
   display:none; position:fixed; inset:0; background:rgba(4,6,10,.72);
   align-items:center; justify-content:center; padding:16px; z-index:10040;
-  /* 🎨 บั๊กสีดำ: overlay นี้ถูก appendChild เข้า <html> โดยตรง (ดูล่างสุดของไฟล์)
+  /*  บั๊กสีดำ: overlay นี้ถูก appendChild เข้า <html> โดยตรง (ดูล่างสุดของไฟล์)
      ไม่ใช่ <body> จึงไม่ได้รับ color:var(--text) จาก body{} ใน theme.css เลย —
      ตัวอักษรเลยตกไปใช้ค่า default ของเบราว์เซอร์ (ดำ) ซ้อนบนพื้นมืดของกล่องจดหมาย
      อ่านไม่ออก ต้องตั้ง color ตรงนี้เองแทนการพึ่ง inherit จาก body */
@@ -168,7 +168,7 @@
     ball.id = "mailFabBall";
     ball.type = "button";
     ball.setAttribute("aria-label", "กล่องจดหมาย");
-    ball.innerHTML = `📮<span id="mailFabDot"></span>`;
+    ball.innerHTML = `<span class=gicon-mailbox></span><span id="mailFabDot"></span>`;
     ball.addEventListener("contextmenu", (e) => e.preventDefault());
     return ball;
   }
@@ -184,8 +184,8 @@
 
     modal.innerHTML = `
       <div class="mail-fab-header">
-        <strong>📮 กล่องจดหมาย</strong>
-        <button type="button" id="mailFabCloseBtn" aria-label="ปิด">✕</button>
+        <strong><span class=gicon-mailbox></span> กล่องจดหมาย</strong>
+        <button type="button" id="mailFabCloseBtn" aria-label="ปิด"><span class=gicon-x></span></button>
       </div>
       <div id="mailFabListView" class="mail-fab-list"></div>
       <div id="mailFabDetailView" class="mail-fab-detail" style="display:none"></div>
@@ -243,7 +243,7 @@
       card.className = "mail-fab-card" + (m.read ? "" : " unread");
 
       const tags = [];
-      if (m.hasReward) tags.push(`<span class="mail-fab-tag${m.claimed ? " claimed" : ""}">${m.claimed ? "✓ รับแล้ว" : "🎁 มีของแนบ"}</span>`);
+      if (m.hasReward) tags.push(`<span class="mail-fab-tag${m.claimed ? " claimed" : ""}">${m.claimed ? "<span class=gicon-check></span> รับแล้ว" : "<span class=gicon-gift></span> มีของแนบ"}</span>`);
 
       card.innerHTML = `
         <button type="button" class="mail-fab-card-main" data-id="${m.id}">
@@ -254,7 +254,7 @@
           <div class="mail-fab-meta">${fmtMailDate(m.createdAt)}</div>
           ${tags.length ? `<div class="mail-fab-tags">${tags.join("")}</div>` : ""}
         </button>
-        <button type="button" class="mail-fab-del" data-id="${m.id}" aria-label="ลบจดหมาย" title="ลบจดหมาย">🗑</button>
+        <button type="button" class="mail-fab-del" data-id="${m.id}" aria-label="ลบจดหมาย" title="ลบจดหมาย"><span class=gicon-trash></span></button>
       `;
       card.querySelector(".mail-fab-card-main").addEventListener("click", () => openDetail(m.id));
       card.querySelector(".mail-fab-del").addEventListener("click", () => confirmAndDelete(m, () => openList()));
@@ -294,27 +294,27 @@
       const parts = [];
       if (mail.reward.money > 0) parts.push(`<span class=gicon-coin></span> ${mail.reward.money}`);
       if (mail.reward.bagKey) parts.push(`${typeof itemIconHTML === "function" ? itemIconHTML(mail.reward.bagKey) : ""}${BAG_LABELS[mail.reward.bagKey] || mail.reward.bagKey} × ${mail.reward.bagQty}`);
-      if (mail.reward.card) parts.push(`🧑‍🤝‍🧑 ${escapeHtml(mail.reward.card.name)} (${escapeHtml(mail.reward.card.rarity)})`);
-      if (mail.reward.equip) parts.push(`🗡️ ${escapeHtml(mail.reward.equip.name)} (${escapeHtml(mail.reward.equip.rarity)})`);
+      if (mail.reward.card) parts.push(`<span class=gicon-user></span>‍<span class=gicon-handshake></span>‍<span class=gicon-user></span> ${escapeHtml(mail.reward.card.name)} (${escapeHtml(mail.reward.card.rarity)})`);
+      if (mail.reward.equip) parts.push(`<span class=gicon-sword></span> ${escapeHtml(mail.reward.equip.name)} (${escapeHtml(mail.reward.equip.rarity)})`);
 
       rewardHtml = `
         <div class="mail-fab-reward-box">
           <span>${parts.join(" · ")}</span>
           <div class="mail-fab-reward-actions">
             ${mail.claimed
-              ? `<span class="mail-fab-claimed-label">✓ รับแล้ว</span><button type="button" class="mail-fab-del" id="mailFabClaimedDelBtn" aria-label="ลบจดหมาย" title="ลบจดหมาย">🗑</button>`
+              ? `<span class="mail-fab-claimed-label"><span class=gicon-check></span> รับแล้ว</span><button type="button" class="mail-fab-del" id="mailFabClaimedDelBtn" aria-label="ลบจดหมาย" title="ลบจดหมาย"><span class=gicon-trash></span></button>`
               : `<button type="button" class="mail-fab-claim-btn" id="mailFabClaimBtn">รับไอเทม</button>`}
           </div>
         </div>`;
     }
 
     detailEl.innerHTML = `
-      <button type="button" class="mail-fab-back" id="mailFabBackBtn">← กลับ</button>
+      <button type="button" class="mail-fab-back" id="mailFabBackBtn"><span class=gicon-arrow-left></span> กลับ</button>
       <div class="mail-fab-detail-subject">${escapeHtml(mail.subject)}</div>
       <div class="mail-fab-detail-meta">${fmtMailDate(mail.createdAt)}</div>
       <div class="mail-fab-detail-body">${escapeHtml(mail.body)}</div>
       ${rewardHtml}
-      ${!mail.reward ? `<button type="button" class="mail-fab-detail-del" id="mailFabPlainDelBtn">🗑 ลบจดหมายนี้</button>` : ""}
+      ${!mail.reward ? `<button type="button" class="mail-fab-detail-del" id="mailFabPlainDelBtn"><span class=gicon-trash></span> ลบจดหมายนี้</button>` : ""}
     `;
 
     document.getElementById("mailFabBackBtn").addEventListener("click", () => { openList(); });

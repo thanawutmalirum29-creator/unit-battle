@@ -94,7 +94,7 @@
       ensureDom();
       box.className = "ui-popup-box ui-popup-alert";
       iconEl.style.display = "block";
-      iconEl.textContent = opts.icon || "ℹ️";
+      iconEl.textContent = opts.icon || "ℹ";
       msgEl.textContent = message == null ? "" : String(message);
       inputEl.style.display = "none";
       overlay.dataset.dismissable = "0";
@@ -121,7 +121,7 @@
       ensureDom();
       box.className = "ui-popup-box ui-popup-confirm";
       iconEl.style.display = "block";
-      iconEl.textContent = opts.icon || "❓";
+      iconEl.textContent = opts.icon || "<span class=gicon-help></span>";
       msgEl.textContent = message == null ? "" : String(message);
       inputEl.style.display = "none";
       overlay.dataset.dismissable = "1";

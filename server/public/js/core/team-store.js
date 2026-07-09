@@ -23,7 +23,7 @@ function loadTeamDecks() {
     let legacy = [];
     try { legacy = JSON.parse(localStorage.getItem("selectedIndexes") || "[]"); }
     catch (e) { legacy = []; }
-    // 🛠 ข้อมูลเก่ามาก ๆ อาจเก็บเป็น index (number) แทน id — แปลงให้เป็น id เหมือนเดิม
+    //  ข้อมูลเก่ามาก ๆ อาจเก็บเป็น index (number) แทน id — แปลงให้เป็น id เหมือนเดิม
     if (legacy.length > 0 && typeof legacy[0] === "number") {
       legacy = legacy.map(i => deck[i]?.id).filter(Boolean);
     }

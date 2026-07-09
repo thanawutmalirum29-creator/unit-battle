@@ -18,9 +18,9 @@ window.HubUI = (function () {
     inf: "../js/modes/INF/inf-mode.js",
   };
   const MODE_LABELS = {
-    normal: "🎴 Normal Mode",
-    boss: "👹 Boss Mode",
-    inf: "🌀 Infinite Mode",
+    normal: "<span class=gicon-card></span> Normal Mode",
+    boss: "<span class=gicon-skull></span> Boss Mode",
+    inf: "<span class=gicon-refresh></span> Infinite Mode",
   };
 
   let currentMode = "normal";
@@ -56,7 +56,7 @@ window.HubUI = (function () {
     if (t) t.taken += dmg;
   }
 
-  // 🔧 FIX: battle ตอนนี้รันจริงที่ฝั่งเซิฟทั้งหมด (ดู routes/battle.js) — trackDamage() ด้านบน
+  //  FIX: battle ตอนนี้รันจริงที่ฝั่งเซิฟทั้งหมด (ดู routes/battle.js) — trackDamage() ด้านบน
   // แทบไม่เคยถูกเรียกอีกต่อไปแล้ว เพราะโค้ดจำลองการต่อสู้ฝั่ง client เดิม (skills/attack.js)
   // ไม่ได้ทำงานในเส้นทางนี้ ทำให้ตารางสรุปผลโชว์ 0/0 ทุกตัวเสมอ ฟังก์ชันนี้แทนที่ด้วยการ
   // sync สถิติ "ทำ/รับ" ที่เซิฟคำนวณจริงและส่งกลับมาทุกเทิร์น (turnRes.damageStats) แทน
@@ -139,7 +139,7 @@ window.HubUI = (function () {
   }
 
   function isBattleRunning() {
-    // 🔧 FIX: เดิมเช็คแค่ window.battleRunning ตัวเดียว — แต่ระหว่างที่โหมด INF
+    //  FIX: เดิมเช็คแค่ window.battleRunning ตัวเดียว — แต่ระหว่างที่โหมด INF
     // กำลังไปด่านถัดไปอัตโนมัติ (endInfBattle -> setInfStage) จะมีช่วง await
     // GameAPI.battleStart() ที่ battleRunning เป็น false ชั่วคราว (ยังไม่ทันตั้ง
     // true กลับใน runInfBattleLoop) ถ้า lockPollTimer มาเช็คพอดีช่วงนั้นจะเข้าใจผิด
@@ -283,7 +283,7 @@ window.HubUI = (function () {
      ============================ */
   function buildRow(entry) {
     return `<tr class="${entry.isEnemy ? "row-enemy" : "row-player"}">
-      <td>${entry.isEnemy ? "👾" : "🛡️"} ${entry.name}</td>
+      <td>${entry.isEnemy ? "<span class=gicon-skull></span>" : "<span class=gicon-shield></span>"} ${entry.name}</td>
       <td>${entry.dealt.toLocaleString()}</td>
       <td>${entry.taken.toLocaleString()}</td>
     </tr>`;
@@ -302,7 +302,7 @@ window.HubUI = (function () {
       if (u && u.instanceId && !damageStats[u.instanceId]) ensureEntry(u);
     });
 
-    // 🔧 FIX: โหมด INF สะสม damageStats ต่อเนื่องทั้งรัน (ไม่ reset ระหว่างด่าน) และ
+    //  FIX: โหมด INF สะสม damageStats ต่อเนื่องทั้งรัน (ไม่ reset ระหว่างด่าน) และ
     // instanceId ของศัตรูจะใหม่ทุกด่าน — ถ้าวิ่งรวด 100 ด่านตารางจะมีแถวศัตรูเป็นร้อยๆ
     // ตัว รวมฝั่งศัตรูทั้งหมดเป็นแถวเดียว "ศัตรูทั้งหมด" (บวก dealt/taken รวมกัน) ส่วน
     // ฝั่งผู้เล่นยังคงแยกตามตัวละครเหมือนเดิม เพราะ instanceId ผู้เล่นคงที่ทั้งรันอยู่แล้ว
@@ -325,12 +325,12 @@ window.HubUI = (function () {
         .join("") + (enemyEntries.length ? buildRow(enemySummary) : "");
 
     const dropsList = Object.entries(rewardTotals.drops)
-      .map(([k, v]) => `<li>🎁 ${v.toLocaleString()}x ${k}</li>`)
+      .map(([k, v]) => `<li><span class=gicon-gift></span> ${v.toLocaleString()}x ${k}</li>`)
       .join("") || "<li>—</li>";
 
     overlay.innerHTML = `
       <div class="results-panel">
-        <h2 class="${data.win ? "result-win" : "result-lose"}">${data.title || (data.win ? "🎉 คุณชนะ!" : "💀 คุณแพ้")}</h2>
+        <h2 class="${data.win ? "result-win" : "result-lose"}">${data.title || (data.win ? "<span class=gicon-party></span> คุณชนะ!" : "<span class=gicon-skull></span> คุณแพ้")}</h2>
         ${data.extraNote ? `<p class="results-note">${data.extraNote}</p>` : ""}
         <div class="results-rewards">
           <div><span class=gicon-coin></span> เหรียญที่ได้: <b>${rewardTotals.money.toLocaleString()}</b></div>
@@ -340,7 +340,7 @@ window.HubUI = (function () {
           <thead><tr><th>ตัวละคร</th><th>ดาเมจที่ทำ</th><th>ดาเมจที่รับ</th></tr></thead>
           <tbody>${rows || "<tr><td colspan=3>—</td></tr>"}</tbody>
         </table>
-        <button id="resultsContinueBtn" class="results-continue-btn">▶️ ดำเนินการต่อ</button>
+        <button id="resultsContinueBtn" class="results-continue-btn">▶ ดำเนินการต่อ</button>
       </div>
     `;
     overlay.style.display = "flex";

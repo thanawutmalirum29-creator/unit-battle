@@ -1,36 +1,8 @@
-function getRenderStats(card) {
-  const baseHp  = card.baseHp ?? card.hp ?? 0;
-  const baseAtk = card.baseAtk ?? card.atk ?? 0;
-  const baseDef = card.baseDef ?? card.def ?? 0;
-
-  let hp = baseHp;
-  let atk = baseAtk;
-  let def = baseDef;
-
-  let hpPct = 0, atkPct = 0, defPct = 0;
-
-  (card.equips || []).forEach(eq => {
-    const mode = eq.mode || "flat";
-    if (mode === "percent") {
-      if (eq.stat === "hp")  hpPct  += eq.bonus;
-      if (eq.stat === "atk") atkPct += eq.bonus;
-      if (eq.stat === "def") defPct += eq.bonus;
-    } else {
-      if (eq.stat === "hp")  hp  += eq.bonus;
-      if (eq.stat === "atk") atk += eq.bonus;
-      if (eq.stat === "def") def += eq.bonus;
-    }
-  });
-
-  hp  = Math.floor(hp  * (1 + hpPct  / 100));
-  atk = Math.floor(atk * (1 + atkPct / 100));
-  def = Math.floor(def * (1 + defPct / 100));
-
-  return { hp, atk, def };
-}
+// getRenderStats ย้ายไปรวมไว้จุดเดียวที่ js/shared/battle-math.js แล้ว (ดูหมายเหตุ
+// ใน js/data/equip.js) เรียก getRenderStats(...) ตรงนี้ได้เหมือนเดิม
 function renderStageButtons() {
   const stageList = document.getElementById("stageList");
-  if (!stageList) return; // 🟢 ถ้าไม่มี element ก็ไม่ต้องทำอะไร
+  if (!stageList) return; // <span class=gicon-dot-green></span> ถ้าไม่มี element ก็ไม่ต้องทำอะไร
   stageList.innerHTML = "";
   const totalStages = Object.keys(STAGES).length; // สมมติ STAGES เก็บด่านทั้งหมด
   const maxToShow = 8;
@@ -62,7 +34,7 @@ function deepClone(obj) {
 }
 
 function getStarsDisplay(stars, isMaxed) {
-  let out = (stars <= 5) ? "⭐".repeat(stars) : "🌟".repeat(stars - 5);
+  let out = (stars <= 5) ? "<span class=gicon-star></span>".repeat(stars) : "<span class=gicon-star></span>".repeat(stars - 5);
   return isMaxed ? `<span class="glow-stars">${out}</span>` : out;
 }
 
@@ -79,6 +51,5 @@ function playAnim(cardEl, type) {
   setTimeout(() => cardEl.classList.remove(type), 300); // reset class
 }
 
-function findFirstAlive(list){
-  return list.find(x => x.hp > 0);
-}
+// findFirstAlive ย้ายไปรวมไว้จุดเดียวที่ js/shared/battle-math.js แล้ว (ดูหมายเหตุ
+// ใน core/battle.js) เรียก findFirstAlive(...) ตรงนี้ได้เหมือนเดิม

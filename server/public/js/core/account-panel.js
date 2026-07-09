@@ -2,7 +2,7 @@
 // ------------------------------------------------------------------------------
 // เดิม "บัญชีของฉัน" เป็นหน้าแยก (pages/account.html) ต้องกดเปลี่ยนหน้าไปดู
 // ตอนนี้ย้าย รูปโปรไฟล์ (พร้อมกรอบ) + ชื่อ + เงิน มาโชว์เป็นแถบเดียวด้านบนสุด
-// ของทุกหน้าแทน (เหมือนเกมมือถือทั่วไป) แล้วกดที่แถบนี้ (รูป→ชื่อ) เพื่อเปิด
+// ของทุกหน้าแทน (เหมือนเกมมือถือทั่วไป) แล้วกดที่แถบนี้ (รูปชื่อ) เพื่อเปิด
 // หน้าบัญชีแบบป๊อปอัปแทนการเปลี่ยนหน้าจริง — หน้าบัญชีแบบเต็มหน้าเดิมเลิกใช้แล้ว
 //
 // สคริปต์นี้พึ่งพา (ต้องโหลดก่อนหน้านี้ในหน้า HTML): api.js, auth-ui.js, ui-popup.js
@@ -242,7 +242,7 @@
     `;
     document.body.insertBefore(bar, document.body.firstChild);
 
-    // 🔧 FIX: เดิมหน้าไหนไม่มี <div id="moneyWindow"> อยู่ในมาร์กอัปของตัวเองมาก่อน
+    //  FIX: เดิมหน้าไหนไม่มี <div id="moneyWindow"> อยู่ในมาร์กอัปของตัวเองมาก่อน
     // (เช่น equip.html, pvp.html, upgradeskills.html) โค้ดนี้จะหาไม่เจอแล้วข้ามไปเฉยๆ
     // เงินเลยไม่โผล่เลยในหน้านั้น ทั้งที่ money.js ถูกโหลดอยู่แล้วก็ตาม — ตอนนี้ถ้าหาไม่
     // เจอให้ "สร้างเอง" แทน (money.js อัปเดตผ่าน id="moneyWindow" อย่างเดียว ไม่สนว่า
@@ -256,7 +256,7 @@
     moneySlot.appendChild(moneyEl); // ย้าย/แปะเข้าแถบกลาง แทนที่จะซ้ำซ้อนสองที่
     if (typeof updateMoneyUI === "function") updateMoneyUI(); // เติมตัวเลขทันที เผื่อ money.js โหลดเสร็จไปก่อนหน้านี้แล้ว
 
-    // 🔧 ย้ายลูกบอลเมนูนำทาง (สร้างโดย nav-fab.js ซึ่งโหลดก่อนไฟล์นี้เสมอทุกหน้า) เข้ามา
+    //  ย้ายลูกบอลเมนูนำทาง (สร้างโดย nav-fab.js ซึ่งโหลดก่อนไฟล์นี้เสมอทุกหน้า) เข้ามา
     // ไว้ในแถบโปรไฟล์ ขวาสุด แทนที่จะลอยคงที่มุมขวาล่างจอแยกต่างหากเหมือนเดิม
     // (ตัว listener เดิมของลูกบอล/โมดัลเมนูยังติดไปกับ element เดิมเป๊ะ ไม่ต้องสร้างใหม่)
     const navBall = document.getElementById("navFabBall");
@@ -379,8 +379,8 @@
           <button class="acctp-icon-btn" id="acctCosmeticsCloseBtn"><span class=gicon-close></span></button>
         </div>
         <div class="acctp-tabs" style="margin:10px 16px 0">
-          <button class="acctp-tab active" id="acctTabAvatar">🎨 เลือกปก</button>
-          <button class="acctp-tab" id="acctTabFrame">🖼️ กรอบปก (<span id="acctFrameEquippedName">ไม่มี</span>)</button>
+          <button class="acctp-tab active" id="acctTabAvatar"><span class=gicon-palette></span> เลือกปก</button>
+          <button class="acctp-tab" id="acctTabFrame"><span class=gicon-frame></span> กรอบปก (<span id="acctFrameEquippedName">ไม่มี</span>)</button>
         </div>
         <div class="acctp-body">
           <div id="acctCosTabAvatar">
@@ -539,7 +539,7 @@
 
       const cardsHTML = cards.length > 0
         ? cards.map((card, i) => {
-            const stars = typeof getStarsDisplay === "function" ? getStarsDisplay(card.stars || 1, card.maxed) : "⭐".repeat(card.stars || 1);
+            const stars = typeof getStarsDisplay === "function" ? getStarsDisplay(card.stars || 1, card.maxed) : "<span class=gicon-star></span>".repeat(card.stars || 1);
             return `<div class="acct-team-chip rarity-${card.rarity || "Common"}">
               <span class="order">${i + 1}</span>
               <div class="name">${card.name || "-"}</div>
@@ -937,6 +937,6 @@
     init();
   }
 
-  // เปิดให้หน้าอื่น (เช่น ปุ่มเมนู ☰ ของ nav-fab.js) เรียกเปิดป๊อปอัปนี้ได้โดยตรง
+  // เปิดให้หน้าอื่น (เช่น ปุ่มเมนู  ของ nav-fab.js) เรียกเปิดป๊อปอัปนี้ได้โดยตรง
   window.AccountPanel = { open: openAccountPopup, close: closeAccountPopup };
 })();

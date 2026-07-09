@@ -1,7 +1,8 @@
-function findFirstAlive(list){
-  return list.find(x => x.hp > 0);
-}
-// 🔐 ก่อนหน้านี้ addMoney(reward) ถูกเรียกตรงๆ ทุกครั้งที่ฆ่ามอนสเตอร์ — เป็นช่องโหว่
+// findFirstAlive ย้ายไปรวมไว้จุดเดียวที่ js/shared/battle-math.js แล้ว (เดิมก็อป
+// มาไว้ที่นี่ กับ core/render.js และ server/battle/engine.js อีกรวม 3 จุด) โหลด
+// เป็น global function ก่อนไฟล์นี้ (ดู pages/*.html) เรียก findFirstAlive(...)
+// ตรงนี้ได้เหมือนเดิม
+//  ก่อนหน้านี้ addMoney(reward) ถูกเรียกตรงๆ ทุกครั้งที่ฆ่ามอนสเตอร์ — เป็นช่องโหว่
 // ร้ายแรง เพราะ addMoney เป็น global function ที่เรียกจาก devtools console ได้เลย
 // (addMoney(999999999)) โดยไม่ต้องเล่นเกมจริงด้วยซ้ำ เงินจริงตอนนี้จ่ายเฉพาะตอน
 // จบด่านผ่าน GameAPI.claimNormalReward/claimInfReward (เซิฟคำนวณเอง — ดู N-Mode.js/
@@ -13,7 +14,7 @@ function handleDeath(victim, killer) {
 
     if (killer && killer.class === "Thief") {
       reward = Math.floor(reward * 1.3);
-      log(`💎 โบนัสอาชีพ Thief! ได้ทองเพิ่ม 30%`, "system");
+      log(`<span class=gicon-gem></span> โบนัสอาชีพ Thief! ได้ทองเพิ่ม 30%`, "system");
     }
 
     if (reward > 0) {
@@ -23,7 +24,7 @@ function handleDeath(victim, killer) {
   }
 }
 
-// 🔰 renderBattlefield ไม่เพิ่ม .shield อีกแล้ว
+//  renderBattlefield ไม่เพิ่ม .shield อีกแล้ว
 function renderBattlefield() {
   // ---------------- ผู้เล่น ----------------
   const pBox = document.getElementById("playerTeamBox");
@@ -40,7 +41,7 @@ function renderBattlefield() {
     el.className = "card-box player-card";
     el.setAttribute("data-id", p.instanceId);
 
-    // 🔰 คงโล่ถ้ามีบัพ
+    //  คงโล่ถ้ามีบัพ
     const hasShield = (p.statusEffects || []).some(se => se.type === "DefenseBuff");
     if (hasShield) el.classList.add("shield-active");
 

@@ -38,7 +38,7 @@ function renderDeckTabs() {
   mount.innerHTML = teamDecks.map((d, i) => `
     <div class="deck-tab${i === activeEditSlot ? " active" : ""}" data-slot="${i}">
       <span class="deck-tab-name">${escapeHtml(d.name)}</span>
-      <button type="button" class="deck-tab-rename-btn" data-slot="${i}" title="เปลี่ยนชื่อเด็ค" aria-label="เปลี่ยนชื่อเด็ค">✏️</button>
+      <button type="button" class="deck-tab-rename-btn" data-slot="${i}" title="เปลี่ยนชื่อเด็ค" aria-label="เปลี่ยนชื่อเด็ค"><span class=gicon-pencil></span></button>
       <span class="deck-tab-count">${d.indexes.length}/${maxTeamSize}</span>
     </div>
   `).join("");
@@ -54,7 +54,7 @@ function renderDeckTabs() {
     });
   });
 
-  // ✏️ เปลี่ยนชื่อเด็คผ่านป๊อปอัป (uiPrompt) แทนที่ <input> แบบพิมพ์สดในแท็บ —
+  //  เปลี่ยนชื่อเด็คผ่านป๊อปอัป (uiPrompt) แทนที่ <input> แบบพิมพ์สดในแท็บ —
   // ช่องพิมพ์สดเดิมกดสลับหน้า/กดปุ่มย้อนกลับระหว่างพิมพ์ได้ ทำให้ค่าที่พิมพ์ค้าง
   // หายหรือไม่ถูกบันทึก ป๊อปอัปกันปัญหานี้เพราะต้องกด "ตกลง"/"ยกเลิก" ให้จบก่อน
   mount.querySelectorAll(".deck-tab-rename-btn").forEach((btn) => {
@@ -89,11 +89,11 @@ function renderDeck() {
     // เซิฟก็บล็อคการขาย/อัพเกรดการ์ดพวกนี้อยู่แล้ว (routes/economy.js), นี่แค่กันสับสนฝั่ง UI
     if (card.borrowed) card.locked = true;
     else if (card.locked === undefined) card.locked = false;
-    card.equips = card.equips || []; // 🟢 กัน null
+    card.equips = card.equips || []; // <span class=gicon-dot-green></span> กัน null
   });
   localStorage.setItem("deck", JSON.stringify(deck));
 
-  // 🧹 กันเด็คค้าง id ของการ์ดที่ไม่มีอยู่แล้ว (เช่น ขายทิ้งไปจากหน้าอื่น)
+  //  กันเด็คค้าง id ของการ์ดที่ไม่มีอยู่แล้ว (เช่น ขายทิ้งไปจากหน้าอื่น)
   let teamDecksChanged = false;
   teamDecks.forEach((d) => {
     const cleaned = d.indexes.filter((id) => deckIds.has(id));
@@ -106,7 +106,7 @@ function renderDeck() {
 
   const activeIndexes = teamDecks[activeEditSlot].indexes;
 
-  // ✅ เรียงตาม stars > level > rarity
+  //  เรียงตาม stars > level > rarity
   deck.sort((a, b) => {
     if ((b.stars || 0) !== (a.stars || 0)) return (b.stars || 0) - (a.stars || 0);
     if ((b.level || 0) !== (a.level || 0)) return (b.level || 0) - (a.level || 0);
@@ -135,7 +135,7 @@ function renderDeck() {
                    (selectOrder !== -1 ? " selected" : "");
     el.style.position = "relative";
 
-    // ✅ เลือกการ์ดเข้าเด็คที่กำลังแก้ไขอยู่ (การ์ดใบเดียวใช้ซ้ำได้หลายเด็ค)
+    //  เลือกการ์ดเข้าเด็คที่กำลังแก้ไขอยู่ (การ์ดใบเดียวใช้ซ้ำได้หลายเด็ค)
     el.onclick = () => {
       if (activeIndexes.includes(card.id)) {
         teamDecks[activeEditSlot].indexes = activeIndexes.filter(i => i !== card.id);
@@ -151,12 +151,12 @@ function renderDeck() {
       renderDeck();
     };
 
-    // 🎯 กดค้างเพื่อลบ (ขาย)
+    //  กดค้างเพื่อลบ (ขาย)
     let pressTimer;
     function startPress() {
       pressTimer = setTimeout(async () => {
         if (card.locked) return;
-        // 🛡 กันขายการ์ดที่ถูกใช้อยู่ในเด็คไหนก็ตาม (ไม่ใช่แค่เด็คที่กำลังแก้ไข) —
+        //  กันขายการ์ดที่ถูกใช้อยู่ในเด็คไหนก็ตาม (ไม่ใช่แค่เด็คที่กำลังแก้ไข) —
         // ไม่งั้นตำแหน่งในเด็คจะเพี้ยน/มีการ์ดหายไปโดยไม่ตั้งใจตอนกดค้างเผลอ
         const usedIn = teamDecks.filter(d => d.indexes.includes(card.id)).map(d => d.name);
         if (usedIn.length > 0) {
@@ -176,9 +176,9 @@ function renderDeck() {
     el.addEventListener("touchend", cancelPress);
     el.addEventListener("touchcancel", cancelPress);
 
-    // 🔒 ปุ่มล็อค/ปลดล็อค — บันทึกขึ้นเซิฟเวอร์ด้วย (กันหายตอนล็อกอินใหม่/สลับเครื่อง)
+    //  ปุ่มล็อค/ปลดล็อค — บันทึกขึ้นเซิฟเวอร์ด้วย (กันหายตอนล็อกอินใหม่/สลับเครื่อง)
     const lockBtn = document.createElement("div");
-    lockBtn.textContent = card.locked ? "🔒" : "🔓";
+    lockBtn.textContent = card.locked ? "<span class=gicon-lock></span>" : "<span class=gicon-unlock></span>";
     lockBtn.style.position = "absolute";
     lockBtn.style.top = "4px";
     lockBtn.style.right = "4px";
@@ -212,7 +212,7 @@ function renderDeck() {
     if (card.maxed) lvDisplay = "MAX";
     const starsDisplay = getStarsDisplay(card.stars, card.maxed);
 
-    // 🏷 การ์ดใบนี้ถูกใช้ในเด็คอื่นด้วยไหม (นอกจากเด็คที่กำลังแก้ไขอยู่)
+    //  การ์ดใบนี้ถูกใช้ในเด็คอื่นด้วยไหม (นอกจากเด็คที่กำลังแก้ไขอยู่)
     const usedInOtherDecks = teamDecks
       .map((d, i) => (i !== activeEditSlot && d.indexes.includes(card.id)) ? d.name : null)
       .filter(Boolean);
@@ -226,12 +226,12 @@ function renderDeck() {
       <div class="meta" style="margin-top:2px; font-size:9.5px">
         Skill:${card.skill}
       </div>
-      ${card.borrowed ? `<div class="meta" style="margin-top:2px; font-size:9px; color:#7dd3fc;">🤝 ยืมจาก ${card.lenderName || "เพื่อน"} • เหลือ ${Number.isFinite(card.roundsLeft) ? card.roundsLeft : 20} รอบ</div>` : ""}
-      ${usedInOtherDecks.length > 0 ? `<div class="meta" style="margin-top:2px; font-size:9px; color:var(--muted);">📎 อยู่ในเด็คอื่น: ${usedInOtherDecks.map(escapeHtml).join(", ")}</div>` : ""}
+      ${card.borrowed ? `<div class="meta" style="margin-top:2px; font-size:9px; color:#7dd3fc;"><span class=gicon-handshake></span> ยืมจาก ${card.lenderName || "เพื่อน"} • เหลือ ${Number.isFinite(card.roundsLeft) ? card.roundsLeft : 20} รอบ</div>` : ""}
+      ${usedInOtherDecks.length > 0 ? `<div class="meta" style="margin-top:2px; font-size:9px; color:var(--muted);"><span class=gicon-note></span> อยู่ในเด็คอื่น: ${usedInOtherDecks.map(escapeHtml).join(", ")}</div>` : ""}
     `;
     el.appendChild(lockBtn);
 
-    // 🔢 เลขลำดับในเด็คนี้ (มุมซ้ายบน) แสดงเฉพาะการ์ดที่ถูกเลือกเข้าเด็คที่กำลังแก้
+    //  เลขลำดับในเด็คนี้ (มุมซ้ายบน) แสดงเฉพาะการ์ดที่ถูกเลือกเข้าเด็คที่กำลังแก้
     if (selectOrder !== -1) {
       const orderBadge = document.createElement("div");
       orderBadge.className = "team-order-badge";
@@ -252,14 +252,14 @@ function renderDeck() {
   if (header) {
     header.innerHTML = `กำลังจัด: ${escapeHtml(teamDecks[activeEditSlot].name)} — เลือกการ์ดเป็นทีม (${deck.length}/100)
       <button id="sellAllBtn" style="margin-left:10px; padding:4px 8px; font-size:12px;"><span class=gicon-coin></span> ขายทั้งหมด</button>
-      <button id="clearSelectionBtn" style="margin-left:6px; padding:4px 8px; font-size:12px;">🧹 เคลียร์เด็คนี้</button>`;
+      <button id="clearSelectionBtn" style="margin-left:6px; padding:4px 8px; font-size:12px;"><span class=gicon-trash></span> เคลียร์เด็คนี้</button>`;
 
     document.getElementById("sellAllBtn").onclick = sellAllUnlocked;
     document.getElementById("clearSelectionBtn").onclick = clearSelection;
   }
 }
 
-// 🔐 ขายการ์ด — เซิฟเป็นคนตรวจว่าการ์ดมีจริงในเด็คของเซิฟ + คิดราคาเอง (ดู
+//  ขายการ์ด — เซิฟเป็นคนตรวจว่าการ์ดมีจริงในเด็คของเซิฟ + คิดราคาเอง (ดู
 // routes/economy.js POST /sell, game-data/economy-data.js calcSellPrice).
 // ห้ามคำนวณราคา/เพิ่มเงินเองฝั่ง client อีกต่อไป
 async function sellCard(cardId) {
@@ -271,7 +271,7 @@ async function sellCard(cardId) {
     return;
   }
 
-  // 🛡 กันขายการ์ดที่ถูกใช้อยู่ในเด็คไหนก็ตาม (เผื่อเรียกจากที่อื่นนอกเหนือจากปุ่มกดค้าง
+  //  กันขายการ์ดที่ถูกใช้อยู่ในเด็คไหนก็ตาม (เผื่อเรียกจากที่อื่นนอกเหนือจากปุ่มกดค้าง
   // ด้านบน ที่เช็คไปแล้วรอบหนึ่ง — กันไว้สองชั้นไม่ให้เด็คเพี้ยนตำแหน่ง)
   const usedIn = teamDecks.filter(d => d.indexes.includes(cardId)).map(d => d.name);
   if (usedIn.length > 0) {
@@ -293,23 +293,23 @@ async function sellCard(cardId) {
   applyServerMoney(result.money);
   applyServerDeck(result.deck);
   removeCardFromAllDecks(cardId);
-  alert(`ขาย ${result.sold.name} (${result.sold.rarity}, ${result.sold.stars || 1}⭐) ได้ ${result.price} เหรียญ`);
+  alert(`ขาย ${result.sold.name} (${result.sold.rarity}, ${result.sold.stars || 1}) ได้ ${result.price} เหรียญ`);
 }
 
 async function sellAllUnlocked() {
   const deck = JSON.parse(localStorage.getItem("deck") || "[]");
   if (deck.length === 0) {
-    alert("❌ ไม่มีการ์ดในเด็ค");
+    alert("ไม่มีการ์ดในเด็ค");
     return;
   }
 
-  // 🛡 ป้องกันการ์ดที่ถูกใช้อยู่ในเด็คไหนก็ตาม (ไม่ใช่แค่เด็คที่กำลังแก้ไขอยู่)
+  //  ป้องกันการ์ดที่ถูกใช้อยู่ในเด็คไหนก็ตาม (ไม่ใช่แค่เด็คที่กำลังแก้ไขอยู่)
   const usedIds = new Set(teamDecks.flatMap(d => d.indexes));
   const cardIds = deck
     .filter(c => !c.locked && !usedIds.has(c.id))
     .map(c => c.id);
   if (cardIds.length === 0) {
-    alert("❌ ไม่มีการ์ดที่ขายได้ (การ์ดที่เหลือถูกล็อค หรืออยู่ในเด็คใดเด็คหนึ่ง)");
+    alert("ไม่มีการ์ดที่ขายได้ (การ์ดที่เหลือถูกล็อค หรืออยู่ในเด็คใดเด็คหนึ่ง)");
     return;
   }
 
@@ -320,7 +320,7 @@ async function sellAllUnlocked() {
 
   if (!(await uiConfirm(`คุณต้องการขายการ์ดทั้งหมดที่ไม่ได้ล็อคและไม่ได้อยู่ในเด็คไหนเลย (${cardIds.length} ใบ)?`))) return;
 
-  // 🔐 เซิฟเป็นคนตรวจว่าการ์ดแต่ละใบมีจริง + คิดราคาเอง ไม่เชื่อยอดรวมจาก client
+  //  เซิฟเป็นคนตรวจว่าการ์ดแต่ละใบมีจริง + คิดราคาเอง ไม่เชื่อยอดรวมจาก client
   const result = await GameAPI.sellAllCards(cardIds);
   if (!result || !result.ok) {
     alert("ขายไม่สำเร็จ: " + (result?.error || "unknown error"));
@@ -329,7 +329,7 @@ async function sellAllUnlocked() {
 
   applyServerMoney(result.money);
   applyServerDeck(result.deck);
-  alert(`✅ ขายเสร็จสิ้น ได้เงินรวม ${result.totalEarned} 💰`);
+  alert(`ขายเสร็จสิ้น ได้เงินรวม ${result.totalEarned} `);
 }
 
 // ตัด id การ์ดที่ขายไปแล้วออกจากทุกเด็ค (กันเด็คค้าง id ที่ไม่มีการ์ดจริงแล้ว)

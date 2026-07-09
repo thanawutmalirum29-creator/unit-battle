@@ -7,7 +7,7 @@
 (function () {
   const ONLINE_WINDOW_MS = 3 * 60 * 1000; // seen within the last 3 minutes = online
 
-  // Minutes tick 1→59 one at a time, then hours tick 1 at a time, then days
+  // Minutes tick 159 one at a time, then hours tick 1 at a time, then days
   // tick 1 at a time up to 999, after which it just shows "999+ วัน".
   function fmtOfflineDuration(lastSeenAt) {
     if (!lastSeenAt) return null;
@@ -35,18 +35,18 @@
   function presenceHtml(entry) {
     const status = entry.accountStatus || "active";
     if (status === "banned") {
-      return `<span class="presence-pill presence-banned">🚫 โดนแบน</span>`;
+      return `<span class="presence-pill presence-banned"><span class=gicon-block></span> โดนแบน</span>`;
     }
     if (status === "suspended") {
       const until = entry.suspendedUntil ? ` (ถึง ${fmtDateTime(entry.suspendedUntil)})` : "";
-      return `<span class="presence-pill presence-suspended">⛔ โดนระงับ${until}</span>`;
+      return `<span class="presence-pill presence-suspended"><span class=gicon-block></span> โดนระงับ${until}</span>`;
     }
     const lastSeen = entry.lastSeenAt ? new Date(entry.lastSeenAt).getTime() : 0;
     if (lastSeen && Date.now() - lastSeen <= ONLINE_WINDOW_MS) {
-      return `<span class="presence-pill presence-online">🟢 ออนไลน์</span>`;
+      return `<span class="presence-pill presence-online"><span class=gicon-dot-green></span> ออนไลน์</span>`;
     }
     const dur = entry.lastSeenAt ? fmtOfflineDuration(entry.lastSeenAt) : null;
-    return `<span class="presence-pill presence-offline">⚪ ออฟไลน์${dur ? " " + dur : ""}</span>`;
+    return `<span class="presence-pill presence-offline"><span class=gicon-dot-white></span> ออฟไลน์${dur ? " " + dur : ""}</span>`;
   }
 
   // Renders a <span> mount carrying the raw data as attributes so a timer

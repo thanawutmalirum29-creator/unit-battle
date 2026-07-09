@@ -11,7 +11,7 @@ function endRoundAll() {
     if (actor.statusEffects) {
       let expired = [];
       actor.statusEffects.forEach(eff => {
-        // 🔧 FIX v2 (ยืนยันด้วย smoke-test.js ฝั่ง server): แค่เคลียร์ justApplied อย่างเดียว
+        //  FIX v2 (ยืนยันด้วย smoke-test.js ฝั่ง server): แค่เคลียร์ justApplied อย่างเดียว
         // (ที่แก้ไว้รอบก่อน) ยังไม่พอ — TimeStop มากับ turns:1 ซึ่งโดนลดเหลือ 0 แล้วลบทิ้งทันที
         // ที่ endRoundAll ของ "รอบเดียวกับที่ร่าย" ก่อนจะถึงรอบถัดไปที่มันควรจะบล็อกจริงๆ ต้องเลื่อน
         // การนับ turns ออกไปอีก 1 รอบเฉพาะ TimeStop (ไม่แตะสถานะอื่นเพื่อไม่ให้ระยะเวลาบัพ/ดีบัฟ
@@ -30,26 +30,26 @@ function endRoundAll() {
       // เก็บเฉพาะที่ยังเหลือ
       actor.statusEffects = actor.statusEffects.filter(eff => eff.turns > 0);
 
-      // 🔔 log ตอนหมด
+      //  log ตอนหมด
       expired.forEach(type => {
         switch(type){
           case "DefenseBuff":
-            log(`🛡️ Buff โล่หมดเวลาแล้ว`, "system");
+            log(`<span class=gicon-shield></span> Buff โล่หมดเวลาแล้ว`, "system");
             break;
           case "Berserk":
-            log(`💢 Buff Berserk หมดเวลาแล้ว`, "system");
+            log(`<span class=gicon-anger></span> Buff Berserk หมดเวลาแล้ว`, "system");
             break;
           case "SkillBoost":
-            log(`✨ Buff Skill Boost หมดเวลาแล้ว`, "system");
+            log(`<span class=gicon-sparkle></span> Buff Skill Boost หมดเวลาแล้ว`, "system");
             break;
           case "Poison":
-            log(`☠️ Debuff Poison หมดเวลาแล้ว`, "system");
+            log(`<span class=gicon-skull></span> Debuff Poison หมดเวลาแล้ว`, "system");
             break;
           case "Burn":
-            log(`🔥 Debuff Burn หมดเวลาแล้ว`, "system");
+            log(`<span class=gicon-fire></span> Debuff Burn หมดเวลาแล้ว`, "system");
             break;
           case "Silence":
-            log(`🔇 Debuff Silence หมดเวลาแล้ว`, "system");
+            log(`<span class=gicon-mute></span> Debuff Silence หมดเวลาแล้ว`, "system");
             break;
           case "TimeStop":
             log(`⏳ Debuff Time Stop หมดเวลาแล้ว`, "system");

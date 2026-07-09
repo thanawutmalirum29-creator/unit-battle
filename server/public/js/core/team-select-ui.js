@@ -33,10 +33,10 @@ function renderTeamSelectorUI(mount, pageKey) {
 .team-selector select:hover, .team-selector select:focus{ border-color:var(--accent,#5c8bff); outline:none; }
 
 .team-preview{
-  /* 🔧 เดิมใช้ auto-fit+1fr พอเด็คมีการ์ดใบเดียว (เช่น 1/4) การ์ดจะยืดเต็มความกว้าง
+  /*  เดิมใช้ auto-fit+1fr พอเด็คมีการ์ดใบเดียว (เช่น 1/4) การ์ดจะยืดเต็มความกว้าง
      กลายเป็นแถบยาวแบนๆ ไม่เหมือนการ์ด — เปลี่ยนเป็น auto-fill + เพดานความกว้างคงที่
      แทน ให้การ์ดกว้างพอดีเสมอไม่ว่าจะมีกี่ใบ
-     🟢 อิง --card-w จาก theme.css (ตัวแปรกลางเดียวกับการ์ดทุกที่ในเกม) แทนเลข px
+     <span class=gicon-dot-green></span> อิง --card-w จาก theme.css (ตัวแปรกลางเดียวกับการ์ดทุกที่ในเกม) แทนเลข px
      คงที่แยกไว้เอง — แก้ขนาดการ์ดที่ theme.css ที่เดียว ที่นี่ตามอัตโนมัติ */
   display:grid; grid-template-columns:repeat(auto-fill,minmax(var(--card-w),var(--card-w))); gap:8px; margin:0 0 14px;
 }
@@ -138,7 +138,7 @@ function renderTeamPreview(mount, teamDecks, activeSlot) {
         const card = deckById.get(id);
         if (!card) return `<div class="team-preview-card team-preview-missing"><span class=gicon-x></span><br>การ์ดถูกขายไปแล้ว</div>`;
         const stats = (typeof getRenderStats === "function") ? getRenderStats(card) : { hp: card.hp, atk: card.atk, def: card.def };
-        const stars = (typeof getStarsDisplay === "function") ? getStarsDisplay(card.stars, card.maxed) : "⭐".repeat(card.stars || 1);
+        const stars = (typeof getStarsDisplay === "function") ? getStarsDisplay(card.stars, card.maxed) : "<span class=gicon-star></span>".repeat(card.stars || 1);
         return `
           <div class="team-preview-card rarity-${card.rarity}">
             <div class="team-preview-name">${escapeTeamName(card.name)}<span class="team-preview-lv">Lv.${card.level || 1}</span></div>
