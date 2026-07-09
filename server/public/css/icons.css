@@ -387,27 +387,25 @@
 }
 
 /* ---------- sword (single) ---------- */
-/* tapered blade (pointed tip + faceted edge) + crossguard, both on the same
-   35deg axis so they read as one weapon instead of two disconnected bars */
+/* upright sword: straight tapered blade + crossguard/handle, drawn on the
+   vertical axis so it reads immediately as a sword rather than a rotated
+   chevron */
 .gicon-sword::before {
-  top: 2%;
-  left: 33%;
-  width: 0.34em;
-  height: 64%;
+  top: 4%;
+  left: 42%;
+  width: 16%;
+  height: 56%;
   background: currentColor;
-  clip-path: polygon(50% 0%, 100% 22%, 74% 96%, 50% 100%, 26% 96%, 0% 22%);
-  transform: rotate(35deg);
-  transform-origin: top center;
+  clip-path: polygon(50% 0%, 100% 20%, 78% 100%, 22% 100%, 0% 20%);
 }
 .gicon-sword::after {
-  top: 54%;
-  left: 12%;
-  width: 76%;
-  height: 0.16em;
+  top: 58%;
+  left: 18%;
+  width: 64%;
+  height: 12%;
   background: currentColor;
-  border-radius: 0.14em;
-  box-shadow: 0 0.32em 0 -0.03em currentColor;
-  transform: rotate(35deg);
+  border-radius: 0.05em;
+  box-shadow: 0 0.24em 0 -0.04em currentColor;
 }
 
 /* ---------- crossed swords (battle) ---------- */
@@ -430,21 +428,24 @@
 }
 
 /* ---------- infinity ---------- */
+/* two rings, overlapped in the middle so they actually cross into a single
+   continuous ∞ shape instead of sitting apart as two separate "o"s
+   (border-radius:50% is rotationally symmetric, so the old rotate() calls
+   had no visible effect — the real fix is closing the gap) */
 .gicon-infinity::before,
 .gicon-infinity::after {
-  top: 24%;
-  width: 50%;
-  height: 52%;
+  top: 23%;
+  width: 62%;
+  height: 56%;
   border: 0.125em solid currentColor;
   border-radius: 50%;
+  background: transparent;
 }
 .gicon-infinity::before {
-  left: -3%;
-  transform: rotate(-30deg);
+  left: -5%;
 }
 .gicon-infinity::after {
-  right: -3%;
-  transform: rotate(30deg);
+  right: -5%;
 }
 
 /* ---------- castle ---------- */
@@ -1004,15 +1005,24 @@
 }
 
 /* ---------- gift box ---------- */
+/* box body (with a ribbon cross baked into it via layered backgrounds) below
+   a separate lid strip, so it reads as an actual present rather than two
+   plain overlapping bars */
 .gicon-gift { position: relative; display: inline-block; width: 1em; height: 1em; }
 .gicon-gift::before {
-  content: ""; position: absolute; left: 8%; top: 32%; width: 84%; height: 60%;
-  background: #ef7ba0; border-radius: 0.06em;
-  box-shadow: inset 0 0 0 999px rgba(0,0,0,0); 
+  content: ""; position: absolute; left: 10%; top: 42%; width: 80%; height: 50%;
+  background:
+    linear-gradient(#ffd54f, #ffd54f) center / 18% 100% no-repeat,
+    linear-gradient(#ffd54f, #ffd54f) center / 100% 22% no-repeat,
+    #ef7ba0;
+  border-radius: 0 0 0.06em 0.06em;
 }
 .gicon-gift::after {
-  content: ""; position: absolute; left: 44%; top: 30%; width: 12%; height: 64%;
-  background: #ffd54f;
+  content: ""; position: absolute; left: 6%; top: 28%; width: 88%; height: 16%;
+  background:
+    linear-gradient(#ffd54f, #ffd54f) center / 18% 100% no-repeat,
+    #f490ab;
+  border-radius: 0.06em;
 }
 
 /* ---------- impact / burst (critical hit) ---------- */
