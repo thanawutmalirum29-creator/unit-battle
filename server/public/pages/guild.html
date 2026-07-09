@@ -745,7 +745,7 @@
       });
     }
 
-    alert(r.frame ? "ได้กรอบปกใหม่แล้ว! ไปเลือกใส่ได้ที่หน้าบัญชีของฉัน <span class=gicon-frame></span>" : "แลกไอเทมสำเร็จ!");
+    alert(r.frame ? "ได้กรอบปกใหม่แล้ว! ไปเลือกใส่ได้ที่หน้าบัญชีของฉัน" : "แลกไอเทมสำเร็จ!");
   }
 
   // ================= บอสกิลด์ =================
@@ -776,7 +776,7 @@
   document.getElementById("bossAttackBtn").addEventListener("click", async () => {
     const r = await GameAPI.guildBossAttack();
     if (r?.error) return alert(r.error);
-    alert(`สร้างดาเมจ ${fmtNum(r.damage)}!` + (r.defeated ? " <span class=gicon-party></span> บอสถูกปราบแล้ว!" : "") + (r.leveledUp ? `\n<span class=gicon-chart-up></span> กิลด์เลื่อนเป็นเลเวล ${r.guildLevel}!` : ""));
+    alert(`สร้างดาเมจ ${fmtNum(r.damage)}!` + (r.defeated ? " บอสถูกปราบแล้ว!" : "") + (r.leveledUp ? `\nกิลด์เลื่อนเป็นเลเวล ${r.guildLevel}!` : ""));
     await renderBoss();
   });
 
