@@ -77,7 +77,7 @@ function renderBossButtons(){
     infoBtn.type = "button";
     infoBtn.className = "boss-info-btn boss-card-info-btn";
     infoBtn.setAttribute("aria-label", `รายละเอียด ${b.name} และของดรอป`);
-    infoBtn.textContent = "<span class=gicon-warning></span>";
+    infoBtn.innerHTML = "<span class=gicon-warning></span>";
     infoBtn.onclick = (e) => {
       e.stopPropagation();
       openBossInfo(key);
@@ -320,20 +320,20 @@ function renderBossInfoPanel(panel, boss, overlay){
 
   const title = document.createElement("div");
   title.className = "boss-info-title";
-  title.textContent = `<span class=gicon-note></span> รายละเอียด & ของดรอป`;
+  title.innerHTML = `<span class=gicon-note></span> รายละเอียด & ของดรอป`;
   panel.appendChild(title);
 
   const entry = document.createElement("div");
   entry.className = "boss-info-entry";
 
   const h4 = document.createElement("h4");
-  h4.textContent = `<span class=gicon-dragon></span> ${boss.name}`;
+  h4.innerHTML = `<span class=gicon-dragon></span> ${boss.name}`;
   entry.appendChild(h4);
 
   const stats = document.createElement("div");
   stats.className = "boss-info-stats";
   const hp = boss.hp !== undefined ? boss.hp : 100000; // ค่า default เดียวกับตอนสร้างบอสจริง (prepareBossBattle)
-  stats.textContent =
+  stats.innerHTML =
     `<span class=gicon-heart></span> HP ${hp.toLocaleString()}  <span class=gicon-battle></span> ATK ${boss.atk ?? "-"}  <span class=gicon-shield></span> DEF ${boss.def ?? "-"}` +
     (boss.skill ? `  <span class=gicon-sparkle></span> สกิล: ${boss.skill}` : "");
   entry.appendChild(stats);
