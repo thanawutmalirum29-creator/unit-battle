@@ -32,15 +32,27 @@
   // ช่องตรงกลางของภาพ (ที่โปร่งใส) ไม่ได้อยู่กึ่งกลางภาพเป๊ะๆ (มงกุฎด้านบนสูงกว่าถ้วยรางวัล
   // ด้านล่าง) เลยต้องคำนวณ translate ชดเชยตามพิกัดจริงของรูช่องนั้น ไม่ใช่ -50%/-50% ธรรมดา
   const TOP10_FRAME_KEY = "frame_leaderboard_top10";
-  const TOP10_FRAME_HTML = '<img class="frame-top10-img" src="/img/frames/frame-leaderboard-top10.png" alt="" draggable="false">';
 
-  // เลือก markup ตกแต่งของ ring: กรอบ Top 10 ใช้ภาพพิเศษด้านบน กรอบอื่นใช้เพชรทั่วไปตาม tier
+  // ---- กรอบพิเศษที่ใช้ภาพจริงแทนระบบเพชร/วงแหวนหมุนทั่วไป (เหมือนกรอบ Top10 ด้านบน) ----
+  // แต่ละภาพมีตำแหน่ง/ขนาดรูโปร่งใสตรงกลางไม่เท่ากัน (ขึ้นกับดีไซน์ต้นฉบับ) เลยตั้งค่า
+  // width (ภาพใหญ่กว่า ring กี่ % เพื่อให้ลาย/ปีก/มังกรที่ยื่นออกมาไม่โดนตัดขอบ) และ tx/ty
+  // (ตำแหน่งเลื่อนให้รูตรงกลางภาพไปตรงกับศูนย์กลาง ring จริง) เองทีละกรอบ
+  const SPECIAL_FRAME_IMAGES = {
+    frame_leaderboard_top10:  { src: "/img/frames/frame-leaderboard-top10.png",  width: "165%", tx: "-49.5%", ty: "-56%" },
+    frame_guild_shop_dragon:  { src: "/img/frames/frame-guild-shop-dragon.png",  width: "187%", tx: "-49.8%", ty: "-50.8%" },
+    frame_inf_100:            { src: "/img/frames/frame-inf-100.png",            width: "183%", tx: "-49.9%", ty: "-53.7%" },
+    frame_guild_shop_phoenix: { src: "/img/frames/frame-guild-shop-phoenix.png", width: "232%", tx: "-50%",   ty: "-49.8%" },
+  };
+
+  // เลือก markup ตกแต่งของ ring: กรอบที่มีอยู่ใน SPECIAL_FRAME_IMAGES ใช้ภาพพิเศษ กรอบอื่นใช้เพชรทั่วไปตาม tier
   function frameDecorHtml(frameKey) {
-    return frameKey === TOP10_FRAME_KEY ? TOP10_FRAME_HTML : FRAME_GEMS_HTML;
+    const spec = SPECIAL_FRAME_IMAGES[frameKey];
+    if (!spec) return FRAME_GEMS_HTML;
+    return `<img class="frame-special-img" style="width:${spec.width};transform:translate(${spec.tx},${spec.ty})" src="${spec.src}" alt="" draggable="false">`;
   }
-  // เลือกคลาสของ ring: กรอบ Top 10 ใช้คลาสพิเศษของตัวเอง (ปิดเอฟเฟกต์ rarity-X ทั่วไปไม่ให้ซ้อนกัน)
+  // เลือกคลาสของ ring: กรอบภาพพิเศษใช้คลาสรีเซ็ตร่วมกัน (ปิดเอฟเฟกต์ rarity-X ทั่วไปไม่ให้ซ้อนกัน)
   function frameVisualClass(frameKey, rarityClass) {
-    return frameKey === TOP10_FRAME_KEY ? "frame-special-top10" : rarityClass;
+    return SPECIAL_FRAME_IMAGES[frameKey] ? "frame-special-img-ring" : rarityClass;
   }
 
   function tierRarityClass(tier) {
@@ -291,10 +303,10 @@
    SVG inline (TOP10_FRAME_SVG) แทนระบบเพชร/วงแหวนหมุนทั่วไปข้างบน ปิดเส้นขอบ/เรืองแสงเดิม
    ของ ring ทิ้งเพราะ SVG วาดวงแหวนของตัวเองมาแล้ว แล้ววาง SVG ให้ล้นออกจากกรอบวงกลมจริง
    (ใหญ่กว่า ring 230%) เพื่อให้มงกุฎ/ปีก/เพชรที่ยื่นออกมาไม่โดนตัดขอบ ---- */
-.frame-special-top10{ border-color:transparent!important; box-shadow:none!important; }
-.frame-special-top10 .frame-top10-img{
-  position:absolute; left:50%; top:50%; width:165%; height:auto;
-  transform:translate(-49.5%,-56%); pointer-events:none; z-index:4; user-select:none;
+.frame-special-img-ring{ border-color:transparent!important; box-shadow:none!important; }
+.frame-special-img{
+  position:absolute; left:50%; top:50%; height:auto;
+  pointer-events:none; z-index:4; user-select:none;
 }
 .acct-settings-row{ margin-top:16px; }
 .acct-settings-row label{ display:block; font-size:13px; color:var(--muted); margin-bottom:8px; }
@@ -817,7 +829,7 @@
     const avatar = _cosmeticsState.avatar.catalog.find((a) => a.key === _cosmeticsState.avatar.current);
     const avatarHtml = avatar ? avatar.icon : "<span class=gicon-shield></span>";
 
-    ring.classList.remove("rarity-Rare", "rarity-Epic", "rarity-Legendary", "rarity-Mythical", "frame-special-top10");
+    ring.classList.remove("rarity-Rare", "rarity-Epic", "rarity-Legendary", "rarity-Mythical", "frame-special-img-ring");
     const equippedKey = _cosmeticsState.frames.equipped;
     const frame = equippedKey ? _cosmeticsState.frames.catalog.find((f) => f.key === equippedKey) : null;
     const frameClass = frame ? frameVisualClass(frame.key, tierRarityClass(frame.tier)) : null;
@@ -827,7 +839,7 @@
 
     // ให้แถบกลางด้านบนใช้ปกและกรอบเดียวกันเป๊ะๆ
     const gpbRing = document.getElementById("gpbAvatarRing");
-    gpbRing.classList.remove("rarity-Rare", "rarity-Epic", "rarity-Legendary", "rarity-Mythical", "frame-special-top10");
+    gpbRing.classList.remove("rarity-Rare", "rarity-Epic", "rarity-Legendary", "rarity-Mythical", "frame-special-img-ring");
     gpbRing.innerHTML = avatarHtml + frameDecorHtml(frame ? frame.key : null);
     if (frameClass) gpbRing.classList.add(frameClass);
   }
