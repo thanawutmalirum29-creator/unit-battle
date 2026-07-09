@@ -177,7 +177,7 @@
       guestBtn.textContent = "กำลังสร้างบัญชีชั่วคราว...";
       const result = await GameAPI.loginAsGuest();
       guestBtn.disabled = false;
-      guestBtn.textContent = "<span class=gicon-gear></span> เล่นแบบไม่ล็อกอิน (ชั่วคราว)";
+      guestBtn.innerHTML = "<span class=gicon-gear></span> เล่นแบบไม่ล็อกอิน (ชั่วคราว)";
 
       if (result && result.token) {
         overlay.remove();

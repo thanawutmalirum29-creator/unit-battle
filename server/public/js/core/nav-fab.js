@@ -13,12 +13,12 @@
   // ปลายทางเมนู — เรียงตามลำดับเดิมของแถบปุ่มที่เคยมีในทุกหน้า
   const NAV_ITEMS = [
     { href: "game.html", icon: "<span class=gicon-battle></span>", label: "ต่อสู้" },
-    { href: "deck.html", icon: "🃏", label: "จัดเด็ค" },
+    { href: "deck.html", icon: "<span class=gicon-card></span>", label: "จัดเด็ค" },
     { href: "shop.html", icon: "<span class=gicon-store></span>", label: "SHOP" },
     { href: "upgrade.html", icon: "<span class=gicon-star></span>", label: "UPGRADE" },
     { href: "upgradeskills.html", icon: "<span class=gicon-muscle></span>", label: "SKILLS" },
     { href: "GACHA.html", icon: "<span class=gicon-gem></span>", label: "GACHA" },
-    { href: "GACHAE.html", icon: "", label: "กาชาอุปกรณ์" },
+    { href: "GACHAE.html", icon: "<span class=gicon-frame></span>", label: "กาชาอุปกรณ์" },
     { href: "equip.html", icon: "<span class=gicon-shield></span>", label: "สวมอุปกรณ์" },
     { href: "friends.html", icon: "<span class=gicon-users></span>", label: "เพื่อน" },
     { href: "guild.html", icon: "<span class=gicon-shield></span>", label: "กิลด์" },
@@ -141,7 +141,7 @@
     ball.id = "navFabBall";
     ball.type = "button";
     ball.setAttribute("aria-label", "เมนูเปลี่ยนหน้า");
-    ball.textContent = "<span class=gicon-menu></span>";
+    ball.innerHTML = "<span class=gicon-menu></span>";
     ball.addEventListener("contextmenu", (e) => e.preventDefault());
     return ball;
   }

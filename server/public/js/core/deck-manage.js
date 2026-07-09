@@ -178,7 +178,7 @@ function renderDeck() {
 
     //  ปุ่มล็อค/ปลดล็อค — บันทึกขึ้นเซิฟเวอร์ด้วย (กันหายตอนล็อกอินใหม่/สลับเครื่อง)
     const lockBtn = document.createElement("div");
-    lockBtn.textContent = card.locked ? "<span class=gicon-lock></span>" : "<span class=gicon-unlock></span>";
+    lockBtn.innerHTML = card.locked ? "<span class=gicon-lock></span>" : "<span class=gicon-unlock></span>";
     lockBtn.style.position = "absolute";
     lockBtn.style.top = "4px";
     lockBtn.style.right = "4px";

@@ -269,7 +269,7 @@ function renderBagPanel() {
     header.className = "bag-panel-header";
 
     const h3 = document.createElement("h3");
-    h3.textContent = "<span class=gicon-bag></span> กระเป๋า";
+    h3.innerHTML = "<span class=gicon-bag></span> กระเป๋า";
     header.appendChild(h3);
 
     const bagGrid = document.createElement("div");
