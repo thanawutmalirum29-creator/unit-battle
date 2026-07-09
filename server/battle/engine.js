@@ -229,7 +229,7 @@ async function applyDamage(attacker, target, dmg, ctx, options = {}) {
   // BigBoss reactive heal
   if (target.class === 'BigBoss' && attacker && !attacker.isEnemy && attacker.skill) {
     if (Math.random() < 0.3) {
-      const heal = Math.floor(target.maxHp * 0.002);
+      const heal = Math.floor(target.maxHp * 0.05);
       target.hp = Math.min(target.maxHp, target.hp + heal);
       ctx.log(`💖 ${target.name} ฮีลตัวเอง +${heal} HP (BigBoss Reactive Heal)`, 'enemy');
     }
