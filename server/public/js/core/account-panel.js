@@ -41,6 +41,8 @@
     frame_leaderboard_top10:  { src: "/img/frames/frame-leaderboard-top10.png",  width: "165%", tx: "-49.5%", ty: "-56%" },
     frame_guild_shop_dragon:  { src: "/img/frames/frame-guild-shop-dragon.png",  width: "187%", tx: "-49.8%", ty: "-50.8%" },
     frame_inf_100:            { src: "/img/frames/frame-inf-100.png",            width: "183%", tx: "-49.9%", ty: "-53.7%" },
+    frame_inf_500:            { src: "/img/frames/frame-inf-500.png",            width: "183%", tx: "-49.9%", ty: "-53.7%" },
+    frame_inf_1000:           { src: "/img/frames/frame-inf-1000.png",           width: "183%", tx: "-49.9%", ty: "-53.7%" },
     frame_guild_shop_phoenix: { src: "/img/frames/frame-guild-shop-phoenix.png", width: "232%", tx: "-50%",   ty: "-49.8%" },
   };
 
