@@ -64,7 +64,8 @@ const FRAME_CATALOG = [
 
   // --- โหมดไม่สิ้นสุด (infStage) ---
   { key: 'frame_inf_100', source: 'achievement', category: 'inf', tier: 2, name: 'กรอบนักท่องนิรันดร์', desc: 'ไปถึงด่านที่ 100 ในโหมดไม่สิ้นสุด', stat: 'infStage', min: 100 },
-  { key: 'frame_inf_300', source: 'achievement', category: 'inf', tier: 4, name: 'กรอบเจ้าแห่งมิติไม่สิ้นสุด', desc: 'ไปถึงด่านที่ 300 ในโหมดไม่สิ้นสุด', stat: 'infStage', min: 300 },
+  { key: 'frame_inf_500', source: 'achievement', category: 'inf', tier: 3, name: 'กรอบเจ้าแห่งมิติไม่สิ้นสุด', desc: 'ไปถึงด่านที่ 500 ในโหมดไม่สิ้นสุด', stat: 'infStage', min: 500 },
+  { key: 'frame_inf_1000', source: 'achievement', category: 'inf', tier: 4, name: 'กรอบเทพเจ้าแห่งนิรันดร์', desc: 'ไปถึงด่านที่ 1000 ในโหมดไม่สิ้นสุด', stat: 'infStage', min: 1000 },
 
   // --- กิลด์ (guildLevel) ---
   { key: 'frame_guild_20', source: 'achievement', category: 'guild', tier: 2, name: 'กรอบเสาหลักกิลด์', desc: 'อยู่ในกิลด์ที่มีเลเวล 20 ขึ้นไป', stat: 'guildLevel', min: 20 },

@@ -32,7 +32,8 @@ const BADGE_CATALOG = [
   // --- โหมดไม่สิ้นสุด (INF mode progress, inf_progress.max_stage) ---
   { key: 'inf_50', category: 'inf', tier: 1, icon: '♾️', name: 'นักท่องนิรันดร์', desc: 'ไปถึงด่านที่ 50 ในโหมดไม่สิ้นสุด', stat: 'infStage', min: 50 },
   { key: 'inf_150', category: 'inf', tier: 2, icon: '♾️', name: 'ผู้พิชิตอนันต์', desc: 'ไปถึงด่านที่ 150 ในโหมดไม่สิ้นสุด', stat: 'infStage', min: 150 },
-  { key: 'inf_300', category: 'inf', tier: 3, icon: '♾️', name: 'เจ้าแห่งมิติไม่สิ้นสุด', desc: 'ไปถึงด่านที่ 300 ในโหมดไม่สิ้นสุด', stat: 'infStage', min: 300 },
+  { key: 'inf_500', category: 'inf', tier: 3, icon: '♾️', name: 'เจ้าแห่งมิติไม่สิ้นสุด', desc: 'ไปถึงด่านที่ 500 ในโหมดไม่สิ้นสุด', stat: 'infStage', min: 500 },
+  { key: 'inf_1000', category: 'inf', tier: 4, icon: '♾️', name: 'เทพเจ้าแห่งนิรันดร์', desc: 'ไปถึงด่านที่ 1000 ในโหมดไม่สิ้นสุด', stat: 'infStage', min: 1000 },
 
   // --- กิลด์ (guild level, via current guild membership) ---
   { key: 'guild_5', category: 'guild', tier: 1, icon: '🏰', name: 'สมาชิกกิลด์', desc: 'อยู่ในกิลด์ที่มีเลเวล 5 ขึ้นไป', stat: 'guildLevel', min: 5 },
