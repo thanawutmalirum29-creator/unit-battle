@@ -683,3 +683,39 @@ CREATE TABLE IF NOT EXISTS daily_mission_progress (
   PRIMARY KEY (player_id, day_index, mission_key)
 );
 CREATE INDEX IF NOT EXISTS idx_daily_mission_progress_player_day ON daily_mission_progress (player_id, day_index);
+
+-- One row per (player, scope, cycle, mission). Same idea as
+-- daily_mission_progress above, just keyed by a longer-lived cycle instead of
+-- day_index: scope 'weekly' uses game-data/guild-data.js currentGuildCycle()
+-- (Sunday 04:00 Thailand), scope 'monthly' uses game-data/cycle-quest-data.js
+-- currentMonthCycle() (1st-of-month 04:00 Thailand). Progress is bumped by
+-- the SAME db/dailyMissions.js bumpMissionProgress() call every route
+-- already makes for daily missions — see game-data/cycle-quest-data.js
+-- WEEKLY_MISSIONS/MONTHLY_MISSIONS for the catalogs and
+-- game-data/daily-data.js DAILY_MISSIONS for the `type`s matched against.
+-- mission_key '_bonus_all' is the synthetic "claim every mission this
+-- cycle" bonus row, same trick as daily_mission_progress.
+CREATE TABLE IF NOT EXISTS cycle_mission_progress (
+  player_id     UUID NOT NULL REFERENCES players(id),
+  scope         TEXT NOT NULL CHECK (scope IN ('weekly', 'monthly')),
+  cycle_index   INT NOT NULL,
+  mission_key   TEXT NOT NULL,
+  progress      INT NOT NULL DEFAULT 0,
+  claimed_at    TIMESTAMPTZ,
+  PRIMARY KEY (player_id, scope, cycle_index, mission_key)
+);
+CREATE INDEX IF NOT EXISTS idx_cycle_mission_progress_player_scope_cycle ON cycle_mission_progress (player_id, scope, cycle_index);
+
+-- One row per player. Real accumulated online/foreground time, credited by
+-- POST /api/players/heartbeat (routes/players.js) — see the big comment in
+-- game-data/playtime-data.js for exactly how a heartbeat call is turned into
+-- a number of seconds credited (server-computed elapsed-since-last-heartbeat,
+-- capped, never client-supplied). Powers the premium "playtime" avatar
+-- frames/badges (game-data/cosmetics-data.js / badges-data.js), which are
+-- deliberately a harder-to-fake track than the simpler login-streak ones.
+CREATE TABLE IF NOT EXISTS player_playtime (
+  player_id            UUID PRIMARY KEY REFERENCES players(id),
+  total_online_seconds BIGINT NOT NULL DEFAULT 0,
+  last_heartbeat_at     TIMESTAMPTZ,
+  updated_at            TIMESTAMPTZ DEFAULT now()
+);
