@@ -13,6 +13,10 @@
 
 const MAX_EQUIPPED_BADGES = 3;
 
+const {
+  PLAYTIME_MILESTONE_DAY, PLAYTIME_MILESTONE_MONTH, PLAYTIME_MILESTONE_YEAR,
+} = require('./playtime-data');
+
 // category = grouping shown in the UI. tier = 1..N within a category, just
 // for sort order (higher tier = harder to get).
 const BADGE_CATALOG = [
@@ -52,6 +56,25 @@ const BADGE_CATALOG = [
   { key: 'pvp_master', category: 'rank', tier: 2, icon: '🔱', name: 'นักสู้มาสเตอร์', desc: 'เคยไต่เรตติ้งสมรภูมิถึงระดับมาสเตอร์ (1800+)', stat: 'pvpBestRating', min: 1800 },
   { key: 'pvp_legend', category: 'rank', tier: 3, icon: '👑', name: 'ตำนานสมรภูมิ', desc: 'เคยไต่เรตติ้งสมรภูมิถึงระดับตำนาน (2000+)', stat: 'pvpBestRating', min: 2000 },
   { key: 'pvp_champion', category: 'rank', tier: 4, icon: '🏆', name: 'แชมป์สมรภูมิ', desc: 'เคยครองอันดับ 1 ของสมรภูมิเมื่อจบซีซั่นใดซีซั่นหนึ่ง', stat: 'pvpChampion', min: 1 },
+
+  // --- ล็อกอินต่อเนื่อง (players.js computePlayerBadgeStats reads
+  // daily_login_state.total_claims, a lifetime counter that already exists —
+  // see routes/daily.js. Not tied to an unbroken streak: total_claims only
+  // ever goes up, one per successful daily claim, regardless of gaps. This
+  // is the SIMPLE track — just showing up and claiming. See 'playtime'
+  // below for the harder, real-online-time track. ) ---
+  { key: 'login_30', category: 'login', tier: 1, icon: '📅', name: 'ผู้มาเยือนสม่ำเสมอ', desc: 'รับรางวัลล็อกอินรายวันสะสมครบ 30 ครั้ง', stat: 'loginTotalClaims', min: 30 },
+  { key: 'login_100', category: 'login', tier: 2, icon: '📅', name: 'ผู้ภักดีต่อเกม', desc: 'รับรางวัลล็อกอินรายวันสะสมครบ 100 ครั้ง', stat: 'loginTotalClaims', min: 100 },
+  { key: 'login_365', category: 'login', tier: 3, icon: '📅', name: 'ตำนานผู้ไม่เคยหาย', desc: 'รับรางวัลล็อกอินรายวันสะสมครบ 365 ครั้ง', stat: 'loginTotalClaims', min: 365 },
+
+  // --- เวลาออนเกมสะสมจริง (players.js computePlayerBadgeStats reads
+  // player_playtime.total_online_seconds, credited by POST /api/players/heartbeat
+  // — see game-data/playtime-data.js. This is real foreground time, not just
+  // "claimed today's login reward" like login_* above, so it's the harder /
+  // more premium track — tiers set higher than the equivalent login_* ones. ) ---
+  { key: 'playtime_1d', category: 'playtime', tier: 3, icon: '⏱️', name: 'นักเล่นตัวจริง', desc: 'ออนเกมสะสมครบ 1 วัน (24 ชม.)', stat: 'totalOnlineSeconds', min: PLAYTIME_MILESTONE_DAY },
+  { key: 'playtime_30d', category: 'playtime', tier: 4, icon: '⏳', name: 'ผู้คลั่งไคล้เกม', desc: 'ออนเกมสะสมครบ 1 เดือน (30 วัน)', stat: 'totalOnlineSeconds', min: PLAYTIME_MILESTONE_MONTH },
+  { key: 'playtime_365d', category: 'playtime', tier: 5, icon: '🕰️', name: 'ตำนานผู้ครองเกม', desc: 'ออนเกมสะสมครบ 1 ปี (365 วัน)', stat: 'totalOnlineSeconds', min: PLAYTIME_MILESTONE_YEAR },
 ];
 
 function findBadge(key) {

@@ -22,6 +22,10 @@
 // unlike badges (up to MAX_EQUIPPED_BADGES).
 // -----------------------------------------------------------------------------
 
+const {
+  PLAYTIME_MILESTONE_DAY, PLAYTIME_MILESTONE_MONTH, PLAYTIME_MILESTONE_YEAR,
+} = require('./playtime-data');
+
 const AVATAR_CATALOG = [
   { key: 'shield', icon: '🛡️', name: 'โล่นักรบ' },
   { key: 'sword', icon: '⚔️', name: 'ดาบคู่' },
@@ -72,6 +76,25 @@ const FRAME_CATALOG = [
 
   // --- อันดับลีดเดอร์บอร์ด ---
   { key: 'frame_leaderboard_top10', source: 'achievement', category: 'rank', tier: 3, name: 'กรอบตำนานลีดเดอร์บอร์ด', desc: 'เคยติดอันดับ Top 10 ในลีดเดอร์บอร์ดโหมดใดก็ได้', stat: 'leaderboardTop10', min: 1 },
+
+  // --- ล็อกอินต่อเนื่อง (players.avatar_icon-style stat, same
+  // daily_login_state.total_claims lifetime counter as badges-data.js login_* —
+  // no owned_frames row needed since it's derived live like every other
+  // achievement frame here. This is the SIMPLE track — just showing up and
+  // claiming. Tiers kept low; 'playtime' below is the harder, more premium
+  // track, real online time, so it outranks these. ) ---
+  { key: 'frame_login_30', source: 'achievement', category: 'login', tier: 1, name: 'กรอบผู้มาเยือนสม่ำเสมอ', desc: 'รับรางวัลล็อกอินรายวันสะสมครบ 30 ครั้ง', stat: 'loginTotalClaims', min: 30 },
+  { key: 'frame_login_100', source: 'achievement', category: 'login', tier: 2, name: 'กรอบผู้ภักดีต่อเกม', desc: 'รับรางวัลล็อกอินรายวันสะสมครบ 100 ครั้ง', stat: 'loginTotalClaims', min: 100 },
+  { key: 'frame_login_365', source: 'achievement', category: 'login', tier: 3, name: 'กรอบตำนานผู้ไม่เคยหาย', desc: 'รับรางวัลล็อกอินรายวันสะสมครบ 365 ครั้ง', stat: 'loginTotalClaims', min: 365 },
+
+  // --- เวลาออนเกมสะสมจริง (players.js computePlayerBadgeStats reads
+  // player_playtime.total_online_seconds, credited by POST /api/players/heartbeat
+  // — see game-data/playtime-data.js. Real foreground time, not just "claimed
+  // today's reward" like frame_login_* above — deliberately the more premium
+  // track, tiers set higher than the equivalent login milestones. ) ---
+  { key: 'frame_playtime_1d', source: 'achievement', category: 'playtime', tier: 3, name: 'กรอบนักเล่นตัวจริง', desc: 'ออนเกมสะสมครบ 1 วัน (24 ชม.)', stat: 'totalOnlineSeconds', min: PLAYTIME_MILESTONE_DAY },
+  { key: 'frame_playtime_30d', source: 'achievement', category: 'playtime', tier: 4, name: 'กรอบผู้คลั่งไคล้เกม', desc: 'ออนเกมสะสมครบ 1 เดือน (30 วัน)', stat: 'totalOnlineSeconds', min: PLAYTIME_MILESTONE_MONTH },
+  { key: 'frame_playtime_365d', source: 'achievement', category: 'playtime', tier: 5, name: 'กรอบตำนานผู้ครองเกม', desc: 'ออนเกมสะสมครบ 1 ปี (365 วัน)', stat: 'totalOnlineSeconds', min: PLAYTIME_MILESTONE_YEAR },
 
   // --- ร้านค้ากิลด์ (see game-data/guild-data.js GUILD_SHOP_CATALOG) ---
   { key: 'frame_guild_shop_dragon', source: 'guild_shop', category: 'guild_shop', tier: 3, name: 'กรอบมังกรทองกิลด์', desc: 'ซื้อได้ในร้านค้ากิลด์' },
