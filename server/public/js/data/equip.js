@@ -55,7 +55,7 @@ function renderEquipBag() {
   if (bag.length === 0) {
     const empty = document.createElement("p");
     empty.className = "equip-bag-empty";
-    empty.textContent = "<span class=gicon-x></span> ยังไม่มีอุปกรณ์ในกระเป๋า — ลองไปสุ่มที่กาชาอุปกรณ์ดูสิ";
+    empty.innerHTML = "<span class=gicon-x></span> ยังไม่มีอุปกรณ์ในกระเป๋า — ลองไปสุ่มที่กาชาอุปกรณ์ดูสิ";
     panel.appendChild(empty);
     div.appendChild(panel);
 
@@ -114,7 +114,7 @@ function renderEquipBag() {
     nav.className = "equip-bag-pager";
 
     const prev = document.createElement("button");
-    prev.textContent = "<span class=gicon-arrow-left></span>";
+    prev.innerHTML = "<span class=gicon-arrow-left></span>";
     prev.onclick = () => {
       currentPage = currentPage === 1 ? totalPages : currentPage - 1;
       renderEquipBag();
@@ -126,7 +126,7 @@ function renderEquipBag() {
     nav.appendChild(label);
 
     const next = document.createElement("button");
-    next.textContent = "<span class=gicon-arrow-right></span>";
+    next.innerHTML = "<span class=gicon-arrow-right></span>";
     next.onclick = () => {
       currentPage = currentPage === totalPages ? 1 : currentPage + 1;
       renderEquipBag();
