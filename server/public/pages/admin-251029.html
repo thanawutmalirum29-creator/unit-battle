@@ -633,7 +633,7 @@
           body: JSON.stringify({ subject, body, money, bagKey, bagQty, cardName, equipName }),
         });
         msgEl.className = "adm-formmsg ok";
-        msgEl.textContent = "ส่งเมลแล้ว <span class=gicon-check></span>";
+        msgEl.innerHTML = "ส่งเมลแล้ว <span class=gicon-check></span>";
         msgEl.style.display = "block";
         document.getElementById("mailSubject").value = "";
         document.getElementById("mailBody").value = "";
@@ -872,7 +872,7 @@
         msgEl.style.display = "block";
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = "<span class=gicon-arrow-left></span> เรียกคืน";
+        submitBtn.innerHTML = "<span class=gicon-arrow-left></span> เรียกคืน";
       }
     });
 

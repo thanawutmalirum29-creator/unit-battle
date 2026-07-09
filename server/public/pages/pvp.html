@@ -259,7 +259,7 @@
     if (s.season.status !== "active") {
       hint.textContent = "";
     } else if (!s.hasDefenseTeam) {
-      hint.textContent = "<span class=gicon-warning></span> ยังไม่ได้ตั้งทีมป้องกัน — ไปที่แท็บ \"แต่งทีมป้องกัน\" ก่อนถูกโจมตี!";
+      hint.innerHTML = "<span class=gicon-warning></span> ยังไม่ได้ตั้งทีมป้องกัน — ไปที่แท็บ \"แต่งทีมป้องกัน\" ก่อนถูกโจมตี!";
     } else {
       hint.textContent = "";
     }
@@ -310,7 +310,7 @@
     const hint = document.getElementById("defenseHint");
     if (selectedDefenseIds.length !== 4) { hint.textContent = "กรุณาเลือกให้ครบ 4 ใบ"; return; }
     const r = await GameAPI.pvpSetDefense(selectedDefenseIds);
-    hint.textContent = r?.error ? r.error : "<span class=gicon-check></span> บันทึกทีมป้องกันแล้ว";
+    hint.innerHTML = r?.error ? r.error : "<span class=gicon-check></span> บันทึกทีมป้องกันแล้ว";
     loadStatus();
   });
 
@@ -373,7 +373,7 @@
     const btn = document.getElementById("confirmAttackBtn");
     btn.disabled = true; btn.textContent = "กำลังต่อสู้...";
     const r = await GameAPI.pvpAttack(currentOpponent.playerId, selectedAttackIds);
-    btn.disabled = false; btn.textContent = "<span class=gicon-battle></span> โจมตี!";
+    btn.disabled = false; btn.innerHTML = "<span class=gicon-battle></span> โจมตี!";
     if (r?.error) { alert(r.error); return; }
     showAttackResult(r);
     loadStatus();
