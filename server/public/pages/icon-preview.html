@@ -1,65 +1,136 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
 <meta charset="utf-8">
+<title>Icon Preview — unit-battle</title>
 <link rel="stylesheet" href="../css/icons.css" />
 <style>
-  body { background:#1a1a2e; color:#fff; font-family:sans-serif; padding:20px; }
-  .grid { display:grid; grid-template-columns: repeat(8, 1fr); gap:18px; }
-  .cell { display:flex; flex-direction:column; align-items:center; gap:6px; font-size:11px; }
-  [class^=gicon-] { font-size: 32px; color:#ffd166; }
+  * { box-sizing: border-box; }
+  body {
+    background:#14161f; color:#eee; font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    padding:24px; margin:0;
+  }
+  h1 { font-size:18px; margin:0 0 4px; }
+  p.sub { color:#9aa0ac; font-size:13px; margin:0 0 20px; }
+  .grid {
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap:10px;
+  }
+  .cell {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:6px; background:#1d2029; border:1px solid #2b2f3a; border-radius:10px;
+    padding:14px 8px;
+  }
+  .icon-box {
+    display:flex; align-items:center; justify-content:center;
+    width:44px; height:44px; background:#262a35; border-radius:8px;
+  }
+  .icon-box span[class^="gicon-"] {
+    font-size:26px; color:#ffd166; line-height:1;
+  }
+  .cls-name {
+    font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+    font-size:12px; color:#7bd6ff; font-weight:600;
+  }
+  .snippet {
+    font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+    font-size:10px; color:#6c7280; text-align:center; word-break:break-all;
+  }
+  .count { color:#6c7280; font-size:12px; margin-bottom:16px; }
 </style>
 </head>
 <body>
+<h1>Icon Preview</h1>
+<p class="sub">ทุกไอคอนวาดด้วย CSS ล้วนใน css/icons.css (ไม่มีรูปภาพ/อิโมจิ) — ใต้ไอคอนคือชื่อ class CSS (สีฟ้า) และโค้ดใช้งานจริง (สีเทา) เพื่อให้ดูรูปแล้วรู้ว่าตรงกับคำสั่งไหน</p>
+<div class="count">86 ไอคอน</div>
 <div class="grid">
-  <div class="cell"><span class=gicon-gear"></span>gear</div>
-  <div class="cell"><span class=gicon-user"></span>user</div>
-  <div class="cell"><span class=gicon-users"></span>users</div>
-  <div class="cell"><span class=gicon-coin"></span>coin</div>
-  <div class="cell"><span class=gicon-gem"></span>gem</div>
-  <div class="cell"><span class=gicon-close"></span>close</div>
-  <div class="cell"><span class=gicon-check"></span>check</div>
-  <div class="cell"><span class=gicon-check-circle"></span>check-circle</div>
-  <div class="cell"><span class=gicon-shield"></span>shield</div>
-  <div class="cell"><span class=gicon-lock"></span>lock</div>
-  <div class="cell"><span class=gicon-unlock"></span>unlock</div>
-  <div class="cell"><span class=gicon-pencil"></span>pencil</div>
-  <div class="cell"><span class=gicon-mail"></span>mail</div>
-  <div class="cell"><span class=gicon-card"></span>card</div>
-  <div class="cell"><span class=gicon-bag"></span>bag</div>
-  <div class="cell"><span class=gicon-medal"></span>medal</div>
-  <div class="cell"><span class=gicon-frame"></span>frame</div>
-  <div class="cell"><span class=gicon-sword"></span>sword</div>
-  <div class="cell"><span class=gicon-battle"></span>battle</div>
-  <div class="cell"><span class=gicon-infinity"></span>infinity</div>
-  <div class="cell"><span class=gicon-castle"></span>castle</div>
-  <div class="cell"><span class=gicon-cart"></span>cart</div>
-  <div class="cell"><span class=gicon-store"></span>store</div>
-  <div class="cell"><span class=gicon-door"></span>door</div>
-  <div class="cell"><span class=gicon-search"></span>search</div>
-  <div class="cell"><span class=gicon-plus"></span>plus</div>
-  <div class="cell"><span class=gicon-chart-up"></span>chart-up</div>
-  <div class="cell"><span class=gicon-refresh"></span>refresh</div>
-  <div class="cell"><span class=gicon-trash"></span>trash</div>
-  <div class="cell"><span class=gicon-warning"></span>warning</div>
-  <div class="cell"><span class=gicon-block"></span>block</div>
-  <div class="cell"><span class=gicon-star"></span>star</div>
-  <div class="cell"><span class=gicon-crown"></span>crown</div>
-  <div class="cell"><span class=gicon-bolt"></span>bolt</div>
-  <div class="cell"><span class=gicon-fire"></span>fire</div>
-  <div class="cell"><span class=gicon-snowflake"></span>snowflake</div>
-  <div class="cell"><span class=gicon-moon"></span>moon</div>
-  <div class="cell"><span class=gicon-hourglass"></span>hourglass</div>
-  <div class="cell"><span class=gicon-clock"></span>clock</div>
-  <div class="cell"><span class=gicon-help"></span>help</div>
-  <div class="cell"><span class=gicon-handshake"></span>handshake</div>
-  <div class="cell"><span class=gicon-chat"></span>chat</div>
-  <div class="cell"><span class=gicon-arrow-up"></span>arrow-up</div>
-  <div class="cell"><span class=gicon-arrow-down"></span>arrow-down</div>
-  <div class="cell"><span class=gicon-eagle"></span>eagle</div>
-  <div class="cell"><span class=gicon-wolf"></span>wolf</div>
-  <div class="cell"><span class=gicon-dragon"></span>dragon</div>
-  <div class="cell"><span class=gicon-skull"></span>skull</div>
+  <div class="cell"><span class="icon-box"><span class="gicon-anger"></span></span><span class="cls-name">.gicon-anger</span><span class="snippet">&lt;span class=gicon-anger&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-arrow-down"></span></span><span class="cls-name">.gicon-arrow-down</span><span class="snippet">&lt;span class=gicon-arrow-down&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-arrow-left"></span></span><span class="cls-name">.gicon-arrow-left</span><span class="snippet">&lt;span class=gicon-arrow-left&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-arrow-right"></span></span><span class="cls-name">.gicon-arrow-right</span><span class="snippet">&lt;span class=gicon-arrow-right&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-arrow-up"></span></span><span class="cls-name">.gicon-arrow-up</span><span class="snippet">&lt;span class=gicon-arrow-up&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-bag"></span></span><span class="cls-name">.gicon-bag</span><span class="snippet">&lt;span class=gicon-bag&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-battle"></span></span><span class="cls-name">.gicon-battle</span><span class="snippet">&lt;span class=gicon-battle&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-bell"></span></span><span class="cls-name">.gicon-bell</span><span class="snippet">&lt;span class=gicon-bell&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-block"></span></span><span class="cls-name">.gicon-block</span><span class="snippet">&lt;span class=gicon-block&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-blood"></span></span><span class="cls-name">.gicon-blood</span><span class="snippet">&lt;span class=gicon-blood&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-bolt"></span></span><span class="cls-name">.gicon-bolt</span><span class="snippet">&lt;span class=gicon-bolt&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-bomb"></span></span><span class="cls-name">.gicon-bomb</span><span class="snippet">&lt;span class=gicon-bomb&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-box"></span></span><span class="cls-name">.gicon-box</span><span class="snippet">&lt;span class=gicon-box&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-bulb"></span></span><span class="cls-name">.gicon-bulb</span><span class="snippet">&lt;span class=gicon-bulb&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-card"></span></span><span class="cls-name">.gicon-card</span><span class="snippet">&lt;span class=gicon-card&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-cart"></span></span><span class="cls-name">.gicon-cart</span><span class="snippet">&lt;span class=gicon-cart&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-castle"></span></span><span class="cls-name">.gicon-castle</span><span class="snippet">&lt;span class=gicon-castle&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-chart-up"></span></span><span class="cls-name">.gicon-chart-up</span><span class="snippet">&lt;span class=gicon-chart-up&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-chat"></span></span><span class="cls-name">.gicon-chat</span><span class="snippet">&lt;span class=gicon-chat&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-check"></span></span><span class="cls-name">.gicon-check</span><span class="snippet">&lt;span class=gicon-check&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-check-circle"></span></span><span class="cls-name">.gicon-check-circle</span><span class="snippet">&lt;span class=gicon-check-circle&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-clock"></span></span><span class="cls-name">.gicon-clock</span><span class="snippet">&lt;span class=gicon-clock&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-close"></span></span><span class="cls-name">.gicon-close</span><span class="snippet">&lt;span class=gicon-close&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-coin"></span></span><span class="cls-name">.gicon-coin</span><span class="snippet">&lt;span class=gicon-coin&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-crown"></span></span><span class="cls-name">.gicon-crown</span><span class="snippet">&lt;span class=gicon-crown&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-dice"></span></span><span class="cls-name">.gicon-dice</span><span class="snippet">&lt;span class=gicon-dice&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-door"></span></span><span class="cls-name">.gicon-door</span><span class="snippet">&lt;span class=gicon-door&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-dot-blue"></span></span><span class="cls-name">.gicon-dot-blue</span><span class="snippet">&lt;span class=gicon-dot-blue&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-dot-gray"></span></span><span class="cls-name">.gicon-dot-gray</span><span class="snippet">&lt;span class=gicon-dot-gray&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-dot-green"></span></span><span class="cls-name">.gicon-dot-green</span><span class="snippet">&lt;span class=gicon-dot-green&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-dot-purple"></span></span><span class="cls-name">.gicon-dot-purple</span><span class="snippet">&lt;span class=gicon-dot-purple&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-dot-white"></span></span><span class="cls-name">.gicon-dot-white</span><span class="snippet">&lt;span class=gicon-dot-white&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-dragon"></span></span><span class="cls-name">.gicon-dragon</span><span class="snippet">&lt;span class=gicon-dragon&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-droplet"></span></span><span class="cls-name">.gicon-droplet</span><span class="snippet">&lt;span class=gicon-droplet&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-eagle"></span></span><span class="cls-name">.gicon-eagle</span><span class="snippet">&lt;span class=gicon-eagle&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-fire"></span></span><span class="cls-name">.gicon-fire</span><span class="snippet">&lt;span class=gicon-fire&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-frame"></span></span><span class="cls-name">.gicon-frame</span><span class="snippet">&lt;span class=gicon-frame&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-gear"></span></span><span class="cls-name">.gicon-gear</span><span class="snippet">&lt;span class=gicon-gear&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-gem"></span></span><span class="cls-name">.gicon-gem</span><span class="snippet">&lt;span class=gicon-gem&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-gift"></span></span><span class="cls-name">.gicon-gift</span><span class="snippet">&lt;span class=gicon-gift&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-handshake"></span></span><span class="cls-name">.gicon-handshake</span><span class="snippet">&lt;span class=gicon-handshake&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-heart"></span></span><span class="cls-name">.gicon-heart</span><span class="snippet">&lt;span class=gicon-heart&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-heart-blue"></span></span><span class="cls-name">.gicon-heart-blue</span><span class="snippet">&lt;span class=gicon-heart-blue&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-heart-green"></span></span><span class="cls-name">.gicon-heart-green</span><span class="snippet">&lt;span class=gicon-heart-green&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-heart-purple"></span></span><span class="cls-name">.gicon-heart-purple</span><span class="snippet">&lt;span class=gicon-heart-purple&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-heart-yellow"></span></span><span class="cls-name">.gicon-heart-yellow</span><span class="snippet">&lt;span class=gicon-heart-yellow&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-help"></span></span><span class="cls-name">.gicon-help</span><span class="snippet">&lt;span class=gicon-help&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-hourglass"></span></span><span class="cls-name">.gicon-hourglass</span><span class="snippet">&lt;span class=gicon-hourglass&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-impact"></span></span><span class="cls-name">.gicon-impact</span><span class="snippet">&lt;span class=gicon-impact&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-infinity"></span></span><span class="cls-name">.gicon-infinity</span><span class="snippet">&lt;span class=gicon-infinity&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-lock"></span></span><span class="cls-name">.gicon-lock</span><span class="snippet">&lt;span class=gicon-lock&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-mail"></span></span><span class="cls-name">.gicon-mail</span><span class="snippet">&lt;span class=gicon-mail&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-mailbox"></span></span><span class="cls-name">.gicon-mailbox</span><span class="snippet">&lt;span class=gicon-mailbox&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-medal"></span></span><span class="cls-name">.gicon-medal</span><span class="snippet">&lt;span class=gicon-medal&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-menu"></span></span><span class="cls-name">.gicon-menu</span><span class="snippet">&lt;span class=gicon-menu&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-mirror"></span></span><span class="cls-name">.gicon-mirror</span><span class="snippet">&lt;span class=gicon-mirror&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-moon"></span></span><span class="cls-name">.gicon-moon</span><span class="snippet">&lt;span class=gicon-moon&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-muscle"></span></span><span class="cls-name">.gicon-muscle</span><span class="snippet">&lt;span class=gicon-muscle&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-mute"></span></span><span class="cls-name">.gicon-mute</span><span class="snippet">&lt;span class=gicon-mute&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-note"></span></span><span class="cls-name">.gicon-note</span><span class="snippet">&lt;span class=gicon-note&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-numbers"></span></span><span class="cls-name">.gicon-numbers</span><span class="snippet">&lt;span class=gicon-numbers&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-palette"></span></span><span class="cls-name">.gicon-palette</span><span class="snippet">&lt;span class=gicon-palette&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-party"></span></span><span class="cls-name">.gicon-party</span><span class="snippet">&lt;span class=gicon-party&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-pencil"></span></span><span class="cls-name">.gicon-pencil</span><span class="snippet">&lt;span class=gicon-pencil&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-pin"></span></span><span class="cls-name">.gicon-pin</span><span class="snippet">&lt;span class=gicon-pin&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-plus"></span></span><span class="cls-name">.gicon-plus</span><span class="snippet">&lt;span class=gicon-plus&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-refresh"></span></span><span class="cls-name">.gicon-refresh</span><span class="snippet">&lt;span class=gicon-refresh&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-rock"></span></span><span class="cls-name">.gicon-rock</span><span class="snippet">&lt;span class=gicon-rock&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-search"></span></span><span class="cls-name">.gicon-search</span><span class="snippet">&lt;span class=gicon-search&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-shield"></span></span><span class="cls-name">.gicon-shield</span><span class="snippet">&lt;span class=gicon-shield&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-skull"></span></span><span class="cls-name">.gicon-skull</span><span class="snippet">&lt;span class=gicon-skull&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-snowflake"></span></span><span class="cls-name">.gicon-snowflake</span><span class="snippet">&lt;span class=gicon-snowflake&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-sparkle"></span></span><span class="cls-name">.gicon-sparkle</span><span class="snippet">&lt;span class=gicon-sparkle&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-star"></span></span><span class="cls-name">.gicon-star</span><span class="snippet">&lt;span class=gicon-star&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-store"></span></span><span class="cls-name">.gicon-store</span><span class="snippet">&lt;span class=gicon-store&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-sword"></span></span><span class="cls-name">.gicon-sword</span><span class="snippet">&lt;span class=gicon-sword&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-tag"></span></span><span class="cls-name">.gicon-tag</span><span class="snippet">&lt;span class=gicon-tag&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-target"></span></span><span class="cls-name">.gicon-target</span><span class="snippet">&lt;span class=gicon-target&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-trash"></span></span><span class="cls-name">.gicon-trash</span><span class="snippet">&lt;span class=gicon-trash&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-trophy"></span></span><span class="cls-name">.gicon-trophy</span><span class="snippet">&lt;span class=gicon-trophy&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-unlock"></span></span><span class="cls-name">.gicon-unlock</span><span class="snippet">&lt;span class=gicon-unlock&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-user"></span></span><span class="cls-name">.gicon-user</span><span class="snippet">&lt;span class=gicon-user&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-users"></span></span><span class="cls-name">.gicon-users</span><span class="snippet">&lt;span class=gicon-users&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-warning"></span></span><span class="cls-name">.gicon-warning</span><span class="snippet">&lt;span class=gicon-warning&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-wolf"></span></span><span class="cls-name">.gicon-wolf</span><span class="snippet">&lt;span class=gicon-wolf&gt;&lt;/span&gt;</span></div>
+  <div class="cell"><span class="icon-box"><span class="gicon-x"></span></span><span class="cls-name">.gicon-x</span><span class="snippet">&lt;span class=gicon-x&gt;&lt;/span&gt;</span></div>
 </div>
 </body>
 </html>

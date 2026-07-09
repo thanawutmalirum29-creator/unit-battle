@@ -16,7 +16,7 @@
 </head>
 <body onload="renderGachaBoxes()">
 <header class="topbar">
-  <h1>🔮 Gacha</h1>
+  <h1><span class=gicon-gem></span> Gacha</h1>
   <div class="right-group">
     <div id="moneyWindow"><span class=gicon-coin></span> 0</div>
   </div>
@@ -57,7 +57,7 @@ function renderGachaBoxes(){
 
     // ราคาปกติ
     let cost1 = poolObj.cost;
-// ✅ ตรวจตาม poolKey
+//  ตรวจตาม poolKey
 cost1 = enforceMinCost(key, cost1);
 
     const cost3 = Math.floor(cost1 * 3 * 0.9); // ลด 10%
@@ -159,7 +159,7 @@ async function gachaPull(poolKey, count) {
   showPulledCards(result.results);
 }
 
-// 🔐 ขายการ์ด — เซิฟเป็นคนตรวจการมีอยู่จริง + คิดราคาเอง (เดิมหน้านี้มีตาราง
+//  ขายการ์ด — เซิฟเป็นคนตรวจการมีอยู่จริง + คิดราคาเอง (เดิมหน้านี้มีตาราง
 // ราคาของตัวเองที่ไม่ตรงกับ render.js เลย — ตอนนี้เหลือแหล่งราคาเดียวคือเซิฟ)
 async function sellCard(cardId){
   if (!window.GameAPI || !GameAPI.isLoggedIn()) {
@@ -189,7 +189,7 @@ function showRates(poolKey){
 
   let blacklist = JSON.parse(localStorage.getItem("gacha_blacklist") || "[]");
 
-  // ⭐ กำหนดลำดับที่อยากให้แสดง
+  //  กำหนดลำดับที่อยากให้แสดง
   const rarityOrder = ["Cosmic", "Mythical", "Legendary", "Epic", "Rare", "Common"];
 
   let html = "";
@@ -217,7 +217,7 @@ function showRates(poolKey){
   document.getElementById("ratePopup").classList.remove("hidden");
   document.body.classList.add("no-scroll");
 }
-let currentRatePool = null; // ⭐ เก็บ poolKey ล่าสุดที่เปิดเรท
+let currentRatePool = null; // <span class=gicon-star></span> เก็บ poolKey ล่าสุดที่เปิดเรท
 
 function toggleBlacklist(name){
   let blacklist = JSON.parse(localStorage.getItem("gacha_blacklist") || "[]");
@@ -241,7 +241,7 @@ function toggleBlacklist(name){
 function closePopup(){
   document.getElementById("ratePopup").classList.add("hidden");
 
-  // 🔓 ปลดล็อกการเลื่อน
+  //  ปลดล็อกการเลื่อน
   document.body.classList.remove("no-scroll");
 }
 
@@ -276,11 +276,11 @@ async function showPulledCards(cards) {
   const skipBtn = document.getElementById("skipButton");
   let skipped = false;
 
-  // ✅ แสดง overlay ทุกครั้ง
+  //  แสดง overlay ทุกครั้ง
   overlay.style.display = "flex";
   document.body.classList.add("no-scroll");
 
-  // ✅ ลบ element การ์ดเก่าออก แต่ไม่ลบปุ่ม Skip
+  //  ลบ element การ์ดเก่าออก แต่ไม่ลบปุ่ม Skip
   Array.from(overlay.querySelectorAll(".gacha-fly-card, .gacha-static-card, .result-wrap"))
        .forEach(el => el.remove());
 
@@ -306,7 +306,7 @@ async function showPulledCards(cards) {
     wrap.style.alignItems = "center";
     wrap.style.gap = "20px";
     wrap.style.marginTop = "30px";
-    // #gachaOverlay เป็น flex row → wrap เป็น flex item ที่ default จะ "หุบตามเนื้อหา"
+    // #gachaOverlay เป็น flex row  wrap เป็น flex item ที่ default จะ "หุบตามเนื้อหา"
     // (ไม่ยึดความกว้างจริงของจอ) ต้องบังคับ width:100% ไว้ ไม่งั้น grid ข้างในจะคำนวณ
     // ความกว้างแบบ max-content (พยายามยัดให้ครบคอลัมน์สุดตาม max-width) แล้วล้นจอมือถือ
     wrap.style.width = "100%";
@@ -317,7 +317,7 @@ async function showPulledCards(cards) {
     const sorted = [...cards].sort((a, b) => rarityRank[b.rarity] - rarityRank[a.rarity]);
 
     if (cards.length === 3) {
-      // ⭐ ใบที่ดีที่สุด
+      //  ใบที่ดีที่สุด
       const best = sorted[0];
       const def = best.def ?? "?";
       const bestEl = document.createElement("div");
@@ -331,7 +331,7 @@ async function showPulledCards(cards) {
       `;
       wrap.appendChild(bestEl);
 
-      // ⭐ อีกสองใบล่าง
+      //  อีกสองใบล่าง
       const bottomRow = document.createElement("div");
       bottomRow.style.display = "flex";
       bottomRow.style.gap = "12px";
@@ -352,10 +352,10 @@ async function showPulledCards(cards) {
 
       wrap.appendChild(bottomRow);
     } else {
-      // ✅ layout เดิม (สำหรับ 1, 10 ใบ)
+      //  layout เดิม (สำหรับ 1, 10 ใบ)
       const container = document.createElement("div");
       container.style.display = "grid";
-      // 🟢 อิง --card-w จาก theme.css ตัวเดียว (ตัวแปรกลางเดียวกับทุกการ์ดในเกม)
+      //  อิง --card-w จาก theme.css ตัวเดียว (ตัวแปรกลางเดียวกับทุกการ์ดในเกม)
       // แทนใส่เลข px ซ้ำไว้ที่นี่ — แก้ขนาดการ์ดที่ theme.css ที่เดียวพอ
       container.style.gridTemplateColumns = "repeat(auto-fit, minmax(var(--card-w), 1fr))";
       container.style.gap = "12px";

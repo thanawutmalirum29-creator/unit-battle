@@ -15,17 +15,25 @@
 </head>
 <body>
 <header class="topbar">
-  <h1>💪 อัปเกรดสกิล</h1>
+  <button class="back-btn" onclick="goBack()"><span class=gicon-arrow-left></span> กลับ</button>
+  <h1><span class="ico ico-power" aria-hidden="true"></span>อัปเกรดสกิล
+    <span class="page-head-sub">ใช้ชาร์ดยกระดับพลังสกิลของการ์ด</span>
+  </h1>
 </header>
 <div class="main-wrap">
   <div class="panel">
-    <h3>เลือกตัวละคร/การ์ด</h3>
+    <div class="panel-head">
+      <h3>เลือกตัวละคร/การ์ด</h3>
+      <span class="deck-count-badge" id="deckCount">0 ใบ</span>
+    </div>
     <div id="deck-wrapper" class="upgrade-grid"></div>
   </div>
 
  <div class="panel skill-panel">
   <h3>รายละเอียดสกิล</h3>
-  <div id="skillDetail">เลือกการ์ดเพื่อดู</div>
+  <div id="skillDetail">
+    <p class="skill-empty-hint"><span class="ico ico-tap" aria-hidden="true"></span>แตะการ์ดด้านบนเพื่อดูรายละเอียดสกิลและอัปเกรด</p>
+  </div>
 </div>
 </div>
 
@@ -34,6 +42,7 @@
 <script src="../js/core/auth-ui.js"></script>
 <script src="../js/core/deck.js"></script>
 <script src="../js/core/bag.js"></script>
+<script src="../js/shared/battle-math.js"></script>
 <script src="../js/core/render.js"></script>
 <script src="../js/data/upgradeSkills.js"></script>
 <script src="../js/core/nav-fab.js"></script>

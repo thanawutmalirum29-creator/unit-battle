@@ -57,7 +57,7 @@
     .opp-meta{ color:var(--muted); font-size:12px; margin-top:2px; }
     .opp-actions{ flex:0 0 auto; }
 
-    /* 🟢 การ์ดเลือกทีมตั้งรับ PvP ใช้ขนาดเดียวกับการ์ดทุกที่ในเกม (--card-w/--card-h
+    /*  การ์ดเลือกทีมตั้งรับ PvP ใช้ขนาดเดียวกับการ์ดทุกที่ในเกม (--card-w/--card-h
        มาจาก theme.css) แทนที่จะปล่อยให้กริดคำนวณความกว้างเอง */
     .deck-pick-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(var(--card-w),1fr)); gap:8px; margin:10px 0; justify-items:center; }
     .pick-card{
@@ -113,7 +113,7 @@
 <!-- ===================== หน้าหลัก ===================== -->
 <div class="pvp-tab-panel active" data-panel="home">
   <div class="rank-card">
-    <div class="rank-icon" id="homeRankIcon">🥈</div>
+    <div class="rank-icon" id="homeRankIcon"><span class=gicon-medal></span></div>
     <div style="flex:1;">
       <div class="rank-name" id="homeRankName">—</div>
       <div class="rank-sub" id="homeRankSub">—</div>
@@ -148,14 +148,14 @@
 <div class="pvp-tab-panel" data-panel="attack">
   <div id="attackStep1">
     <p style="color:var(--muted); font-size:13px;">เลือกคู่ต่อสู้ที่เรตติ้งใกล้เคียงกัน (สุ่มจากผู้เล่นในช่วงระดับเดียวกัน)</p>
-    <button id="refreshOpponentsBtn">🔄 หาคู่ต่อสู้ใหม่</button>
+    <button id="refreshOpponentsBtn"><span class=gicon-refresh></span> หาคู่ต่อสู้ใหม่</button>
     <div id="opponentsList" style="margin-top:10px;"></div>
   </div>
   <div id="attackStep2" style="display:none;">
     <p style="color:var(--muted); font-size:13px;">เลือกการ์ด 4 ใบสำหรับการโจมตีครั้งนี้</p>
     <div id="attackDeckGrid" class="deck-pick-grid"></div>
     <div style="display:flex; gap:8px; margin-top:10px;">
-      <button id="confirmAttackBtn">⚔️ โจมตี!</button>
+      <button id="confirmAttackBtn"><span class=gicon-battle></span> โจมตี!</button>
       <button id="cancelAttackBtn">ยกเลิก</button>
     </div>
   </div>
@@ -202,7 +202,7 @@
     });
   });
 
-  function starsText(n) { return "⭐".repeat(Math.max(1, Number(n) || 1)); }
+  function starsText(n) { return "<span class=gicon-star></span>".repeat(Math.max(1, Number(n) || 1)); }
 
   function rarityClass(card) {
     const r = card.rarity || "Common";
@@ -259,7 +259,7 @@
     if (s.season.status !== "active") {
       hint.textContent = "";
     } else if (!s.hasDefenseTeam) {
-      hint.textContent = "⚠️ ยังไม่ได้ตั้งทีมป้องกัน — ไปที่แท็บ \"แต่งทีมป้องกัน\" ก่อนถูกโจมตี!";
+      hint.textContent = "<span class=gicon-warning></span> ยังไม่ได้ตั้งทีมป้องกัน — ไปที่แท็บ \"แต่งทีมป้องกัน\" ก่อนถูกโจมตี!";
     } else {
       hint.textContent = "";
     }
@@ -310,7 +310,7 @@
     const hint = document.getElementById("defenseHint");
     if (selectedDefenseIds.length !== 4) { hint.textContent = "กรุณาเลือกให้ครบ 4 ใบ"; return; }
     const r = await GameAPI.pvpSetDefense(selectedDefenseIds);
-    hint.textContent = r?.error ? r.error : "✅ บันทึกทีมป้องกันแล้ว";
+    hint.textContent = r?.error ? r.error : "<span class=gicon-check></span> บันทึกทีมป้องกันแล้ว";
     loadStatus();
   });
 
@@ -373,7 +373,7 @@
     const btn = document.getElementById("confirmAttackBtn");
     btn.disabled = true; btn.textContent = "กำลังต่อสู้...";
     const r = await GameAPI.pvpAttack(currentOpponent.playerId, selectedAttackIds);
-    btn.disabled = false; btn.textContent = "⚔️ โจมตี!";
+    btn.disabled = false; btn.textContent = "<span class=gicon-battle></span> โจมตี!";
     if (r?.error) { alert(r.error); return; }
     showAttackResult(r);
     loadStatus();
@@ -385,10 +385,10 @@
     resultEl.style.display = "";
     const card = document.getElementById("attackResultCard");
     card.innerHTML = `
-      <div class="rank-icon">${r.win ? "🏆" : "💥"}</div>
+      <div class="rank-icon">${r.win ? "<span class=gicon-trophy></span>" : "<span class=gicon-impact></span>"}</div>
       <div style="flex:1;">
         <div class="rank-name">${r.win ? "ชนะ!" : "แพ้"}</div>
-        <div class="rank-sub">เรตติ้ง ${r.attackerRatingBefore} → ${r.attackerRatingAfter} (${r.attackerDelta >= 0 ? "+" : ""}${r.attackerDelta})</div>
+        <div class="rank-sub">เรตติ้ง ${r.attackerRatingBefore} <span class=gicon-arrow-right></span> ${r.attackerRatingAfter} (${r.attackerDelta >= 0 ? "+" : ""}${r.attackerDelta})</div>
         <div class="rank-stats">
           <span>รางวัล: <b>${r.rewards.money.toLocaleString()} เงิน</b></span>
           <span><b>${r.rewards.medals}</b> เหรียญสมรภูมิ</span>

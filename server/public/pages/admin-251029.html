@@ -124,7 +124,7 @@
 <body>
 
 <div id="gateScreen">
-  <h2>🛡️ Admin Console</h2>
+  <h2><span class=gicon-shield></span> Admin Console</h2>
   <p class="muted">กรอกรหัสผ่านเพื่อเข้าใช้งาน</p>
   <form id="gateForm">
     <input type="password" id="gateCode" placeholder="รหัสผ่าน" autocomplete="off" autofocus />
@@ -135,7 +135,7 @@
 
 <div id="consoleScreen" style="display:none">
   <header class="topbar">
-    <h1>🛡️ Admin Console</h1>
+    <h1><span class=gicon-shield></span> Admin Console</h1>
     <div class="right-group">
       <button id="adminLogoutBtn">ออกจากระบบ</button>
     </div>
@@ -146,14 +146,14 @@
   <section class="panel">
     <div class="adm-toolbar">
       <input type="text" id="adminSearch" placeholder="ค้นหาด้วยชื่อหรือ ID" />
-      <button id="adminRefreshBtn">🔄 รีเฟรช</button>
+      <button id="adminRefreshBtn"><span class=gicon-refresh></span> รีเฟรช</button>
     </div>
     <div id="adminStatusMsg"></div>
     <div style="overflow-x:auto">
       <table class="adm-table">
         <thead>
           <tr>
-            <th>ผู้เล่น</th><th>Public ID</th><th>Internal ID</th><th>💰 เงิน</th><th>สถานะ</th><th></th>
+            <th>ผู้เล่น</th><th>Public ID</th><th>Internal ID</th><th><span class=gicon-coin></span> เงิน</th><th>สถานะ</th><th></th>
           </tr>
         </thead>
         <tbody id="adminTableBody"></tbody>
@@ -170,15 +170,15 @@
         <strong id="adminModalTitle">ผู้เล่น</strong>
         <div class="adm-modal-sub" id="adminModalSub"></div>
       </div>
-      <button id="adminModalCloseBtn">✕</button>
+      <button id="adminModalCloseBtn"><span class=gicon-x></span></button>
     </div>
     <div class="adm-tabs" id="adminTabs">
-      <button class="adm-tab" data-tab="overview">📊 ภาพรวม</button>
-      <button class="adm-tab" data-tab="history">📜 ประวัติการรับของ</button>
-      <button class="adm-tab" data-tab="edit">✏️ แก้ไข</button>
-      <button class="adm-tab" data-tab="gift">🎁 ส่งเมล / ไอเทม</button>
-      <button class="adm-tab" data-tab="reclaim">↩️ เรียกคืน</button>
-      <button class="adm-tab danger" data-tab="danger">🗑️ ลบบัญชี</button>
+      <button class="adm-tab" data-tab="overview"> ภาพรวม</button>
+      <button class="adm-tab" data-tab="history"><span class=gicon-note></span> ประวัติการรับของ</button>
+      <button class="adm-tab" data-tab="edit"><span class=gicon-pencil></span> แก้ไข</button>
+      <button class="adm-tab" data-tab="gift"><span class=gicon-gift></span> ส่งเมล / ไอเทม</button>
+      <button class="adm-tab" data-tab="reclaim"><span class=gicon-arrow-left></span> เรียกคืน</button>
+      <button class="adm-tab danger" data-tab="danger"><span class=gicon-trash></span> ลบบัญชี</button>
     </div>
     <div id="adminModalBody"></div>
   </div>
@@ -299,7 +299,7 @@
       </div>
       <div class="adm-stat-card gold">
         <div class="adm-stat-value">${totalMoney.toLocaleString()}</div>
-        <div class="adm-stat-label">💰 เงินรวมในระบบ</div>
+        <div class="adm-stat-label"><span class=gicon-coin></span> เงินรวมในระบบ</div>
       </div>
     `;
   }
@@ -446,15 +446,15 @@
       <div class="adm-overview-row"><span class="label">ประเภทบัญชี</span><span>${p.isGuest ? '<span class="adm-badge guest">ชั่วคราว (ไม่มี PIN)</span>' : 'ปกติ'}</span></div>
       ${statusDetailRows.join("")}
       <div class="adm-overview-row"><span class="label">สมัครเมื่อ</span><span>${created}</span></div>
-      <div class="adm-overview-row"><span class="label">💰 เงิน</span><span class="${moneyNeg ? "adm-money negative" : ""}">${Number(d.money).toLocaleString()}${moneyNeg ? " (ติดลบ/เป็นหนี้)" : ""}</span></div>
-      <div class="adm-overview-row"><span class="label">🎴 การ์ดในเด็ค</span><span>${d.deck.length}</span></div>
-      <div class="adm-overview-row"><span class="label">🛡️ อุปกรณ์ในกระเป๋า</span><span>${d.equipBag.length}</span></div>
+      <div class="adm-overview-row"><span class="label"><span class=gicon-coin></span> เงิน</span><span class="${moneyNeg ? "adm-money negative" : ""}">${Number(d.money).toLocaleString()}${moneyNeg ? " (ติดลบ/เป็นหนี้)" : ""}</span></div>
+      <div class="adm-overview-row"><span class="label"><span class=gicon-card></span> การ์ดในเด็ค</span><span>${d.deck.length}</span></div>
+      <div class="adm-overview-row"><span class="label"><span class=gicon-shield></span> อุปกรณ์ในกระเป๋า</span><span>${d.equipBag.length}</span></div>
       <hr class="adm-divider" />
-      <div class="adm-section-title">📦 ทรัพยากรสะสม</div>
+      <div class="adm-section-title"><span class=gicon-box></span> ทรัพยากรสะสม</div>
       <div class="adm-mini-list">${bagRows}</div>
-      <div class="adm-section-title" style="margin-top:12px">🎴 เด็คปัจจุบัน</div>
+      <div class="adm-section-title" style="margin-top:12px"><span class=gicon-card></span> เด็คปัจจุบัน</div>
       <div class="adm-mini-list">${deckRows}</div>
-      <div class="adm-section-title" style="margin-top:12px">🛡️ กระเป๋าอุปกรณ์</div>
+      <div class="adm-section-title" style="margin-top:12px"><span class=gicon-shield></span> กระเป๋าอุปกรณ์</div>
       <div class="adm-mini-list">${equipRows}</div>
     `;
   }
@@ -567,7 +567,7 @@
 
       <div class="adm-row2">
         <div class="adm-field">
-          <label>💰 เงิน</label>
+          <label><span class=gicon-coin></span> เงิน</label>
           <input type="number" id="mailMoney" value="0" min="0" />
         </div>
       </div>
@@ -585,7 +585,7 @@
         </div>
       </div>
       <div class="adm-field">
-        <label>🧑‍🤝‍🧑 ส่งตัวละคร</label>
+        <label><span class=gicon-user></span>‍<span class=gicon-handshake></span>‍<span class=gicon-user></span> ส่งตัวละคร</label>
         <select id="mailCard">
           <option value="">— ไม่แนบ —</option>
           ${charOptions}
@@ -593,7 +593,7 @@
       </div>
       <div class="adm-hint">ตัวละครจะเข้าเด็คของผู้เล่นเป็น Lv.1 ทันทีที่กดรับเมล</div>
       <div class="adm-field">
-        <label>🗡️ ส่งอุปกรณ์</label>
+        <label><span class=gicon-sword></span> ส่งอุปกรณ์</label>
         <select id="mailEquip">
           <option value="">— ไม่แนบ —</option>
           ${equipOptions}
@@ -633,7 +633,7 @@
           body: JSON.stringify({ subject, body, money, bagKey, bagQty, cardName, equipName }),
         });
         msgEl.className = "adm-formmsg ok";
-        msgEl.textContent = "ส่งเมลแล้ว ✅";
+        msgEl.textContent = "ส่งเมลแล้ว <span class=gicon-check></span>";
         msgEl.style.display = "block";
         document.getElementById("mailSubject").value = "";
         document.getElementById("mailBody").value = "";
@@ -656,14 +656,14 @@
   // ---- History: unified "received items" timeline (rewards / claimed mail / shop) ----
   function historyTabHtml() {
     return `
-      <div class="adm-section-title">📜 ประวัติการรับของ (ล่าสุดก่อน)</div>
+      <div class="adm-section-title"><span class=gicon-note></span> ประวัติการรับของ (ล่าสุดก่อน)</div>
       <div class="adm-hint">รวมของรางวัลจากการผ่านด่าน/บอส, เมลที่กดรับแล้ว, และการซื้อจากร้านค้า</div>
       <div id="historyList" class="adm-timeline"><p class="adm-mini-empty">กำลังโหลด…</p></div>
     `;
   }
 
   function historyTypeIcon(type) {
-    return type === "reward" ? "⚔️" : type === "mail" ? "📮" : type === "shop" ? "🏪" : "•";
+    return type === "reward" ? "<span class=gicon-battle></span>" : type === "mail" ? "<span class=gicon-mailbox></span>" : type === "shop" ? "<span class=gicon-store></span>" : "•";
   }
 
   // best-effort stringify for items_awarded (shape is a plain {bagKey: qty} object —
@@ -680,13 +680,13 @@
   function historyEventHtml(e) {
     const time = e.at ? new Date(e.at).toLocaleString("th-TH") : "-";
     const bits = [];
-    if (e.money) bits.push(`💰 ${Number(e.money).toLocaleString()}`);
+    if (e.money) bits.push(`<span class=gicon-coin></span> ${Number(e.money).toLocaleString()}`);
     if (e.bagKey && e.bagQty) bits.push(`${escapeHtml(e.bagKey)} × ${e.bagQty}`);
-    if (e.card) bits.push(`🧑‍🤝‍🧑 ${escapeHtml(e.card.name)} (${escapeHtml(e.card.rarity)})`);
-    if (e.equip) bits.push(`🗡️ ${escapeHtml(e.equip.name)} (${escapeHtml(e.equip.rarity)})`);
-    if (e.items) { const s = summarizeItems(e.items); if (s) bits.push(`🎁 ${s}`); }
+    if (e.card) bits.push(`<span class=gicon-user></span>‍<span class=gicon-handshake></span>‍<span class=gicon-user></span> ${escapeHtml(e.card.name)} (${escapeHtml(e.card.rarity)})`);
+    if (e.equip) bits.push(`<span class=gicon-sword></span> ${escapeHtml(e.equip.name)} (${escapeHtml(e.equip.rarity)})`);
+    if (e.items) { const s = summarizeItems(e.items); if (s) bits.push(`<span class=gicon-gift></span> ${s}`); }
     if (e.pricePaid !== undefined) {
-      bits.push(e.paidWith === "shard" ? `จ่ายด้วย ${escapeHtml(e.shardKey || "")} × ${e.shardQty}` : `จ่าย 💰 ${Number(e.pricePaid).toLocaleString()}`);
+      bits.push(e.paidWith === "shard" ? `จ่ายด้วย ${escapeHtml(e.shardKey || "")} × ${e.shardQty}` : `จ่าย <span class=gicon-coin></span> ${Number(e.pricePaid).toLocaleString()}`);
     }
     return `
       <div class="adm-timeline-item">
@@ -725,7 +725,7 @@
   function reclaimTabHtml(p) {
     return `
       <div class="adm-warn-box">
-        ⚠️ ถ้าจำนวนที่มีอยู่ไม่พอ ระบบจะปล่อยให้ยอดติดลบ (เป็นหนี้) แทนการเรียกคืนบางส่วน — ผู้เล่นจะใช้จ่ายเพิ่มไม่ได้จนกว่าจะเล่นฟาร์มคืนให้ครบ
+        <span class=gicon-warning></span> ถ้าจำนวนที่มีอยู่ไม่พอ ระบบจะปล่อยให้ยอดติดลบ (เป็นหนี้) แทนการเรียกคืนบางส่วน — ผู้เล่นจะใช้จ่ายเพิ่มไม่ได้จนกว่าจะเล่นฟาร์มคืนให้ครบ
         ถ้าเรียกคืนตัวละคร/อุปกรณ์ที่ถูกขายหรือใช้ไปแล้ว ระบบจะหักเป็นเงินแทนโดยอัตโนมัติ (ตามราคาขายของ rarity นั้น)
         และทุกครั้งที่เรียกคืน ผู้เล่นจะได้รับข้อความแจ้งในกล่องจดหมายบอกว่าโดนดึงอะไรไปเป็นมูลค่า/จำนวนเท่าไหร่
       </div>
@@ -733,10 +733,10 @@
       <div class="adm-field">
         <label>ประเภทที่จะเรียกคืน</label>
         <select id="reclaimKind">
-          <option value="money">💰 เงิน</option>
-          <option value="bag">📦 ไอเทมทรัพยากร (ชาร์ด / ความทรงจำ)</option>
-          <option value="card">🧑‍🤝‍🧑 ตัวละคร</option>
-          <option value="equip">🗡️ อุปกรณ์</option>
+          <option value="money"><span class=gicon-coin></span> เงิน</option>
+          <option value="bag"><span class=gicon-box></span> ไอเทมทรัพยากร (ชาร์ด / ความทรงจำ)</option>
+          <option value="card"><span class=gicon-user></span>‍<span class=gicon-handshake></span>‍<span class=gicon-user></span> ตัวละคร</option>
+          <option value="equip"><span class=gicon-sword></span> อุปกรณ์</option>
         </select>
       </div>
       <div id="reclaimFields"></div>
@@ -745,10 +745,10 @@
         <textarea id="reclaimNote" rows="2" placeholder="เช่น เหตุผลที่เรียกคืน"></textarea>
       </div>
       <div id="reclaimMsg" class="adm-formmsg"></div>
-      <button id="reclaimSubmitBtn" style="width:100%">↩️ เรียกคืน</button>
+      <button id="reclaimSubmitBtn" style="width:100%"><span class=gicon-arrow-left></span> เรียกคืน</button>
 
       <hr class="adm-divider" />
-      <div class="adm-section-title">🗂️ ประวัติการเรียกคืนของบัญชีนี้</div>
+      <div class="adm-section-title"><span class=gicon-note></span> ประวัติการเรียกคืนของบัญชีนี้</div>
       <div class="adm-hint">สิ่งที่เคยถูกดึงกลับไปแล้วจากบัญชีนี้</div>
       <div id="reclaimHistoryList" class="adm-timeline"><p class="adm-mini-empty">กำลังโหลด…</p></div>
     `;
@@ -758,7 +758,7 @@
     if (kind === "money") {
       return `
         <div class="adm-field">
-          <label>💰 จำนวนเงินที่จะเรียกคืน</label>
+          <label><span class=gicon-coin></span> จำนวนเงินที่จะเรียกคืน</label>
           <input type="number" id="reclaimAmount" min="1" step="1" placeholder="เช่น 1000" />
         </div>`;
     }
@@ -781,7 +781,7 @@
         .map((c) => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)} — ${escapeHtml(c.rarity)}</option>`).join("");
       return `
         <div class="adm-field">
-          <label>🧑‍🤝‍🧑 ตัวละคร</label>
+          <label><span class=gicon-user></span>‍<span class=gicon-handshake></span>‍<span class=gicon-user></span> ตัวละคร</label>
           <select id="reclaimCardName">${charOptions}</select>
         </div>
         <div class="adm-field">
@@ -795,7 +795,7 @@
         .map((e) => `<option value="${escapeHtml(e.name)}">${escapeHtml(e.name)} — ${escapeHtml(e.rarity)} (${escapeHtml(e.type)})</option>`).join("");
       return `
         <div class="adm-field">
-          <label>🗡️ อุปกรณ์</label>
+          <label><span class=gicon-sword></span> อุปกรณ์</label>
           <select id="reclaimEquipName">${equipOptions}</select>
         </div>
         <div class="adm-field">
@@ -810,8 +810,8 @@
   function reclaimResultMessage(r) {
     let msg = `เรียกคืนแล้ว: ${r.label}`;
     if (r.convertedToMoney) msg += ` (หักเงินแทนบางส่วน ${Number(r.moneyDeducted).toLocaleString()})`;
-    if (r.wentNegative) msg += ` — ⚠️ ยอดติดลบ/เป็นหนี้แล้ว`;
-    msg += ` · แจ้งผู้เล่นทางกล่องจดหมายแล้ว ✅`;
+    if (r.wentNegative) msg += ` — <span class=gicon-warning></span> ยอดติดลบ/เป็นหนี้แล้ว`;
+    msg += ` · แจ้งผู้เล่นทางกล่องจดหมายแล้ว <span class=gicon-check></span>`;
     return msg;
   }
 
@@ -872,7 +872,7 @@
         msgEl.style.display = "block";
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = "↩️ เรียกคืน";
+        submitBtn.textContent = "<span class=gicon-arrow-left></span> เรียกคืน";
       }
     });
 
@@ -880,7 +880,7 @@
   }
 
   function reclaimKindIcon(k) {
-    return k === "money" ? "💰" : k === "bag" ? "📦" : k === "card" ? "🧑‍🤝‍🧑" : k === "equip" ? "🗡️" : "•";
+    return k === "money" ? "<span class=gicon-coin></span>" : k === "bag" ? "<span class=gicon-box></span>" : k === "card" ? "<span class=gicon-user></span>‍<span class=gicon-handshake></span>‍<span class=gicon-user></span>" : k === "equip" ? "<span class=gicon-sword></span>" : "•";
   }
 
   function reclaimLogItemHtml(r) {

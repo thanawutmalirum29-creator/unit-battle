@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../css/icons.css" />
   <script src="../js/core/ui-popup.js"></script>
   <style>
-    /* ⚠️ override กฎเก่าใน theme.css ที่ทำไว้สำหรับกระเป๋าอุปกรณ์แบบลิสต์บรรทัดเดียว
+    /*  override กฎเก่าใน theme.css ที่ทำไว้สำหรับกระเป๋าอุปกรณ์แบบลิสต์บรรทัดเดียว
        (display:flex; flex-wrap:wrap บน #equipBag ทำให้พาเนลกริดใหม่ถูกบีบให้แคบกว่าที่ควร) */
     #equipBag{
       display:block !important;
@@ -60,7 +60,7 @@
       font-size:14px;
     }
 
-    /* 🟢 การ์ดอุปกรณ์ในกระเป๋า ใช้ขนาดเดียวกับการ์ดทุกที่ในเกม (--card-w/--card-h
+    /*  การ์ดอุปกรณ์ในกระเป๋า ใช้ขนาดเดียวกับการ์ดทุกที่ในเกม (--card-w/--card-h
        มาจาก theme.css) แทนที่จะปล่อยให้กริดคำนวณความกว้าง/สูงเอง */
     .equip-bag-grid{
       display:grid;
@@ -136,6 +136,7 @@
 
 <div id="equipPopup" class="equip-popup"></div>
 
+<script src="../js/shared/battle-math.js"></script>
 <script src="../js/skills/Intermediaryfunction.js"></script>
 <script src="../js/core/money.js"></script>
 <script src="../js/core/api.js"></script>

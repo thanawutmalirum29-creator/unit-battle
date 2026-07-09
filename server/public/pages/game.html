@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="../css/theme.css" />
   <link rel="stylesheet" href="../css/icons.css" />
   <link rel="stylesheet" href="../css/battle-hub.css" />
+  <link rel="stylesheet" href="../css/game-hub.css" />
   <script src="../js/core/ui-popup.js"></script>
   <style>
 
@@ -47,8 +48,8 @@
     .results-panel{
       width:100%; max-width:560px; max-height:86vh; overflow-y:auto;
       background:linear-gradient(180deg, var(--panel,#141d2b), var(--bg-2,#121a26));
-      border:1px solid var(--border, rgba(255,255,255,.08)); border-radius:var(--radius,14px);
-      box-shadow:var(--shadow,0 8px 24px rgba(0,0,0,.45)); padding:20px 18px 18px;
+      border:1px solid color-mix(in srgb, var(--hub-accent,#49d3ff) 32%, var(--border,rgba(255,255,255,.08)));
+      border-radius:0; box-shadow:var(--shadow,0 8px 24px rgba(0,0,0,.45)); padding:22px 20px 18px;
     }
     .results-panel h2{ text-align:center; margin:0 0 8px; }
     .results-panel h2.result-win{ color:#7CFC7C; }
@@ -56,22 +57,27 @@
     .results-note{ text-align:center; color:var(--muted,#93a1b5); font-size:13px; margin:0 0 12px; }
     .results-rewards{
       background:var(--panel-soft,rgba(255,255,255,.04)); border:1px solid var(--border,rgba(255,255,255,.08));
-      border-radius:var(--radius-sm,9px); padding:10px 12px; margin:0 0 14px;
+      border-left:2px solid var(--hub-accent,#49d3ff);
+      border-radius:0 var(--radius-sm,9px) var(--radius-sm,9px) 0; padding:10px 12px; margin:0 0 14px;
     }
     .results-drops{ list-style:none; margin:6px 0 0; padding:0; font-size:13px; }
     .results-table{ width:100%; border-collapse:collapse; font-size:13px; margin-bottom:16px; }
     .results-table th, .results-table td{ border-bottom:1px solid var(--border,rgba(255,255,255,.08)); padding:6px 8px; text-align:left; }
+    .results-table th{ color:var(--muted,#93a1b5); font-weight:700; text-transform:uppercase; font-size:10.5px; letter-spacing:.5px; }
     .results-table tr.row-player td:first-child{ color:#4FC3F7; }
     .results-table tr.row-enemy td:first-child{ color:#FF7043; }
     .results-continue-btn{
-      width:100%; padding:12px; border-radius:999px; border:none; font-weight:800; font-size:15px;
-      background:linear-gradient(135deg,var(--accent,#5c8bff),#3f63d6); color:#fff; cursor:pointer;
+      width:100%; padding:13px; border-radius:0; border:none; font-weight:800; font-size:15px;
+      background:linear-gradient(135deg,var(--hub-accent,#5c8bff),var(--hub-accent-2,#3f63d6)); color:#0a0e16; cursor:pointer;
+      transition:background .3s ease, filter .15s ease;
     }
+    .results-continue-btn:hover{ filter:brightness(1.08); }
   </style>
 </head>
 <body>
+<div class="hub-bgfx" aria-hidden="true"></div>
 <header class="topbar">
-  <h1>⚔️ ต่อสู้</h1>
+  <h1><span class=gicon-sword></span> ต่อสู้</h1>
   <div class="right-group">
     <div id="moneyWindow"><span class=gicon-coin></span> 400</div>
   </div>
@@ -133,7 +139,7 @@
 <div id="battleScreen" style="display:none">
   <button id="cancelBattleBtn" style="display:none"><span class=gicon-x></span> ยกเลิกการต่อสู้</button>
   <div style="font-size:12px; color:var(--muted,#93a1b5); margin:6px 0 2px">
-    🔒 กำลังต่อสู้ — ออกจากหน้านี้ได้เฉพาะกด "ยกเลิกการต่อสู้" หรือรอจนเกมจบเท่านั้น
+    <span class=gicon-lock></span> กำลังต่อสู้ — ออกจากหน้านี้ได้เฉพาะกด "ยกเลิกการต่อสู้" หรือรอจนเกมจบเท่านั้น
   </div>
 
   <div class="right">
@@ -156,6 +162,8 @@
 <div id="resultsOverlay"></div>
 
 <!-- ============ Shared core scripts (ใช้ร่วมกันทั้ง 3 โหมด) ============ -->
+<script src="../js/shared/battle-math.js"></script>
+<script src="../js/shared/inf-data.js"></script>
 <script src="../stages/n-stages.js"></script>
 <script src="../js/modes/BOSS/bossmap.js"></script>
 <script src="../js/data/equip.js"></script>
