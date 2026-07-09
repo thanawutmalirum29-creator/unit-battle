@@ -40,7 +40,7 @@ var maxTeamSize = 4;
    ======================= */
 // ไอคอน CSS (icons.css) + โทนสีต่อบอสหนึ่งตัว — วนใช้ 4 โทนซ้ำถ้ามีบอสมากกว่านี้
 // แทนการสุ่ม hue แบบเดิม (ซึ่งให้สีมั่วๆ ไม่เข้าธีมเกม และซ้ำกับสีแดง/เขียวของ HP bar ได้)
-const BOSS_THEME_ICON = { slime: "gicon-skull", dragon: "gicon-dragon", golem: "gicon-shield", "เทพเจ้า": "gicon-bolt" };
+const BOSS_THEME_ICON = { slime: "gicon-slime-king", dragon: "gicon-dragon", golem: "gicon-golem", "เทพเจ้า": "gicon-deity" };
 const BOSS_THEME_CLASS = ["boss-theme-1", "boss-theme-2", "boss-theme-3", "boss-theme-4"];
 
 function renderBossButtons(){
@@ -315,7 +315,7 @@ function ensureBossInfoOverlay(){
 }
 
 // เติมเนื้อหาป๊อปอัปด้วยข้อมูล "บอสตัวเดียว" ที่ระบุเท่านั้น
-function renderBossInfoPanel(panel, boss, overlay){
+function renderBossInfoPanel(panel, boss, overlay, bossKey){
   panel.innerHTML = "";
 
   const title = document.createElement("div");
@@ -326,8 +326,9 @@ function renderBossInfoPanel(panel, boss, overlay){
   const entry = document.createElement("div");
   entry.className = "boss-info-entry";
 
+  const iconClass = BOSS_THEME_ICON[bossKey] || "gicon-skull";
   const h4 = document.createElement("h4");
-  h4.innerHTML = `<span class=gicon-dragon></span> ${boss.name}`;
+  h4.innerHTML = `<span class=${iconClass}></span> ${boss.name}`;
   entry.appendChild(h4);
 
   const stats = document.createElement("div");
@@ -371,7 +372,7 @@ function openBossInfo(bossKey){
   const boss = (BOSSES || {})[bossKey];
   if (!boss) return;
   const overlay = ensureBossInfoOverlay();
-  renderBossInfoPanel(overlay._panel, boss, overlay);
+  renderBossInfoPanel(overlay._panel, boss, overlay, bossKey);
   overlay._open();
 }
 
@@ -406,7 +407,7 @@ function prepareBossBattle(){
   if (window.HubUI) { HubUI.resetDamageStats(); HubUI.resetRewards(); }
 
   logClear?.();
-  log(`<span class=gicon-dragon></span> เลือกบอส: ${currentBoss.name}`, "system");
+  log(`<span class=${BOSS_THEME_ICON[currentBossKey] || "gicon-skull"}></span> เลือกบอส: ${currentBoss.name}`, "system");
   renderBattlefield();
   updateAllHpBars();
 }
