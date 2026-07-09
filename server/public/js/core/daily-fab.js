@@ -22,6 +22,20 @@
     shardPurple: "ชาร์ดม่วง", shardGold: "ชาร์ดทอง", shardRed: "ชาร์ดแดง", shardSky: "ชาร์ดฟ้า",
   };
 
+  // สำเนาฝั่ง client ของ LOGIN_REWARD_CYCLE (game-data/daily-data.js) — ใช้แค่
+  // "แสดงผล" ของที่ได้ไปแล้วใต้กล่องที่เปิดแล้วในแถวสตรีค ไม่ได้ใช้คำนวณ/แจกของจริง
+  // (ฝั่ง server ยังคง authoritative เหมือนเดิมทุกจุด) ถ้าปรับตัวเลขที่ server
+  // ต้องแก้ชุดนี้ให้ตรงกันด้วยเพื่อไม่ให้ตัวเลขที่โชว์เพี้ยนจากของจริง
+  const LOGIN_REWARD_CYCLE_DISPLAY = [
+    { money: 500, bagKey: null, bagQty: 0 },
+    { money: 800, bagKey: "shardGray", bagQty: 20 },
+    { money: 1200, bagKey: "shardBlue", bagQty: 10 },
+    { money: 1500, bagKey: "memoryRare", bagQty: 10 },
+    { money: 2000, bagKey: "shardPurple", bagQty: 5 },
+    { money: 2500, bagKey: "memoryEpic", bagQty: 5 },
+    { money: 5000, bagKey: "shardGold", bagQty: 5 },
+  ];
+
   function escapeHtml(s) {
     const d = document.createElement("div");
     d.textContent = s == null ? "" : String(s);
@@ -40,6 +54,15 @@
       parts.push(`${iconFor(reward.bagKey)}${BAG_LABELS[reward.bagKey] || reward.bagKey} × ${reward.bagQty}`);
     }
     return parts.join(" · ") || "-";
+  }
+
+  // เวอร์ชันย่อกว่าอีกที สำหรับใต้กล่องสตรีครายวัน (กว้างแค่ ~70px) — ไม่มีชื่อไอเทม
+  // เต็ม แค่ไอคอน + จำนวน เช่น "500" หรือ "×20"
+  function compactRewardHTML(reward) {
+    const parts = [];
+    if (reward.money > 0) parts.push(`<span class="gicon-coin"></span>${reward.money.toLocaleString()}`);
+    if (reward.bagKey && reward.bagQty > 0) parts.push(`${iconFor(reward.bagKey)}×${reward.bagQty}`);
+    return parts.join(" ");
   }
 
   function fmtCountdown(iso) {
@@ -137,7 +160,7 @@
 /* ---- login tab ---- */
 .daily-fab-streak-row{ display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:14px; }
 .daily-fab-streak-day{
-  flex:0 0 auto; width:64px; padding:10px 6px; border-radius:10px;
+  flex:0 0 auto; width:70px; padding:10px 6px; border-radius:10px;
   border:1px solid var(--border); background:var(--panel-soft,rgba(255,255,255,.03));
   text-align:center; font-size:11px; color:var(--muted);
 }
@@ -145,6 +168,12 @@
 .daily-fab-streak-day.today{ border-color:rgba(244,185,66,.6); background:rgba(244,185,66,.12); color:#f4b942; box-shadow:0 0 0 1px rgba(244,185,66,.3); }
 .daily-fab-streak-day-num{ font-weight:700; font-size:12.5px; margin-bottom:4px; }
 .daily-fab-streak-day-reward{ font-size:15px; line-height:1.2; }
+.daily-fab-streak-day-got{
+  margin-top:4px; font-size:9.5px; line-height:1.3; color:#7be8b3;
+  display:flex; flex-direction:column; align-items:center; gap:1px; white-space:nowrap;
+}
+.daily-fab-streak-day-got [class^="gicon-"]{ font-size:11px; vertical-align:-1px; margin-right:2px; }
+.daily-fab-streak-day-got .item-icon{ width:10px; height:10px; margin-right:3px; vertical-align:-1px; }
 
 .daily-fab-login-box{
   display:flex; flex-direction:column; align-items:center; gap:10px;
@@ -263,11 +292,15 @@
     for (let d = 1; d <= cycle; d++) {
       days.push({ d, isDone: d <= doneCount, isToday: d === todayPos && !login.claimedToday });
     }
-    const streakRow = days.map((info) => `
+    const streakRow = days.map((info) => {
+      const dayReward = LOGIN_REWARD_CYCLE_DISPLAY[(info.d - 1) % LOGIN_REWARD_CYCLE_DISPLAY.length];
+      return `
       <div class="daily-fab-streak-day${info.isDone ? " done" : ""}${info.isToday ? " today" : ""}">
         <div class="daily-fab-streak-day-num">วัน ${info.d}</div>
-        <div class="daily-fab-streak-day-reward">${info.isDone ? "<span class=gicon-check></span>" : "<span class=gicon-gift></span>"}</div>
-      </div>`).join("");
+        <div class="daily-fab-streak-day-reward">${info.isDone ? "<span class=gicon-gift-open></span>" : "<span class=gicon-gift></span>"}</div>
+        ${info.isDone ? `<div class="daily-fab-streak-day-got">${compactRewardHTML(dayReward)}</div>` : ""}
+      </div>`;
+    }).join("");
 
     return `
       <div class="daily-fab-streak-row">${streakRow}</div>
