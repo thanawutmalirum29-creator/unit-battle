@@ -449,7 +449,7 @@ async function startBattle(){
   if (cancelBtn){
     cancelBtn.style.display="inline-block";
     cancelBtn.onclick = async ()=>{
-      if (await uiConfirm("<span class=gicon-x></span> ยกเลิกการต่อสู้?")){
+      if (await uiConfirm("ยกเลิกการต่อสู้?", { icon: "<span class=gicon-x></span>" })){
         log("<span class=gicon-warning></span> การต่อสู้ถูกยกเลิก", "system");
         GameAPI.battleForfeit(battleId); // fire-and-forget
         if (window.HubUI) {
