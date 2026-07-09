@@ -21,6 +21,11 @@
   const FRAME_CATEGORY_LABELS = { ...BADGE_CATEGORY_LABELS, guild_shop: "<span class=gicon-cart></span> ร้านค้ากิลด์" };
   const FRAME_CATEGORY_ORDER = [...BADGE_CATEGORY_ORDER, "guild_shop"];
 
+  // เพชร/อัญมณีประดับกรอบ (โผล่ตาม tier ผ่าน CSS .frame-fx.rarity-X .gem-*) — แปะไว้เฉย ๆ
+  // เป็น markup คงที่ ไม่ว่าเทียร์ไหน แล้วให้ CSS เป็นคนโชว์/ซ่อนตามคลาส rarity ที่ติดบน
+  // ตัว ring เอง จะได้ไม่ต้องคำนวณอะไรซ้ำตรงนี้
+  const FRAME_GEMS_HTML = '<span class="frame-gem gem-top"></span><span class="frame-gem gem-left"></span><span class="frame-gem gem-right"></span>';
+
   function tierRarityClass(tier) {
     return tier >= 4 ? "rarity-Mythical" : tier === 3 ? "rarity-Legendary" : tier === 2 ? "rarity-Epic" : "rarity-Rare";
   }
@@ -209,6 +214,61 @@
 .acct-frame-card.locked{ opacity:.4; filter:grayscale(.6); cursor:not-allowed; }
 .acct-frame-card.locked:hover{ transform:none; }
 .acct-frame-card .source-tag{ font-size:9.5px; color:var(--muted); margin-top:2px; }
+
+/* ---- พรีวิวกรอบในแกลเลอรี่: ทำเป็นวงกลมเหมือนกรอบจริงบนอวตาร์ (ไม่ใช่การ์ดเหลี่ยมเฉยๆ)
+   กันสับสนว่ากดแล้วจะได้ทรงไหน — ใช้คลาส rarity ชุดเดียวกับ #acctAvatarRing/#gpbAvatarRing เป๊ะๆ ---- */
+.frame-preview-ring{
+  width:44px; height:44px; margin:0 auto 6px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font-size:18px;
+  background:radial-gradient(circle at 35% 30%, #1c2740, #0b1120);
+  border:2px solid var(--border);
+}
+.frame-preview-ring.rarity-Rare{ border-color:var(--c-rare); box-shadow:0 0 10px rgba(47,139,255,.45); }
+.frame-preview-ring.rarity-Epic{ border-color:var(--c-epic); box-shadow:0 0 10px rgba(168,85,247,.45); }
+.frame-preview-ring.rarity-Legendary{ border-color:var(--c-legend); box-shadow:0 0 12px rgba(255,179,0,.5); }
+.frame-preview-ring.rarity-Mythical{ border-color:var(--c-mythical); box-shadow:0 0 12px rgba(255,61,166,.5); }
+
+/* ---- เอฟเฟกต์กรอบระดับ Epic ขึ้นไป: ใช้ร่วมกันทั้งกรอบจริง (#acctAvatarRing / #gpbAvatarRing)
+   และพรีวิวในแกลเลอรี่ (.frame-preview-ring) ผ่านคลาส .frame-fx + rarity-X ที่ติดอยู่แล้ว
+   ยิ่งเทียร์สูง ยิ่งมีรายละเอียดเพิ่ม: Epic = เพชร 1 เม็ด, Legendary = เพชร 3 เม็ด + วงแหวนหมุน,
+   Mythical = เหมือน Legendary แต่เม็ดใหญ่กว่า วงแหวนหมุนไวกว่า และเรืองแสงเต้นเป็นจังหวะ ---- */
+.frame-fx{ position:relative; }
+.frame-gem{
+  display:none; position:absolute; width:7px; height:7px; z-index:3;
+  transform:rotate(45deg); border-radius:1.5px; box-shadow:0 0 5px rgba(0,0,0,.5);
+}
+.frame-fx .gem-top{ top:-4px; left:50%; margin-left:-3.5px; }
+.frame-fx .gem-left{ top:50%; left:-4px; margin-top:-3.5px; }
+.frame-fx .gem-right{ top:50%; right:-4px; margin-top:-3.5px; }
+
+.frame-fx.rarity-Epic .gem-top{ display:block; background:var(--c-epic); box-shadow:0 0 6px var(--c-epic); }
+
+.frame-fx.rarity-Legendary .gem-top,
+.frame-fx.rarity-Legendary .gem-left,
+.frame-fx.rarity-Legendary .gem-right{ display:block; background:var(--c-legend); box-shadow:0 0 6px var(--c-legend); }
+.frame-fx.rarity-Legendary::before{
+  content:""; position:absolute; inset:-5px; border-radius:50%; z-index:0; pointer-events:none;
+  background:conic-gradient(from 0deg, transparent 0 85%, var(--c-legend) 92%, transparent 100%);
+  animation:frameFxSpin 4s linear infinite;
+}
+
+.frame-fx.rarity-Mythical .gem-top,
+.frame-fx.rarity-Mythical .gem-left,
+.frame-fx.rarity-Mythical .gem-right{
+  display:block; width:8px; height:8px; margin-left:-4px; margin-top:-4px;
+  background:var(--c-mythical); box-shadow:0 0 8px var(--c-mythical);
+}
+.frame-fx.rarity-Mythical .gem-top{ margin-left:-4px; top:-5px; }
+.frame-fx.rarity-Mythical::before{
+  content:""; position:absolute; inset:-6px; border-radius:50%; z-index:0; pointer-events:none;
+  background:conic-gradient(from 0deg, transparent 0 80%, var(--c-mythical) 90%, transparent 100%);
+  animation:frameFxSpin 2.6s linear infinite;
+}
+.frame-fx.rarity-Mythical{ animation:frameFxPulse 1.8s ease-in-out infinite; }
+.acct-frame-card .frame-preview-ring.rarity-Mythical{ animation:none; } /* พรีวิวในแกลเลอรี่ไม่ต้องเต้น กันลายตาตอนเลื่อนดูหลายใบพร้อมกัน ใช้เอฟเฟกต์เต้นแค่บนวงแหวนจริงที่สวมอยู่พอ */
+
+@keyframes frameFxSpin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
+@keyframes frameFxPulse{ 0%,100%{ filter:brightness(1); } 50%{ filter:brightness(1.3); } }
 .acct-settings-row{ margin-top:16px; }
 .acct-settings-row label{ display:block; font-size:13px; color:var(--muted); margin-bottom:8px; }
 .acct-settings-scale-control{ display:flex; align-items:center; gap:10px; }
@@ -230,7 +290,7 @@
     bar.id = "globalProfileBar";
     bar.innerHTML = `
       <button type="button" id="gpbIdentity" aria-label="เปิดหน้าบัญชี">
-        <span id="gpbAvatarRing"><span class=gicon-shield></span></span>
+        <span id="gpbAvatarRing" class="frame-fx"><span class=gicon-shield></span></span>
         <span class="gpb-namewrap">
           <span id="gpbUsername">ผู้เล่น</span>
           <span id="gpbStatusText">-</span>
@@ -322,7 +382,7 @@
         </div>
         <div class="acctp-body">
           <div id="acctProfileCard">
-            <div id="acctAvatarRing"><span class=gicon-shield></span></div>
+            <div id="acctAvatarRing" class="frame-fx"><span class=gicon-shield></span></div>
             <div id="acctProfileMain">
               <div id="acctUsernameRow">
                 <span id="acctUsername">-</span>
@@ -560,7 +620,7 @@
     document.getElementById("gpbUsername").textContent = loggedIn ? username : "ผู้เล่น";
     document.getElementById("gpbStatusText").innerHTML = loggedIn ? statusHtml : "ยังไม่ได้เข้าสู่ระบบ";
     const ring = document.getElementById("gpbAvatarRing");
-    ring.innerHTML = avatarHtml || "<span class=gicon-shield></span>";
+    ring.innerHTML = (avatarHtml || "<span class=gicon-shield></span>") + FRAME_GEMS_HTML;
     ring.classList.remove("rarity-Rare", "rarity-Epic", "rarity-Legendary", "rarity-Mythical");
     if (frameClass) ring.classList.add(frameClass);
   }
@@ -729,7 +789,7 @@
     const ring = document.getElementById("acctAvatarRing");
     const avatar = _cosmeticsState.avatar.catalog.find((a) => a.key === _cosmeticsState.avatar.current);
     const avatarHtml = avatar ? avatar.icon : "<span class=gicon-shield></span>";
-    ring.innerHTML = avatarHtml;
+    ring.innerHTML = avatarHtml + FRAME_GEMS_HTML;
 
     ring.classList.remove("rarity-Rare", "rarity-Epic", "rarity-Legendary", "rarity-Mythical");
     const equippedKey = _cosmeticsState.frames.equipped;
@@ -740,7 +800,7 @@
 
     // ให้แถบกลางด้านบนใช้ปกและกรอบเดียวกันเป๊ะๆ
     const gpbRing = document.getElementById("gpbAvatarRing");
-    gpbRing.innerHTML = avatarHtml;
+    gpbRing.innerHTML = avatarHtml + FRAME_GEMS_HTML;
     gpbRing.classList.remove("rarity-Rare", "rarity-Epic", "rarity-Legendary", "rarity-Mythical");
     if (frameClass) gpbRing.classList.add(frameClass);
   }
@@ -776,10 +836,11 @@
 
     mount.innerHTML = cards.map((f) => {
       const isEquipped = _cosmeticsState.frames.equipped === f.key;
-      const cls = ["acct-badge-card", "acct-frame-card", tierRarityClass(f.tier), f.unlocked ? "" : "locked", isEquipped ? "equipped" : ""].filter(Boolean).join(" ");
+      const rarityCls = tierRarityClass(f.tier);
+      const cls = ["acct-badge-card", "acct-frame-card", rarityCls, f.unlocked ? "" : "locked", isEquipped ? "equipped" : ""].filter(Boolean).join(" ");
       return `<div class="${cls}" data-key="${f.key}">
         ${isEquipped ? '<div class="equipped-check"><span class=gicon-check></span></div>' : ""}
-        <div class="icon"><span class=gicon-frame></span></div>
+        <div class="frame-preview-ring frame-fx ${rarityCls}"><span class=gicon-frame></span>${FRAME_GEMS_HTML}</div>
         <div class="name">${f.name}</div>
         <div class="desc">${f.unlocked ? f.desc : (f.source === "guild_shop" ? "ซื้อได้ที่ร้านค้ากิลด์" : f.desc)}</div>
         <div class="source-tag">${f.categoryLabel}</div>
