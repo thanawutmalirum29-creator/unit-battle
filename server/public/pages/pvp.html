@@ -202,6 +202,16 @@
     });
   });
 
+  // ชื่อผู้เล่นเป็นข้อมูลที่ผู้ใช้ตั้งเองได้ (validateUsername ฝั่ง server ไม่ได้กรอง
+  // อักขระ แค่จำกัดความยาว) จึงต้อง escape ก่อนแทรกลง innerHTML ทุกจุด — เดิมหน้านี้
+  // ไม่มีฟังก์ชันนี้เลย ทำให้ opp-name/lb-name เสี่ยง stored XSS ผ่านชื่อผู้เล่น
+  // (ดูรูปแบบเดียวกันใน friends.html / guild.html)
+  function escapeHtml(s) {
+    const d = document.createElement("div");
+    d.textContent = s == null ? "" : String(s);
+    return d.innerHTML;
+  }
+
   function starsText(n) { return "<span class=gicon-star></span>".repeat(Math.max(1, Number(n) || 1)); }
 
   function rarityClass(card) {
@@ -336,7 +346,7 @@
       div.innerHTML = `
         <div style="font-size:26px;">${o.rankInfo.icon}</div>
         <div class="opp-info">
-          <div class="opp-name">${o.username}</div>
+          <div class="opp-name">${escapeHtml(o.username)}</div>
           <div class="opp-meta">${o.rankInfo.label} · เรตติ้ง ${o.rating} · ${o.wins}W/${o.losses}L</div>
         </div>
         <div class="opp-actions"><button data-id="${o.playerId}">โจมตี</button></div>
@@ -417,7 +427,7 @@
       row.innerHTML = `
         <div class="lb-rank">#${e.rank}</div>
         <div style="font-size:20px;">${e.rankInfo.icon}</div>
-        <div class="lb-name">${e.username}${e.isMe ? " (คุณ)" : ""}</div>
+        <div class="lb-name">${escapeHtml(e.username)}${e.isMe ? " (คุณ)" : ""}</div>
         <div class="lb-rating">${e.rating}</div>
       `;
       list.appendChild(row);
@@ -437,7 +447,7 @@
       const roleLabel = h.role === "attacker" ? "โจมตี" : "ถูกโจมตีโดย";
       row.innerHTML = `
         <div class="${h.won ? "hist-win" : "hist-lose"}">${h.won ? "ชนะ" : "แพ้"}</div>
-        <div style="flex:1;">${roleLabel} ${h.opponentName}</div>
+        <div style="flex:1;">${roleLabel} ${escapeHtml(h.opponentName)}</div>
         <div class="hist-delta">${h.delta >= 0 ? "+" : ""}${h.delta}</div>
       `;
       list.appendChild(row);
