@@ -1,32 +1,11 @@
 'use strict';
 
-// ported verbatim from public/js/core/render.js — pure function, no DOM
-function getRenderStats(card) {
-  const baseHp = card.baseHp ?? card.hp ?? 0;
-  const baseAtk = card.baseAtk ?? card.atk ?? 0;
-  const baseDef = card.baseDef ?? card.def ?? 0;
-
-  let hp = baseHp, atk = baseAtk, def = baseDef;
-  let hpPct = 0, atkPct = 0, defPct = 0;
-
-  (card.equips || []).forEach(eq => {
-    const mode = eq.mode || 'flat';
-    if (mode === 'percent') {
-      if (eq.stat === 'hp') hpPct += eq.bonus;
-      if (eq.stat === 'atk') atkPct += eq.bonus;
-      if (eq.stat === 'def') defPct += eq.bonus;
-    } else {
-      if (eq.stat === 'hp') hp += eq.bonus;
-      if (eq.stat === 'atk') atk += eq.bonus;
-      if (eq.stat === 'def') def += eq.bonus;
-    }
-  });
-
-  hp = Math.floor(hp * (1 + hpPct / 100));
-  atk = Math.floor(atk * (1 + atkPct / 100));
-  def = Math.floor(def * (1 + defPct / 100));
-  return { hp, atk, def };
-}
+// ✅ getRenderStats เดิมก็อป "verbatim" มาจาก public/js/core/render.js (และก็อปซ้ำที่
+// public/js/data/equip.js อีกจุด รวม 3 ที่) รวมมาไว้จุดเดียวที่
+// server/public/js/shared/battle-math.js แล้ว ไฟล์นั้นใช้ได้ทั้ง <script> ฝั่ง client
+// และ require() ฝั่งนี้จากซอร์สเดียวกันจริงๆ — แก้สูตรคำนวณสเตตัสจากอุปกรณ์ที่นั่นที่
+// เดียว ตัวเลขที่โชว์ในหน้าเด็ค/หน้าอุปกรณ์กับสเตตัสจริงที่ใช้สู้จะตรงกันเสมอ
+const { getRenderStats } = require('../public/js/shared/battle-math.js');
 
 // การ์ดในเด็คของผู้เล่น (ที่เซิฟดึงมาจาก player_economy.deck เอง — authoritative)
 // -> หน่วยต่อสู้ ตรงตาม prepareBattle() ของทุกโหมดฝั่ง client

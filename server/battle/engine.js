@@ -25,53 +25,22 @@
 const DEBUFF_TYPES = ['Poison', 'Burn', 'Silence', 'SkillBlockChance', 'Stun', 'TimeStop', 'DefenseDown'];
 
 // ---------------------------------------------------------------------------
-// Stat helpers (ตรงกับ public/js/skills/Intermediaryfunction.js)
+// Stat helpers
 // ---------------------------------------------------------------------------
-function getFinalAtk(actor) {
-  const base = actor.baseAtk ?? actor.atk ?? 0;
-  const flatBuff = (actor.statusEffects || [])
-    .filter(e => e.type === 'AttackBuffFlat')
-    .reduce((sum, e) => sum + e.value, 0);
-  const percentBuff = (actor.statusEffects || [])
-    .filter(e => e.type === 'AttackBuffPercent')
-    .reduce((sum, e) => sum + e.value, 0);
-  return Math.floor((base + flatBuff) * (1 + percentBuff));
-}
-
-function getFinalDef(actor) {
-  const base = actor.baseDef ?? actor.defBase ?? actor.def ?? 0;
-  const defBuffs = (actor.statusEffects || []).filter(e => e.type === 'DefenseBuff').map(e => e.value);
-  const bestBuff = defBuffs.length > 0 ? Math.max(...defBuffs) : 0;
-  const defDebuffs = (actor.statusEffects || []).filter(e => e.type === 'DefenseDown').map(e => e.value);
-  const worstDebuff = defDebuffs.length > 0 ? Math.max(...defDebuffs) : 0;
-  const finalDef = base + bestBuff + (actor.tempDef || 0) - worstDebuff;
-  return Math.max(0, finalDef);
-}
-
-function findFirstAlive(list) {
-  return list.find(u => u.hp > 0) || null;
-}
-
-function isHealer(user) {
-  const healerSkills = [
-    'Heal L1', 'Heal L2', 'Heal L3',
-    'AOE Heal L1', 'AOE Heal L2', 'AOE Heal L3', 'Bomb L1', 'Bomb L2', 'Bomb L3',
-  ];
-  return healerSkills.includes(user.baseSkill || user.skill);
-}
-
-function chooseTarget(user, enemies) {
-  const alive = enemies.filter(e => e.hp > 0);
-  if (alive.length === 0) return null;
-  switch (user.class) {
-    case 'Assassin':
-      return alive.reduce((low, e) => (e.maxHp < low.maxHp ? e : low));
-    case 'Mage':
-      return alive.reduce((high, e) => (e.def < high.def ? e : high));
-    default:
-      return alive[0];
-  }
-}
+// ✅ getFinalAtk / getFinalDef / findFirstAlive / isHealer / chooseTarget เดิม
+// ก็อปจาก public/js/skills/Intermediaryfunction.js, useSkill.js, attack.js มา
+// ไว้ที่นี่อีกชุด (คอมเมนต์เดิมบอกตรงๆ ว่า "ตรงกับ" ไฟล์ฝั่ง client) แปลว่าทุกครั้ง
+// ที่แก้สูตร ต้องแก้ 2 จุดพร้อมกัน ไม่งั้น client (โชว์ผลระหว่างเล่น) กับ server
+// (ผลจริงที่ใช้คำนวณรางวัล/บันทึกผล) จะคำนวณค่าไม่ตรงกัน
+// รวมมาไว้จุดเดียวที่ server/public/js/shared/battle-math.js แล้ว ไฟล์นั้นเขียน
+// แบบใช้ได้ทั้ง <script> (ฝั่ง client) และ require() (ฝั่งนี้) จากซอร์สเดียวกันจริงๆ
+const {
+  getFinalAtk,
+  getFinalDef,
+  findFirstAlive,
+  isHealer,
+  chooseTarget,
+} = require('../public/js/shared/battle-math.js');
 
 // ---------------------------------------------------------------------------
 // Status effects
