@@ -6,6 +6,7 @@ const { requireAuth, blockGuests } = require('../middleware/auth');
 const { generateUniquePublicId } = require('../utils/publicId');
 const { MAX_EQUIPPED_BADGES, BADGE_CATALOG, findBadge, computeUnlockedBadgeKeys } = require('../game-data/badges-data');
 const { AVATAR_CATALOG, findAvatar, FRAME_CATALOG, findFrame, computeUnlockedAchievementFrameKeys } = require('../game-data/cosmetics-data');
+const { HEARTBEAT_MAX_CREDIT_SECONDS, breakdownPlaytime } = require('../game-data/playtime-data');
 
 const router = express.Router();
 
@@ -292,7 +293,7 @@ router.delete('/friends/requests/:id', requireAuth, asyncHandler(async (req, res
 // than failing — a player with no guild simply can't have guild/boss/donate
 // badges unlocked yet.
 async function computePlayerBadgeStats(playerId) {
-  const [normalRow, infRow, guildRow, top10Row, playerRow, pvpChampionRow] = await Promise.all([
+  const [normalRow, infRow, guildRow, top10Row, playerRow, pvpChampionRow, loginRow, playtimeRow] = await Promise.all([
     pool.query(`SELECT max_stage FROM normal_progress WHERE player_id = $1`, [playerId]),
     pool.query(`SELECT max_stage FROM inf_progress WHERE player_id = $1`, [playerId]),
     pool.query(
@@ -312,6 +313,11 @@ async function computePlayerBadgeStats(playerId) {
     ),
     pool.query(`SELECT pvp_best_rating_lifetime FROM players WHERE id = $1`, [playerId]),
     pool.query(`SELECT EXISTS (SELECT 1 FROM pvp_season_history WHERE player_id = $1 AND final_rank = 1) AS champ`, [playerId]),
+    // total_claims is a lifetime counter that already exists on daily_login_state
+    // (see routes/daily.js) — reused here as-is, no new schema needed.
+    pool.query(`SELECT total_claims FROM daily_login_state WHERE player_id = $1`, [playerId]),
+    // total_online_seconds is credited by POST /heartbeat below — see game-data/playtime-data.js.
+    pool.query(`SELECT total_online_seconds FROM player_playtime WHERE player_id = $1`, [playerId]),
   ]);
 
   return {
@@ -323,6 +329,8 @@ async function computePlayerBadgeStats(playerId) {
     leaderboardTop10: !!top10Row.rows[0]?.top10,
     pvpBestRating: Number(playerRow.rows[0]?.pvp_best_rating_lifetime || 0),
     pvpChampion: pvpChampionRow.rows[0]?.champ ? 1 : 0,
+    loginTotalClaims: Number(loginRow.rows[0]?.total_claims || 0),
+    totalOnlineSeconds: Number(playtimeRow.rows[0]?.total_online_seconds || 0),
   };
 }
 
@@ -455,6 +463,39 @@ router.put('/frame', requireAuth, asyncHandler(async (req, res) => {
 
   await pool.query(`UPDATE players SET equipped_frame = $1 WHERE id = $2`, [requested, req.playerId]);
   res.json({ ok: true, equipped: requested });
+}));
+
+// ============================================================================
+// Heartbeat — real accumulated online/foreground time, powering the premium
+// "playtime" frames/badges above (category 'playtime'). See the long comment
+// in game-data/playtime-data.js for the exact crediting rule; short version:
+// server only ever credits the real wall-clock gap since THIS player's own
+// last stored heartbeat, capped at HEARTBEAT_MAX_CREDIT_SECONDS — a client
+// can never get more credit by calling more/less often than it should.
+// Client side: public/js/core/api.js heartbeat(), called from the existing
+// 20s setInterval at the bottom of that file whenever the tab/app is visible.
+// ============================================================================
+router.post('/heartbeat', requireAuth, asyncHandler(async (req, res) => {
+  const { rows } = await pool.query(
+    `INSERT INTO player_playtime (player_id, last_heartbeat_at)
+     VALUES ($1, now())
+     ON CONFLICT (player_id) DO UPDATE SET
+       total_online_seconds = player_playtime.total_online_seconds +
+         LEAST($2::bigint, GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (now() - player_playtime.last_heartbeat_at))))::bigint),
+       last_heartbeat_at = now(),
+       updated_at = now()
+     RETURNING total_online_seconds`,
+    [req.playerId, HEARTBEAT_MAX_CREDIT_SECONDS]
+  );
+  res.json({ ok: true, totalOnlineSeconds: Number(rows[0].total_online_seconds) });
+}));
+
+// GET /api/players/playtime — total accumulated online time, for display on
+// the account page ("ออนรวมทั้งสิ้น X ปี Y เดือน Z วัน").
+router.get('/playtime', requireAuth, asyncHandler(async (req, res) => {
+  const { rows } = await pool.query(`SELECT total_online_seconds FROM player_playtime WHERE player_id = $1`, [req.playerId]);
+  const totalOnlineSeconds = Number(rows[0]?.total_online_seconds || 0);
+  res.json({ totalOnlineSeconds, breakdown: breakdownPlaytime(totalOnlineSeconds) });
 }));
 
 module.exports = router;

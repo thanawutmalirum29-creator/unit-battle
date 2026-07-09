@@ -11,6 +11,13 @@ const {
   LOGIN_REWARD_CYCLE, loginRewardForStreak,
   DAILY_MISSIONS, DAILY_BONUS_ALL, findMission,
 } = require('../game-data/daily-data');
+const {
+  currentGuildCycle, guildCycleEndsAt,
+  currentMonthCycle, monthCycleEndsAt,
+  WEEKLY_MISSIONS, WEEKLY_BONUS_ALL,
+  MONTHLY_MISSIONS, MONTHLY_BONUS_ALL,
+  findCycleMission,
+} = require('../game-data/cycle-quest-data');
 
 const router = express.Router();
 
@@ -228,5 +235,172 @@ router.post('/missions/claim-bonus', requireAuth, asyncHandler(async (req, res) 
     client.release();
   }
 }));
+
+// ---------------------------------------------------------------------------
+// Weekly + monthly quest boards — same claim/claim-bonus pattern as the daily
+// missions above, just reading/writing cycle_mission_progress (keyed by
+// scope + cycle_index) instead of daily_mission_progress (day_index). See
+// game-data/cycle-quest-data.js for the catalogs and cycle math, and
+// db/dailyMissions.js for how progress gets bumped — every route that
+// already reports a daily mission (battle win, gacha roll, shop buy, PvP
+// attack) feeds these boards too with no extra wiring needed there.
+// ---------------------------------------------------------------------------
+const CYCLE_SCOPES = {
+  weekly: {
+    missions: WEEKLY_MISSIONS,
+    bonus: WEEKLY_BONUS_ALL,
+    cycleIndex: currentGuildCycle,
+    cycleEndsAt: guildCycleEndsAt,
+    incompleteError: 'ยังทำภารกิจสัปดาห์นี้ไม่ครบทุกข้อ',
+  },
+  monthly: {
+    missions: MONTHLY_MISSIONS,
+    bonus: MONTHLY_BONUS_ALL,
+    cycleIndex: currentMonthCycle,
+    cycleEndsAt: monthCycleEndsAt,
+    incompleteError: 'ยังทำภารกิจเดือนนี้ไม่ครบทุกข้อ',
+  },
+};
+
+function registerCycleRoutes(scopeName) {
+  const cfg = CYCLE_SCOPES[scopeName];
+
+  // GET /api/daily/weekly/status | /api/daily/monthly/status
+  router.get(`/${scopeName}/status`, requireAuth, asyncHandler(async (req, res) => {
+    const cycleIndex = cfg.cycleIndex();
+
+    const rows = await pool.query(
+      `SELECT mission_key, progress, claimed_at FROM cycle_mission_progress
+       WHERE player_id = $1 AND scope = $2 AND cycle_index = $3`,
+      [req.playerId, scopeName, cycleIndex]
+    );
+    const byKey = {};
+    rows.rows.forEach((r) => { byKey[r.mission_key] = r; });
+
+    const missions = cfg.missions.map((m) => {
+      const row = byKey[m.key];
+      const progress = Math.min(row ? row.progress : 0, m.target);
+      return {
+        key: m.key,
+        label: m.label,
+        target: m.target,
+        progress,
+        done: progress >= m.target,
+        claimed: !!row?.claimed_at,
+        reward: { money: m.money || 0, bagKey: m.bagKey || null, bagQty: m.bagQty || 0 },
+      };
+    });
+    const allClaimed = missions.every((m) => m.claimed);
+    const bonusRow = byKey['_bonus_all'];
+
+    res.json({
+      cycleIndex,
+      resetAt: cfg.cycleEndsAt(cycleIndex),
+      missions,
+      bonus: {
+        reward: cfg.bonus,
+        available: allClaimed,
+        claimed: !!bonusRow?.claimed_at,
+      },
+    });
+  }));
+
+  // POST /api/daily/weekly/missions/claim | /api/daily/monthly/missions/claim { key }
+  router.post(`/${scopeName}/missions/claim`, requireAuth, asyncHandler(async (req, res) => {
+    const key = String(req.body?.key || '');
+    const mission = findCycleMission(scopeName, key);
+    if (!mission) return res.status(400).json({ error: 'invalid mission key' });
+    const cycleIndex = cfg.cycleIndex();
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows } = await client.query(
+        `SELECT * FROM cycle_mission_progress WHERE player_id = $1 AND scope = $2 AND cycle_index = $3 AND mission_key = $4 FOR UPDATE`,
+        [req.playerId, scopeName, cycleIndex, key]
+      );
+      const row = rows[0];
+      if (!row || row.progress < mission.target) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'ภารกิจยังไม่สำเร็จ' });
+      }
+      if (row.claimed_at) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'รับรางวัลภารกิจนี้ไปแล้ว' });
+      }
+
+      const econ = await getOrCreateEconomy(client, req.playerId);
+      const { money, bag } = await creditReward(client, req.playerId, econ, {
+        money: mission.money, bagKey: mission.bagKey, bagQty: mission.bagQty,
+      });
+
+      await client.query(
+        `UPDATE cycle_mission_progress SET claimed_at = now() WHERE player_id = $1 AND scope = $2 AND cycle_index = $3 AND mission_key = $4`,
+        [req.playerId, scopeName, cycleIndex, key]
+      );
+
+      await client.query('COMMIT');
+      res.json({ ok: true, money, bag });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }));
+
+  // POST /api/daily/weekly/missions/claim-bonus | /api/daily/monthly/missions/claim-bonus
+  router.post(`/${scopeName}/missions/claim-bonus`, requireAuth, asyncHandler(async (req, res) => {
+    const cycleIndex = cfg.cycleIndex();
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const keys = cfg.missions.map((m) => m.key);
+      const { rows } = await client.query(
+        `SELECT mission_key, claimed_at FROM cycle_mission_progress
+         WHERE player_id = $1 AND scope = $2 AND cycle_index = $3 AND mission_key = ANY($4)`,
+        [req.playerId, scopeName, cycleIndex, keys]
+      );
+      const claimedSet = new Set(rows.filter((r) => r.claimed_at).map((r) => r.mission_key));
+      const allClaimed = keys.every((k) => claimedSet.has(k));
+      if (!allClaimed) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: cfg.incompleteError });
+      }
+
+      const bonusRes = await client.query(
+        `SELECT * FROM cycle_mission_progress WHERE player_id = $1 AND scope = $2 AND cycle_index = $3 AND mission_key = '_bonus_all' FOR UPDATE`,
+        [req.playerId, scopeName, cycleIndex]
+      );
+      if (bonusRes.rows[0]?.claimed_at) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'รับโบนัสนี้ไปแล้ว' });
+      }
+
+      const econ = await getOrCreateEconomy(client, req.playerId);
+      const { money, bag } = await creditReward(client, req.playerId, econ, cfg.bonus);
+
+      await client.query(
+        `INSERT INTO cycle_mission_progress (player_id, scope, cycle_index, mission_key, progress, claimed_at)
+         VALUES ($1, $2, $3, '_bonus_all', 1, now())
+         ON CONFLICT (player_id, scope, cycle_index, mission_key) DO UPDATE SET claimed_at = now()`,
+        [req.playerId, scopeName, cycleIndex]
+      );
+
+      await client.query('COMMIT');
+      res.json({ ok: true, money, bag });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }));
+}
+
+registerCycleRoutes('weekly');
+registerCycleRoutes('monthly');
 
 module.exports = router;
