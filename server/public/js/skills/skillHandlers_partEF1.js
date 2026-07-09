@@ -41,7 +41,7 @@ window.skillHandlers_partEF1 = {
   doEnergyBoost(user, allies, {
     reduce: 1,
     healRatio: 0,
-    logText: "(Energy Boost L1) → ลดคูลดาวน์สกิลของทีมลง 1 เทิร์น",
+    logText: "(Energy Boost L1) <span class=gicon-arrow-right></span> ลดคูลดาวน์สกิลของทีมลง 1 เทิร์น",
     selfCd: 4
   }),
 
@@ -49,7 +49,7 @@ window.skillHandlers_partEF1 = {
   doEnergyBoost(user, allies, {
     reduce: 1,
     healRatio: 0.3,
-    logText: "(Energy Boost L2) → ลดคูลดาวน์ทีมลง 1 เทิร์น และฟื้นเล็กน้อย",
+    logText: "(Energy Boost L2) <span class=gicon-arrow-right></span> ลดคูลดาวน์ทีมลง 1 เทิร์น และฟื้นเล็กน้อย",
     selfCd: 3
   }),
 
@@ -57,7 +57,7 @@ window.skillHandlers_partEF1 = {
   doEnergyBoost(user, allies, {
     reduce: 2,
     healRatio: 0,
-    logText: "(Energy Boost L3) → ลดคูลดาวน์สกิลของทีมลง 2 เทิร์น!",
+    logText: "(Energy Boost L3) <span class=gicon-arrow-right></span> ลดคูลดาวน์สกิลของทีมลง 2 เทิร์น!",
     selfCd: 5
   }),
   
@@ -117,14 +117,14 @@ window.skillHandlers_partEF1 = {
   
   "Cleanse L1": (user, allies, enemies) =>
 doCleanse(user, allies, {
-    logText: "(Cleanse L1) → ล้างดีบัฟทั้งหมดออกจากทีม",
+    logText: "(Cleanse L1) <span class=gicon-arrow-right></span> ล้างดีบัฟทั้งหมดออกจากทีม",
     selfCd: 5
   }),
   
   "Cleanse L2": (user, allies, enemies) =>
   doCleanse(user, allies, {
     healRatio: 0.3,
-    logText: "(Cleanse L2) → ล้างดีบัฟ + ฟื้นเล็กน้อย",
+    logText: "(Cleanse L2) <span class=gicon-arrow-right></span> ล้างดีบัฟ + ฟื้นเล็กน้อย",
     selfCd: 4
   }),
   
@@ -132,7 +132,7 @@ doCleanse(user, allies, {
   doCleanse(user, allies, {
     healRatio: 0.6,
     resistTurns: 1,
-    logText: "(Cleanse L3) → ล้างดีบัฟ + ฟื้นมากขึ้น + กันดีบัฟ 1 เทิร์น",
+    logText: "(Cleanse L3) <span class=gicon-arrow-right></span> ล้างดีบัฟ + ฟื้นมากขึ้น + กันดีบัฟ 1 เทิร์น",
     selfCd: 3
   }),
   
@@ -140,7 +140,7 @@ doCleanse(user, allies, {
   const target = findFirstAlive(enemies);
   return doTimeStop(user, target ? [target] : [], {
     turns: 1,
-    logText: "(Time Stop L1) → หยุดเวลา 1 เทิร์น",
+    logText: "(Time Stop L1) <span class=gicon-arrow-right></span> หยุดเวลา 1 เทิร์น",
     cd: 5
   });
 },
@@ -149,7 +149,7 @@ doCleanse(user, allies, {
   const target = findFirstAlive(enemies);
   return doTimeStop(user, target ? [target] : [], {
     turns: 1,
-    logText: "(Time Stop L2) → หยุดเวลา 1 เทิร์น",
+    logText: "(Time Stop L2) <span class=gicon-arrow-right></span> หยุดเวลา 1 เทิร์น",
     cd: 4
   });
 },
@@ -158,7 +158,7 @@ doCleanse(user, allies, {
   const target = findFirstAlive(enemies);
   return doTimeStop(user, target ? [target] : [], {
     turns: 1,
-    logText: "(Time Stop L3) → หยุดเวลา 1 เทิร์น",
+    logText: "(Time Stop L3) <span class=gicon-arrow-right></span> หยุดเวลา 1 เทิร์น",
     cd: 3
   });
 },
@@ -166,21 +166,21 @@ doCleanse(user, allies, {
 "AOE Time Stop L1": (user, allies, enemies) => 
   doTimeStop(user, enemies.filter(e => e.hp > 0), {
     turns: 1,
-    logText: "(AOE Time Stop L1) → ศัตรูทุกตัวหยุดเวลา 1 เทิร์น",
+    logText: "(AOE Time Stop L1) <span class=gicon-arrow-right></span> ศัตรูทุกตัวหยุดเวลา 1 เทิร์น",
     cd: 7
   }),
 
 "AOE Time Stop L2": (user, allies, enemies) => 
   doTimeStop(user, enemies.filter(e => e.hp > 0), {
     turns: 1,
-    logText: "(AOE Time Stop L2) → ศัตรูทุกตัวหยุดเวลา 1 เทิร์น",
+    logText: "(AOE Time Stop L2) <span class=gicon-arrow-right></span> ศัตรูทุกตัวหยุดเวลา 1 เทิร์น",
     cd: 6
   }),
 
 "AOE Time Stop L3": (user, allies, enemies) => 
   doTimeStop(user, enemies.filter(e => e.hp > 0), {
     turns: 1,
-    logText: "(AOE Time Stop L3) → ศัตรูทุกตัวหยุดเวลา 1 เทิร์น",
+    logText: "(AOE Time Stop L3) <span class=gicon-arrow-right></span> ศัตรูทุกตัวหยุดเวลา 1 เทิร์น",
     cd: 5
   }),
   
@@ -188,7 +188,7 @@ doCleanse(user, allies, {
     addStatusEffect(user, { type: "Mirror", turns: 2, power: 0.8 }); // 80% ATK
 
     log(
-      `🪞 ${user.name} เปิด Mirror (สวนกลับ 80% ATK ครั้งต่อไป)`,
+      `<span class=gicon-mirror></span> ${user.name} เปิด Mirror (สวนกลับ 80% ATK ครั้งต่อไป)`,
       user.isEnemy ? "enemy" : "player"
     );
 
@@ -206,7 +206,7 @@ doCleanse(user, allies, {
     addStatusEffect(user, { type: "Mirror", turns: 1, power: 1.0 }); // 100% ATK
 
     log(
-      `🪞 ${user.name} เปิด Mirror (สวนกลับ 100% ATK ครั้งต่อไป)`,
+      `<span class=gicon-mirror></span> ${user.name} เปิด Mirror (สวนกลับ 100% ATK ครั้งต่อไป)`,
       user.isEnemy ? "enemy" : "player"
     );
 
@@ -224,7 +224,7 @@ doCleanse(user, allies, {
     addStatusEffect(user, { type: "Mirror", turns: 1, power: 1.2 }); // 120% ATK
 
     log(
-      `🪞 ${user.name} เปิด Mirror (สวนกลับ 120% ATK ครั้งต่อไป)`,
+      `<span class=gicon-mirror></span> ${user.name} เปิด Mirror (สวนกลับ 120% ATK ครั้งต่อไป)`,
       user.isEnemy ? "enemy" : "player"
     );
 

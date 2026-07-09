@@ -26,10 +26,10 @@ window.skillHandlers_partDMG= {
       const rawDmg = atkFinal - defFinal;
       const dmg = Math.max(1, Math.floor(rawDmg *1.2));
 
-      // 📝 log ดาเมจก่อน
-      log(`🔥 ${user.name} (AOE Attack) → ${e.name} -${dmg} HP`, user.isEnemy ? "enemy" : "player");
+      //  log ดาเมจก่อน
+      log(`<span class=gicon-fire></span> ${user.name} (AOE Attack) <span class=gicon-arrow-right></span> ${e.name} -${dmg} HP`, user.isEnemy ? "enemy" : "player");
 
-      // 📌 applyDamage แค่บันทึกผล
+      //  applyDamage แค่บันทึกผล
       await applyDamage(user, e, dmg);
 
       const targetEl = document.querySelector(`[data-id="${e.instanceId}"]`);
@@ -82,7 +82,7 @@ window.skillHandlers_partDMG= {
     Math.floor(atkFinal * 2) - Math.floor(defFinal / 2.5)
   );
 
-  log(`🎯 ${user.name} (Piercing Shot L3) → ${target.name} -${dmg} HP`,
+  log(`<span class=gicon-target></span> ${user.name} (Piercing Shot L3) <span class=gicon-arrow-right></span> ${target.name} -${dmg} HP`,
       user.isEnemy ? "enemy" : "player");
   await applyDamage(user, target, dmg);
 

@@ -1,5 +1,5 @@
 /* ============================================================
-   🏷️ FLOATING SKILL / ATTACK LABEL + DAMAGE NUMBERS
+   <span class=gicon-tag></span> FLOATING SKILL / ATTACK LABEL + DAMAGE NUMBERS
    เดิมผู้เล่นมองไม่ออกว่าใครใช้ "สกิลอะไร" หรือ "โจมตีธรรมดา" อยู่
    (มีแค่แสงกระพริบ/สั่นตามคลาส CSS ไม่มีข้อความบอกตรงๆ) และตัวเลข
    ดาเมจก็ไม่ลอยขึ้นมาให้เห็นเลย ต้องไปอ่านใน log ข้างล่างเอา
@@ -7,40 +7,40 @@
    ตัวที่ร่าย และตัวเลข -ดาเมจ/+ฮีล ลอยขึ้นเหนือเป้าหมาย
    ============================================================ */
 
-// 🎯 เดารูปแบบ/สีของสกิลจากชื่อ เพื่อให้ป้ายสื่อความหมายได้ไวโดยไม่ต้องแก้ข้อมูลการ์ดทุกใบ
+//  เดารูปแบบ/สีของสกิลจากชื่อ เพื่อให้ป้ายสื่อความหมายได้ไวโดยไม่ต้องแก้ข้อมูลการ์ดทุกใบ
 function getSkillFxMeta(skillName) {
   const n = (skillName || "").toLowerCase();
   if (n.includes("heal") || n.includes("rebirth") || n.includes("revive") || n.includes("cleanse")) {
-    return { icon: "💚", cls: "fx-heal", label: skillName };
+    return { icon: "<span class=gicon-heart-green></span>", cls: "fx-heal", label: skillName };
   }
   if (n.includes("burn") || n.includes("fire") || n.includes("dragon")) {
-    return { icon: "🔥", cls: "fx-fire", label: skillName };
+    return { icon: "<span class=gicon-fire></span>", cls: "fx-fire", label: skillName };
   }
   if (n.includes("freeze") || n.includes("ice")) {
-    return { icon: "❄️", cls: "fx-freeze", label: skillName };
+    return { icon: "<span class=gicon-snowflake></span>", cls: "fx-freeze", label: skillName };
   }
   if (n.includes("poison")) {
-    return { icon: "☠️", cls: "fx-poison", label: skillName };
+    return { icon: "<span class=gicon-skull></span>", cls: "fx-poison", label: skillName };
   }
   if (n.includes("bomb") || n.includes("aoe")) {
-    return { icon: "💣", cls: "fx-aoe", label: skillName };
+    return { icon: "<span class=gicon-bomb></span>", cls: "fx-aoe", label: skillName };
   }
   if (n.includes("defense") || n.includes("shield") || n.includes("buff") || n.includes("energy") || n.includes("skill boost")) {
-    return { icon: "🛡️", cls: "fx-buff", label: skillName };
+    return { icon: "<span class=gicon-shield></span>", cls: "fx-buff", label: skillName };
   }
   if (n.includes("silence") || n.includes("stun") || n.includes("timestop") || n.includes("time stop") || n.includes("charm")) {
-    return { icon: "🌀", cls: "fx-debuff", label: skillName };
+    return { icon: "<span class=gicon-refresh></span>", cls: "fx-debuff", label: skillName };
   }
   if (n.includes("summon")) {
-    return { icon: "🔮", cls: "fx-summon", label: skillName };
+    return { icon: "<span class=gicon-gem></span>", cls: "fx-summon", label: skillName };
   }
   if (n.includes("critical") || n.includes("pierc") || n.includes("double") || n.includes("power strike") || n.includes("hit target")) {
-    return { icon: "⚔️", cls: "fx-strike", label: skillName };
+    return { icon: "<span class=gicon-battle></span>", cls: "fx-strike", label: skillName };
   }
-  return { icon: "✨", cls: "fx-skill", label: skillName };
+  return { icon: "<span class=gicon-sparkle></span>", cls: "fx-skill", label: skillName };
 }
 
-// 🏷️ ป้ายลอย บอกว่ากำลังใช้ "สกิลอะไร" หรือ "โจมตีธรรมดา" เหนือหัวตัวละคร
+//  ป้ายลอย บอกว่ากำลังใช้ "สกิลอะไร" หรือ "โจมตีธรรมดา" เหนือหัวตัวละคร
 function showActionLabel(userEl, text, cls) {
   if (!userEl) return;
   const label = document.createElement("div");
@@ -60,10 +60,10 @@ function announceSkill(user, skillName) {
 function announceNormalAttack(user) {
   const el = document.querySelector(`[data-id="${user.instanceId}"]`);
   if (!el) return;
-  showActionLabel(el, "⚔️ โจมตีธรรมดา", "fx-normal");
+  showActionLabel(el, "<span class=gicon-battle></span> โจมตีธรรมดา", "fx-normal");
 }
 
-// 🧹 FIX: บั๊กลูกธนู Rogue ค้างจอ (ดูรายละเอียดเต็มใน playRogueAttackEffect ด้านล่าง) —
+//  FIX: บั๊กลูกธนู Rogue ค้างจอ (ดูรายละเอียดเต็มใน playRogueAttackEffect ด้านล่าง) —
 // ลูกธนูที่ค้างมาจากก่อนแก้ไฟล์นี้ถูกแปะไว้ที่ document.body ตรงๆ ไม่มีจุดไหนในโค้ด
 // เดิมเคลียร์มันออกอีกเลย เลยค้างอยู่ถาวรแม้ reload คนละหน้า ฟังก์ชันนี้กวาดทิ้งทันที
 // ตอนโหลดสคริปต์ (เคลียร์ของเก่าที่ค้างอยู่ก่อนแก้) และเรียกซ้ำก่อนยิงลูกธนูใหม่ทุกครั้ง
@@ -73,7 +73,7 @@ function clearStrayProjectiles() {
 }
 clearStrayProjectiles();
 
-// 🔢 ตัวเลขดาเมจ/ฮีล ลอยขึ้นเหนือเป้าหมาย ให้เห็นชัดว่าโดนไปเท่าไหร่ ประเภทไหน
+//  ตัวเลขดาเมจ/ฮีล ลอยขึ้นเหนือเป้าหมาย ให้เห็นชัดว่าโดนไปเท่าไหร่ ประเภทไหน
 function showFloatingNumber(targetEl, amount, kind) {
   if (!targetEl || !amount) return;
   const num = document.createElement("div");
@@ -84,7 +84,7 @@ function showFloatingNumber(targetEl, amount, kind) {
   setTimeout(() => num.remove(), 850);
 }
 
-// 🔧 FIX: หลังย้ายระบบต่อสู้ไปรันจริงที่เซิฟ (routes/battle.js + battle/engine.js) โค้ดจำลอง
+//  FIX: หลังย้ายระบบต่อสู้ไปรันจริงที่เซิฟ (routes/battle.js + battle/engine.js) โค้ดจำลอง
 // การต่อสู้ฝั่ง client เดิม (skills/attack.js normalAttack/applyDamage) ไม่ถูกเรียกอีกต่อไป —
 // ทำให้แอนิเมชันโจมตี/ตัวเลขดาเมจที่ผูกอยู่กับโค้ดชุดนั้นหายไปด้วย ทั้งที่ตัวการ์ด/สนามยังอยู่
 // ฟังก์ชันนี้เล่นแอนิเมชันย้อนหลังจาก "เหตุการณ์การตี" จริงที่เซิฟส่งกลับมาแต่ละเทิร์น
@@ -113,8 +113,8 @@ async function playTurnEvents(events) {
 async function playAttackAnimation(attackerEl, targetEl, attacker) {
   if (!attackerEl || !targetEl) return;
 
-  // 🟢 เช็คอาชีพ Rogue → ใช้ projectile
-  // 🔧 FIX: เดิม "return playRogueAttackEffect(...)" โดยที่ฟังก์ชันนั้นไม่ใช่ async และ
+  //  เช็คอาชีพ Rogue  ใช้ projectile
+  //  FIX: เดิม "return playRogueAttackEffect(...)" โดยที่ฟังก์ชันนั้นไม่ใช่ async และ
   // ไม่คืนค่า Promise เลย — โค้ดข้างนอกที่ "await playAttackAnimation(...)" เลยผ่านทันที
   // โดยไม่รอให้ลูกธนูวิ่งไปถึงเป้าหมายจริงๆ (ดูรายละเอียดเต็มใน playRogueAttackEffect)
   if (attacker?.class === "Rogue") {
@@ -122,7 +122,7 @@ async function playAttackAnimation(attackerEl, targetEl, attacker) {
     return;
   }
 
-  // 🔵 อาชีพอื่น → ใช้ animation พุ่งไปโจมตี (ระยะประชิด)
+  //  อาชีพอื่น  ใช้ animation พุ่งไปโจมตี (ระยะประชิด)
   const attackerRect = attackerEl.getBoundingClientRect();
   const targetRect   = targetEl.getBoundingClientRect();
 
@@ -138,7 +138,7 @@ async function playAttackAnimation(attackerEl, targetEl, attacker) {
   attackerEl.style.animationDuration = duration + "ms";
   attackerEl.classList.add("attack-moving");
 
-  // 🔧 FIX: เดิมรอ "animationend" เฉยๆ ไม่มี fallback — ถ้าการ์ดโดนลบออกจาก DOM กลาง
+  //  FIX: เดิมรอ "animationend" เฉยๆ ไม่มี fallback — ถ้าการ์ดโดนลบออกจาก DOM กลาง
   // แอนิเมชัน (เช่น กดยกเลิกการต่อสู้ ทำให้ renderBattlefield() ล้าง innerHTML แทรกกลางคัน)
   // event นี้จะไม่มีวันยิงอีกเลย ทำให้ await ค้างตลอดไป (ล็อกคิวเทิร์นถัดไปในลูปไม่ให้เดิน
   // ต่อ) ใส่ timeout สำรองให้ resolve แน่ๆ ไม่เกิน duration ของแอนิเมชันเอง
@@ -164,11 +164,11 @@ async function playPowerStrikeEffect(attackerEl, targetEl) {
   const chargeDuration = Math.max(200, base * 0.3); 
   const impactDuration = Math.max(150, base * 0.2);
 
-  // 🌀 1) ชาร์จพลัง
+  //  1) ชาร์จพลัง
   attackerEl.style.animationDuration = chargeDuration + "ms";
   attackerEl.classList.add("power-charge");
 
-  // 🔧 FIX: เหมือนกับ playAttackAnimation — ใส่ fallback timeout กัน await ค้างตลอดไป
+  //  FIX: เหมือนกับ playAttackAnimation — ใส่ fallback timeout กัน await ค้างตลอดไป
   // ถ้า "animationend" ไม่ยิง (element โดนลบออกจาก DOM กลางแอนิเมชัน)
   await new Promise(res => {
     let done = false;
@@ -180,7 +180,7 @@ async function playPowerStrikeEffect(attackerEl, targetEl) {
   attackerEl.classList.remove("power-charge");
   attackerEl.style.removeProperty("animation-duration");
 
-  // 💥 2) Impact ที่เป้าหมาย
+  //  2) Impact ที่เป้าหมาย
   targetEl.style.animationDuration = impactDuration + "ms";
   targetEl.classList.add("power-hit");
 
@@ -273,12 +273,12 @@ async function applyHeal(caster, target, amount) {
 
   updateHpBar(target);
 }
-// 🔧 FIX: แก้บั๊ก "ลูกธนูค้างจอ" 2 จุดที่ทำให้เกิดปัญหาร่วมกัน:
+//  FIX: แก้บั๊ก "ลูกธนูค้างจอ" 2 จุดที่ทำให้เกิดปัญหาร่วมกัน:
 //
 // 1) container = attackerEl.offsetParent — การ์ดในสนาม (.card-box / .team-box) ไม่มี
 //    CSS "position" อยู่เลยสักตัว หา positioned ancestor ไม่เจอ เลย fallback เป็น
 //    document.body ตรงๆ ทุกครั้ง ลูกธนูเลยถูกแปะไว้ที่ตัวหน้าเว็บ ไม่ใช่ในกรอบสนามรบ
-//    → แก้โดยหา #battlefield (คงอยู่ตลอดตราบใดที่ยังอยู่หน้าเกม) ก่อนเป็นอันดับแรก
+//     แก้โดยหา #battlefield (คงอยู่ตลอดตราบใดที่ยังอยู่หน้าเกม) ก่อนเป็นอันดับแรก
 //
 // 2) การลบ wrapper (wrapper.remove()) ผูกกับ "transitionend" อย่างเดียว ไม่มี fallback
 //    เลย — ถ้าเทิร์นนั้นเป็นเทิร์นจบเกม (ชนะ/แพ้/ยกเลิกกลางคัน) โค้ดฝั่งโหมดจะเรียกแสดง
@@ -343,7 +343,7 @@ function playRogueAttackEffect(attackerEl, targetEl) {
       });
     });
 
-    // ✅ ยิงโดนแล้วค่อยใส่เอฟเฟค + ลบ wrapper ทิ้งเสมอ ไม่ว่าจะมาจาก transitionend
+    //  ยิงโดนแล้วค่อยใส่เอฟเฟค + ลบ wrapper ทิ้งเสมอ ไม่ว่าจะมาจาก transitionend
     // จริงๆ หรือจาก timeout สำรอง (กันเทิร์นจบเกม/ยกเลิกกลางคันตัดจบ transition ก่อน)
     let settled = false;
     const finish = () => {
@@ -362,10 +362,10 @@ function playRogueAttackEffect(attackerEl, targetEl) {
 function activateBerserk(user, multiplier) {
   user.berserk = { multiplier };
 
-  log(`💪 ${user.name} เข้าสู่ Berserk Mode! พลังโจมตี x${multiplier}`,
+  log(`<span class=gicon-muscle></span> ${user.name} เข้าสู่ Berserk Mode! พลังโจมตี x${multiplier}`,
       user.isEnemy ? "enemy" : "player");
 
-  // 🟢 เอฟเฟกต์บนการ์ด
+  //  เอฟเฟกต์บนการ์ด
   const userEl = document.querySelector(`[data-id="${user.instanceId}"]`);
   if (userEl) {
     userEl.classList.add("berserk-mode");

@@ -1,78 +1,14 @@
-function getFinalHp(actor) {
-  const base = actor.baseHp ?? actor.hp ?? 0;
+//  getFinalHp / getFinalAtk / getFinalDef / getFinalSkillBoost / getFinalSpeed
+// ย้ายไปรวมไว้จุดเดียวที่ js/shared/battle-math.js แล้ว (เดิมก็อปมาไว้ที่นี่
+// กับ server/battle/engine.js อีกชุด ต้องแก้สูตร 2 ที่ทุกครั้ง) ไฟล์นั้นถูกโหลด
+// เป็น <script> ก่อนไฟล์นี้ (ดู pages/*.html) แล้ว attach เป็น global function
+// ให้ตรงเหมือนเดิม จึงเรียก getFinalAtk(...) ฯลฯ ตรงนี้ได้โดยไม่ต้องแก้อะไรเพิ่ม
 
-  // Buff HP
-  const flatBuff = (actor.statusEffects || [])
-    .filter(e => e.type === "HpBuffFlat")
-    .reduce((sum, e) => sum + e.value, 0);
-
-  const percentBuff = (actor.statusEffects || [])
-    .filter(e => e.type === "HpBuffPercent")
-    .reduce((sum, e) => sum + e.value, 0);
-
-  return Math.floor((base + flatBuff) * (1 + percentBuff));
-}
-
-// ✅ getFinalAtk ใหม่ (ไม่รวมอุปกรณ์ซ้ำ)
-function getFinalAtk(actor) {
-  const base = actor.baseAtk ?? actor.atk ?? 0;
-
-  const flatBuff = (actor.statusEffects || [])
-    .filter(e => e.type === "AttackBuffFlat")
-    .reduce((sum, e) => sum + e.value, 0);
-
-  const percentBuff = (actor.statusEffects || [])
-    .filter(e => e.type === "AttackBuffPercent")
-    .reduce((sum, e) => sum + e.value, 0);
-
-  return Math.floor((base + flatBuff) * (1 + percentBuff));
-}
-
-// ✅ getFinalDef ใหม่ (ไม่รวมอุปกรณ์ซ้ำ)
-function getFinalDef(actor) {
-  const base = actor.baseDef ?? actor.defBase ?? actor.def ?? 0;
-
-  const defBuffs = (actor.statusEffects || [])
-    .filter(e => e.type === "DefenseBuff")
-    .map(e => e.value);
-  const bestBuff = defBuffs.length > 0 ? Math.max(...defBuffs) : 0;
-
-  const defDebuffs = (actor.statusEffects || [])
-    .filter(e => e.type === "DefenseDown")
-    .map(e => e.value);
-  const worstDebuff = defDebuffs.length > 0 ? Math.max(...defDebuffs) : 0;
-
-  const finalDef = base + bestBuff + (actor.tempDef || 0) - worstDebuff;
-  return Math.max(0, finalDef);
-}
-
-// ✅ Final Skill Boost (เพิ่มโอกาสใช้สกิล/ลดคูลดาวน์)
-function getFinalSkillBoost(actor) {
-  const boosts = (actor.statusEffects || [])
-    .filter(e => e.type === "SkillBoost")
-    .map(e => e.value);
-
-  return boosts.length > 0 ? Math.max(...boosts) : 0;
-}
-
-// ✅ Final Speed (ใช้ถ้ามีระบบความเร็ว)
-function getFinalSpeed(actor) {
-  let base = actor.spd || 0;
-
-  const speedBuffs = (actor.statusEffects || [])
-    .filter(e => e.type === "SpeedBuff")
-    .map(e => e.value);
-
-  const bestBuff = speedBuffs.length > 0 ? Math.max(...speedBuffs) : 0;
-
-  return base + bestBuff;
-}
-
-// 💖 การฮีล
+//  การฮีล
 async function doHeal(user, allies, multiplier, level) {
   const candidates = allies.filter(a => a.hp > 0 && a.hp < a.maxHp);
   if (candidates.length === 0) {
-    log(`❌ ${user.name} ไม่มีใครให้ฮีล`, user.isEnemy ? "enemy" : "player");
+    log(`<span class=gicon-x></span> ${user.name} ไม่มีใครให้ฮีล`, user.isEnemy ? "enemy" : "player");
     return healerIdle(user);
   }
 
@@ -81,12 +17,12 @@ async function doHeal(user, allies, multiplier, level) {
   const ally = candidates[0];
 
   // คำนวณ Heal
-  const atkFinal = getFinalAtk(user); // ✅ ดึงจากระบบกลาง
+  const atkFinal = getFinalAtk(user); // <span class=gicon-check></span> ดึงจากระบบกลาง
   const healAmount = Math.floor(atkFinal * multiplier);
 
   // Log
   log(
-    `💚 ${user.name} (Heal L${level}) → ฟื้น ${ally.name} +${healAmount} HP`,
+    `<span class=gicon-heart-green></span> ${user.name} (Heal L${level}) <span class=gicon-arrow-right></span> ฟื้น ${ally.name} +${healAmount} HP`,
     user.isEnemy ? "enemy" : "player"
   );
 
@@ -99,18 +35,18 @@ async function doAOEHeal(user, allies, multiplier, level) {
   const targets = allies.filter(a => a.hp > 0 && a.hp < a.maxHp);
 
   if (targets.length === 0) {
-    log(`❌ ${user.name} ไม่มีใครให้ฮีล`, user.isEnemy ? "enemy" : "player");
+    log(`<span class=gicon-x></span> ${user.name} ไม่มีใครให้ฮีล`, user.isEnemy ? "enemy" : "player");
     return healerIdle(user);
   }
 
-  const atkFinal = getFinalAtk(user); // ✅ ดึงจากระบบกลาง (รวม buff/debuff)
+  const atkFinal = getFinalAtk(user); // <span class=gicon-check></span> ดึงจากระบบกลาง (รวม buff/debuff)
 
   for (let a of targets) {
     const healAmount = Math.floor(atkFinal * multiplier);
 
     // log
     log(
-      `💖 ${user.name} (AOE Heal L${level}) → ฟื้น ${a.name} +${healAmount} HP`,
+      `<span class=gicon-heart></span> ${user.name} (AOE Heal L${level}) <span class=gicon-arrow-right></span> ฟื้น ${a.name} +${healAmount} HP`,
       user.isEnemy ? "enemy" : "player"
     );
 
@@ -132,9 +68,9 @@ async function doCharm(user, enemies, multiplier, level) {
 
   const dmg = Math.max(2, Math.floor(atkFinal * multiplier) - defFinal);
 
-  // 📝 log
+  //  log
   log(
-    `💘 ${user.name} (Charm L${level}) → ${target.name} หลงเสน่ห์โจมตี ${allyTarget.name} -${dmg} HP`,
+    `<span class=gicon-heart></span> ${user.name} (Charm L${level}) <span class=gicon-arrow-right></span> ${target.name} หลงเสน่ห์โจมตี ${allyTarget.name} -${dmg} HP`,
     user.isEnemy ? "enemy" : "player"
   );
 
@@ -154,7 +90,7 @@ async function doCharm(user, enemies, multiplier, level) {
 async function doRevive(user, allies, percent, level) {
   const deadAlly = allies.find(a => a.hp <= 0);
   if (!deadAlly) {
-    log(`❌ ${user.name} ไม่มีใครให้ชุบชีวิต`, user.isEnemy ? "enemy" : "player");
+    log(`<span class=gicon-x></span> ${user.name} ไม่มีใครให้ชุบชีวิต`, user.isEnemy ? "enemy" : "player");
     user.cooldown = 3;
     return true;
   }
@@ -164,7 +100,7 @@ async function doRevive(user, allies, percent, level) {
 
   // log
   log(
-    `✨ ${user.name} (Revive L${level}) → ชุบชีวิต ${deadAlly.name} ฟื้น ${deadAlly.hp} HP`,
+    `<span class=gicon-sparkle></span> ${user.name} (Revive L${level}) <span class=gicon-arrow-right></span> ชุบชีวิต ${deadAlly.name} ฟื้น ${deadAlly.hp} HP`,
     user.isEnemy ? "enemy" : "player"
   );
 
@@ -197,19 +133,19 @@ async function doBloodTribute(user, allies, enemies, multiplier, level) {
     const atkFinal = getFinalAtk(user);
     const dmg = Math.max(1, Math.floor(atkFinal * multiplier));
 
-    log(`🩸 ${user.name} (Blood Tribute L${level}) → ดูดเลือด ${e.name} -${dmg} HP`,
+    log(`<span class=gicon-blood></span> ${user.name} (Blood Tribute L${level}) <span class=gicon-arrow-right></span> ดูดเลือด ${e.name} -${dmg} HP`,
         user.isEnemy ? "enemy" : "player");
 
     await applyDamage(user, e, dmg);
     totalDrain += dmg;
   }
 
-  // ✅ ฟื้นฟูให้เพื่อนที่เลือดน้อยที่สุด
+  //  ฟื้นฟูให้เพื่อนที่เลือดน้อยที่สุด
   const targetAlly = allies.filter(a => a.hp > 0).sort((a, b) => a.hp - b.hp)[0];
   if (targetAlly) {
     const heal = Math.min(totalDrain, targetAlly.maxHp - targetAlly.hp);
     if (heal > 0) {
-      log(`💖 ${user.name} ฟื้นฟู ${targetAlly.name} +${heal} HP จากการดูดเลือด`,
+      log(`<span class=gicon-heart></span> ${user.name} ฟื้นฟู ${targetAlly.name} +${heal} HP จากการดูดเลือด`,
           user.isEnemy ? "enemy" : "player");
 
       applyHeal(user, targetAlly, heal);
@@ -235,16 +171,16 @@ async function doLifesteal(user, allies, enemies, healRate, level) {
   const dmg = Math.max(1, Math.floor(atkFinal - defFinal));
   const heal = Math.floor(dmg * healRate);
 
-  // 📌 ฟื้นฟูเลือดตัวเอง (applyHeal below does the actual hp update + UI)
-  // 📝 log
+  //  ฟื้นฟูเลือดตัวเอง (applyHeal below does the actual hp update + UI)
+  //  log
   log(
-    `🩸 ${user.name} (Lifesteal L${level}) → โจมตี ${target.name} -${dmg} HP และฟื้น +${heal} HP`,
+    `<span class=gicon-blood></span> ${user.name} (Lifesteal L${level}) <span class=gicon-arrow-right></span> โจมตี ${target.name} -${dmg} HP และฟื้น +${heal} HP`,
     user.isEnemy ? "enemy" : "player"
   );
 
   await applyDamage(user, target, dmg);
 
-  // 📌 ฟื้นฟูเลือดตัวเอง
+  //  ฟื้นฟูเลือดตัวเอง
   if (heal > 0) {
     applyHeal(user, user, heal);
   }
@@ -275,7 +211,7 @@ async function doPowerStrike(user, enemies, multiplier, level) {
     await playPowerStrikeEffect(attackerEl, targetEl);
   }
 
-  log(`💥 ${user.name} (Power Strike L${level}) → ${target.name} -${dmg} HP`, 
+  log(`<span class=gicon-impact></span> ${user.name} (Power Strike L${level}) <span class=gicon-arrow-right></span> ${target.name} -${dmg} HP`, 
       user.isEnemy ? "enemy" : "player");
 
   await applyDamage(user, target, dmg);
@@ -296,8 +232,8 @@ async function doAOEAttack(user, enemies, divisor, level) {
       const rawDmg = atkFinal - defFinal;
       const dmg = Math.max(1, Math.floor(rawDmg / divisor));
 
-      // 📝 log
-      log(`🔥 ${user.name} (AOE Attack L${level}) → ${e.name} -${dmg} HP`, 
+      //  log
+      log(`<span class=gicon-fire></span> ${user.name} (AOE Attack L${level}) <span class=gicon-arrow-right></span> ${e.name} -${dmg} HP`, 
           user.isEnemy ? "enemy" : "player");
 
       await applyDamage(user, e, dmg);
@@ -328,13 +264,13 @@ async function doBombSkill(user, enemies, atkMultiplier, defDivisor, effectId, l
   const atkFinal = getFinalAtk(user);
   const baseDmg = Math.floor(atkFinal * atkMultiplier);
 
-  log(`💣 ${user.name} ใช้ Bomb L${level}!`, user.isEnemy ? "enemy" : "player");
+  log(`<span class=gicon-bomb></span> ${user.name} ใช้ Bomb L${level}!`, user.isEnemy ? "enemy" : "player");
 
   for (let e of targets) {
     const defFinal = getFinalDef(e);
     const finalDmg = Math.max(1, Math.floor(baseDmg - (defFinal / defDivisor)));
 
-    log(`💣💥 Bomb → ${e.name} -${finalDmg} HP`, user.isEnemy ? "enemy" : "player");
+    log(`<span class=gicon-bomb></span><span class=gicon-impact></span> Bomb <span class=gicon-arrow-right></span> ${e.name} -${finalDmg} HP`, user.isEnemy ? "enemy" : "player");
     await applyDamage(user, e, finalDmg, { noMove: true });
   }
 
@@ -356,7 +292,7 @@ async function doCriticalSkill(user, enemies, multiplier, level) {
   const dmg = Math.max(1, Math.floor(atkFinal * multiplier) - defFinal);
 
   log(
-    `💥 ${user.name} (Critical L${level} - CRIT!) → ${target.name} -${dmg} HP`,
+    `<span class=gicon-impact></span> ${user.name} (Critical L${level} - CRIT!) <span class=gicon-arrow-right></span> ${target.name} -${dmg} HP`,
     user.isEnemy ? "enemy" : "player"
   );
   await applyDamage(user, target, dmg);
@@ -375,12 +311,12 @@ async function doDoubleStrike(user, enemies, multiplier1, multiplier2, level) {
   const target = findFirstAlive(enemies);
   if (!target) return false;
 
-  // 🗡️ โจมตีครั้งที่ 1
+  //  โจมตีครั้งที่ 1
   const atk1 = getFinalAtk(user);
   const def1 = getFinalDef(target);
   const dmg1 = Math.max(1, Math.floor(atk1 * multiplier1) - def1);
 
-  log(`🗡️ ${user.name} (Double L${level} - Hit 1) → ${target.name} -${dmg1} HP`, user.isEnemy ? "enemy" : "player");
+  log(`<span class=gicon-sword></span> ${user.name} (Double L${level} - Hit 1) <span class=gicon-arrow-right></span> ${target.name} -${dmg1} HP`, user.isEnemy ? "enemy" : "player");
   await applyDamage(user, target, dmg1);
 
   const targetEl = document.querySelector(`[data-id="${target.instanceId}"]`);
@@ -389,7 +325,7 @@ async function doDoubleStrike(user, enemies, multiplier1, multiplier2, level) {
     setTimeout(() => targetEl.classList.remove("double-strike-hit"), 300);
   }
 
-  // 🗡️ โจมตีครั้งที่ 2 (ดีเลย์ 200ms)
+  //  โจมตีครั้งที่ 2 (ดีเลย์ 200ms)
   if (target.hp > 0) {
     await delay(200);
 
@@ -397,7 +333,7 @@ async function doDoubleStrike(user, enemies, multiplier1, multiplier2, level) {
     const def2 = getFinalDef(target);
     const dmg2 = Math.max(1, Math.floor(atk2 * multiplier2) - def2);
 
-    log(`🗡️ ${user.name} (Double L${level} - Hit 2) → ${target.name} -${dmg2} HP`, user.isEnemy ? "enemy" : "player");
+    log(`<span class=gicon-sword></span> ${user.name} (Double L${level} - Hit 2) <span class=gicon-arrow-right></span> ${target.name} -${dmg2} HP`, user.isEnemy ? "enemy" : "player");
     await applyDamage(user, target, dmg2);
 
     if (targetEl) {
@@ -421,7 +357,7 @@ async function doPiercingShot(user, enemies, atkMultiplier, defDivider, level) {
     Math.floor(atkFinal * atkMultiplier) - Math.floor(defFinal / defDivider)
   );
 
-  log(`🎯 ${user.name} (Piercing Shot L${level}) → ${target.name} -${dmg} HP`,
+  log(`<span class=gicon-target></span> ${user.name} (Piercing Shot L${level}) <span class=gicon-arrow-right></span> ${target.name} -${dmg} HP`,
       user.isEnemy ? "enemy" : "player");
   await applyDamage(user, target, dmg);
 
@@ -456,19 +392,19 @@ async function doTripleHit(user, allies, enemies, atkMultiplier, level) {
     if (idx > 0) await delay(200);
 
     if (target && target.hp > 0) {
-      // 🔥 ตีเป้าหมายหลัก
+      //  ตีเป้าหมายหลัก
       const dmg = Math.max(1, Math.floor(baseDmg / Math.pow(2, i - 1)));
-      log(`💢 ${user.name} (Triple Hit L${level} - Hit ${i}) → ${target.name} -${dmg} HP`,
+      log(`<span class=gicon-anger></span> ${user.name} (Triple Hit L${level} - Hit ${i}) <span class=gicon-arrow-right></span> ${target.name} -${dmg} HP`,
           user.isEnemy ? "enemy" : "player");
       await applyDamage(user, target, dmg);
     } else {
-      // ถ้าเป้าตาย → หาเป้าหมายใหม่
+      // ถ้าเป้าตาย  หาเป้าหมายใหม่
       const otherTargets = enemies.filter(e => e.hp > 0);
       if (otherTargets.length === 0) continue;
 
       const newTarget = otherTargets[Math.floor(Math.random() * otherTargets.length)];
       const dmg = Math.max(1, Math.floor((baseDmg / Math.pow(2, i - 1)) * 0.4));
-      log(`💥 ${user.name} (Triple Hit L${level} - Bounce ${i}) → ${newTarget.name} -${dmg} HP`,
+      log(`<span class=gicon-impact></span> ${user.name} (Triple Hit L${level} - Bounce ${i}) <span class=gicon-arrow-right></span> ${newTarget.name} -${dmg} HP`,
           user.isEnemy ? "enemy" : "player");
       await applyDamage(user, newTarget, dmg);
       target = newTarget;
@@ -498,8 +434,8 @@ async function doDebuff(user, allies, enemies, { type, multiplier, turns, level 
   });
 
   log(
-    `${type === "Burn" ? "🔥" : type === "Poison" ? "☠️" : type === "Bleed" ? "🩸" : "❄️"} ` +
-    `${user.name} (${type} L${level}) → ${target.name} ติด${type} ${turns} เทิร์น`,
+    `${type === "Burn" ? "<span class=gicon-fire></span>" : type === "Poison" ? "<span class=gicon-skull></span>" : type === "Bleed" ? "<span class=gicon-blood></span>" : "<span class=gicon-snowflake></span>"} ` +
+    `${user.name} (${type} L${level}) <span class=gicon-arrow-right></span> ${target.name} ติด${type} ${turns} เทิร์น`,
     user.isEnemy ? "enemy" : "player"
   );
 
@@ -509,7 +445,7 @@ async function doDebuff(user, allies, enemies, { type, multiplier, turns, level 
     setTimeout(() => targetEl.classList.remove(type.toLowerCase()), 1200);
   }
 
-  user.cooldown = (type === "Burn" ? 3 : 4); // 🔥 Burn CD 3, พิษ 4
+  user.cooldown = (type === "Burn" ? 3 : 4); // <span class=gicon-fire></span> Burn CD 3, พิษ 4
   return true;
 }
 function updateShieldUI(actor) {
@@ -528,8 +464,8 @@ function updateShieldUI(actor) {
 async function doDefenseBuff(user, allies, { divisor, turns = 2, aoe = false, level }) {
   const buffVal = Math.floor(user.defBase / divisor);
 
-  // ถ้าเป็น AOE → ให้ทุกคน
-  // ถ้าไม่ใช่ AOE → ให้แค่ตัวแรกที่ยังมี HP
+  // ถ้าเป็น AOE  ให้ทุกคน
+  // ถ้าไม่ใช่ AOE  ให้แค่ตัวแรกที่ยังมี HP
   const targets = aoe ? allies : allies.find(a => a.hp > 0) ? [allies.find(a => a.hp > 0)] : [];
 
   targets.forEach(a => {
@@ -547,7 +483,7 @@ async function doDefenseBuff(user, allies, { divisor, turns = 2, aoe = false, le
   });
 
   log(
-    `🛡️ ${user.name} (${aoe ? "AOE " : ""}Defense Buff L${level}) → DEF +${buffVal} ${aoe ? "ให้ทีม " : ""}(${turns} เทิร์น)`,
+    `<span class=gicon-shield></span> ${user.name} (${aoe ? "AOE " : ""}Defense Buff L${level}) <span class=gicon-arrow-right></span> DEF +${buffVal} ${aoe ? "ให้ทีม " : ""}(${turns} เทิร์น)`,
     user.isEnemy ? "enemy" : "player"
   );
 
@@ -586,7 +522,7 @@ async function doEnergyBoost(user, allies, {
   });
 
   // log
-  log(`⚡ ${user.name} ${logText}`, user.isEnemy ? "enemy" : "player");
+  log(`<span class=gicon-bolt></span> ${user.name} ${logText}`, user.isEnemy ? "enemy" : "player");
 
   // แสดง caster animation
   const casterEl = document.querySelector(`[data-id="${user.instanceId}"]`);
@@ -616,7 +552,7 @@ async function doSilence(user, targets, {
     }
   });
 
-  log(`🔇 ${user.name} ${logText}`, user.isEnemy ? "enemy" : "player");
+  log(`<span class=gicon-mute></span> ${user.name} ${logText}`, user.isEnemy ? "enemy" : "player");
 
   user.cooldown = selfCd;
   return true;
@@ -631,7 +567,7 @@ async function doSkillBoost(user, allies, {
     if (a.hp > 0) {
       addStatusEffect(a, { type: "SkillBoost", turns, value });
 
-      log(`✨ ${a.name} ${logText}`, user.isEnemy ? "enemy" : "player");
+      log(`<span class=gicon-sparkle></span> ${a.name} ${logText}`, user.isEnemy ? "enemy" : "player");
 
       const targetEl = document.querySelector(`[data-id="${a.instanceId}"]`);
       if (targetEl) {
@@ -660,18 +596,18 @@ async function doCleanse(user, allies, {
 
   allies.forEach(a => {
     if (a.hp > 0 && a.statusEffects) {
-      // 🔹 ล้างดีบัฟ
+      //  ล้างดีบัฟ
       a.statusEffects = a.statusEffects.filter(e =>
         !["Poison", "Burn", "Silence", "TimeStop"].includes(e.type)
       );
 
-      // 🔹 ฟื้นถ้ามี
+      //  ฟื้นถ้ามี
       if (healRatio > 0) {
         const heal = Math.floor(atkFinal * healRatio);
         applyHeal(user, a, heal);
       }
 
-      // 🔹 กันดีบัฟ
+      //  กันดีบัฟ
       if (resistTurns > 0) {
         addStatusEffect(a, { type: "DebuffResist", turns: resistTurns });
       }
@@ -685,13 +621,13 @@ async function doCleanse(user, allies, {
     }
   });
 
-  // 🔹 Log
+  //  Log
   log(
-    `💧 ${user.name} ${logText}`,
+    `<span class=gicon-droplet></span> ${user.name} ${logText}`,
     user.isEnemy ? "enemy" : "player"
   );
 
-  // 🔹 เอฟเฟกต์ผู้ร่าย
+  //  เอฟเฟกต์ผู้ร่าย
   const casterEl = document.querySelector(`[data-id="${user.instanceId}"]`);
   if (casterEl) {
     casterEl.classList.add("cleanse");
@@ -744,7 +680,7 @@ async function doStun(user, targets, {
     const dmg = Math.max(1, Math.floor(atkFinal / dmgMultiplier) - defFinal);
 
     log(
-      `💫 ${user.name} ${logText} → ${target.name} -${dmg} HP (สตัน ${turns} เทิร์น)`,
+      `<span class=gicon-sparkle></span> ${user.name} ${logText} <span class=gicon-arrow-right></span> ${target.name} -${dmg} HP (สตัน ${turns} เทิร์น)`,
       user.isEnemy ? "enemy" : "player"
     );
 

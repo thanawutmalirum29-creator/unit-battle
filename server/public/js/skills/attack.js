@@ -6,16 +6,16 @@ async function normalAttack(user, enemies) {
   const defFinal = getFinalDef(target);
   let rawDmg = Math.max(1, Math.floor(atkFinal - defFinal));
 
-  // ✅ Berserk (อาชีพ/บอส/เงื่อนไขพิเศษ)
+  //  Berserk (อาชีพ/บอส/เงื่อนไขพิเศษ)
   if (user.berserk || user.class === "BigBoss" || user.class === "GigaBoss" || user.class === "Berserker") {
     if (!user.isBerserked && user.hp <= user.maxHp * 0.4) {
       user.isBerserked = true;
-      log(`💢 ${user.name} เข้าสู่ Berserk Mode!`, user.isEnemy ? "enemy" : "player");
+      log(`<span class=gicon-anger></span> ${user.name} เข้าสู่ Berserk Mode!`, user.isEnemy ? "enemy" : "player");
     }
 
     if (user.isBerserked) {
       const userEl = document.querySelector(`[data-id="${user.instanceId}"]`);
-      showActionLabel(userEl, "💢 Berserk!", "fx-strike");
+      showActionLabel(userEl, "<span class=gicon-anger></span> Berserk!", "fx-strike");
 
       // เลือกเป้าหมาย 2 ตัว
       const alive = enemies.filter(e => e.hp > 0);
@@ -28,20 +28,20 @@ async function normalAttack(user, enemies) {
       // โจมตีทั้ง 2 เป้าหมาย
       for (let t of chosen) {
         const berserkDmg = Math.floor(rawDmg * 1.5);
-        log(`💥 ${user.name} (Berserk) โจมตีใส่ ${t.name} -${berserkDmg} HP`, user.isEnemy ? "enemy" : "player");
+        log(`<span class=gicon-impact></span> ${user.name} (Berserk) โจมตีใส่ ${t.name} -${berserkDmg} HP`, user.isEnemy ? "enemy" : "player");
         await applyDamage(user, t, berserkDmg);
       }
       return true;
     }
   }
 
-  // ⚔️ โจมตีปกติ (อาชีพอื่น + Rogue ครั้งแรก)
+  //  โจมตีปกติ (อาชีพอื่น + Rogue ครั้งแรก)
   const userEl = document.querySelector(`[data-id="${user.instanceId}"]`);
   announceNormalAttack(user);
-  log(`👊 ${user.name} โจมตี → ${target.name} -${rawDmg} HP`, user.isEnemy ? "enemy" : "player");
+  log(`<span class=gicon-muscle></span> ${user.name} โจมตี <span class=gicon-arrow-right></span> ${target.name} -${rawDmg} HP`, user.isEnemy ? "enemy" : "player");
   await applyDamage(user, target, rawDmg);
 
-  // 🟢 Rogue โจมตีซ้ำ
+  //  Rogue โจมตีซ้ำ
   if (user.class === "Rogue" && Math.random() < 0.4) {
     const alive = enemies.filter(e => e.hp > 0);
     if (alive.length > 0) {
@@ -50,7 +50,7 @@ async function normalAttack(user, enemies) {
       const extraDefFinal = getFinalDef(extraTarget);
       const extraRawDmg = Math.max(1, Math.floor(extraAtkFinal - extraDefFinal));
 
-      log(`⚡ ${user.name} ได้โจมตีซ้ำใส่ ${extraTarget.name} -${extraRawDmg} HP`, user.isEnemy ? "enemy" : "player");
+      log(`<span class=gicon-bolt></span> ${user.name} ได้โจมตีซ้ำใส่ ${extraTarget.name} -${extraRawDmg} HP`, user.isEnemy ? "enemy" : "player");
       await applyDamage(user, extraTarget, extraRawDmg);
     }
   }
@@ -64,13 +64,9 @@ function healerIdle(user) {
   
   return true;
 }
-function isHealer(user) {
-  const healerSkills = [
-    "Heal L1","Heal L2","Heal L3",
-    "AOE Heal L1","AOE Heal L2","AOE Heal L3","Bomb L1", "Bomb L2", "Bomb L3",
-  ];
-  return healerSkills.includes(user.baseSkill || user.skill);
-}
+// isHealer ย้ายไปรวมไว้จุดเดียวที่ js/shared/battle-math.js แล้ว (เดิมก็อปมาไว้
+// ที่นี่กับ server/battle/engine.js อีกชุด) โหลดเป็น global function ก่อนไฟล์นี้
+// (ดู pages/*.html) เรียก isHealer(...) ตรงนี้ได้เหมือนเดิม
 
 
 // ฟังก์ชันทำดาเมจแบบรวมศูนย์
@@ -79,21 +75,21 @@ async function applyDamage(attacker, target, dmg, logText, options = {}) {
 if (target.class === "PhantomBoss" && attacker && !attacker.isEnemy) {
   const hpPercent = target.hp / target.maxHp;
   if (!attacker.skill && Math.random() < 0.5) {
-    log(`💨 ${target.name} หลบการโจมตีของ ${attacker.name}!`, "enemy");
+    log(`<span class=gicon-droplet></span> ${target.name} หลบการโจมตีของ ${attacker.name}!`, "enemy");
     return;
   }
   if (attacker.skill && hpPercent < 0.3 && Math.random() < 0.2) {
-    log(`💨 ${target.name} หลบสกิลของ ${attacker.name}!`, "enemy");
+    log(`<span class=gicon-droplet></span> ${target.name} หลบสกิลของ ${attacker.name}!`, "enemy");
     return;
   }
 }
 
   target.hp -= dmg;
 
-  // 🔧 FIX: Mirror ("สวนกลับ % ATK") เดิมแค่ addStatusEffect(type:"Mirror") ไว้เฉยๆ
+  //  FIX: Mirror ("สวนกลับ % ATK") เดิมแค่ addStatusEffect(type:"Mirror") ไว้เฉยๆ
   // ไม่มีจุดไหนในเกมเช็คสถานะนี้เลย — ผู้เล่นเห็น log "เปิด Mirror" แต่ไม่มีอะไรเกิดขึ้นจริง
   // ใส่ผลจริงตรงนี้: ถ้าเป้าหมายที่โดนตี (และไม่ได้หลบ ดูเช็ค PhantomBoss ด้านบน) มี Mirror ค้างอยู่
-  // → สะท้อนดาเมจกลับผู้โจมตี ใช้ครั้งเดียวแล้วหมด (consume) กันไม่ให้สะท้อนซ้ำได้ทุกครั้งที่โดนตี
+  //  สะท้อนดาเมจกลับผู้โจมตี ใช้ครั้งเดียวแล้วหมด (consume) กันไม่ให้สะท้อนซ้ำได้ทุกครั้งที่โดนตี
   if (target.statusEffects && attacker && target !== attacker && dmg > 0) {
     const mirrorIdx = target.statusEffects.findIndex(e => e.type === "Mirror");
     if (mirrorIdx !== -1) {
@@ -101,7 +97,7 @@ if (target.class === "PhantomBoss" && attacker && !attacker.isEnemy) {
       target.statusEffects.splice(mirrorIdx, 1); // ใช้แล้วหมดไป (one-shot)
 
       const reflectDmg = Math.max(1, Math.floor(getFinalAtk(target) * (mirror.power || 1)));
-      log(`🪞 ${target.name} สะท้อนดาเมจกลับ ${attacker.name} -${reflectDmg} HP`,
+      log(`<span class=gicon-mirror></span> ${target.name} สะท้อนดาเมจกลับ ${attacker.name} -${reflectDmg} HP`,
           target.isEnemy ? "enemy" : "player");
 
       // noMove: true กันไม่ให้เล่น animation เดินเข้าฟาดซ้อนกับแอนิเมชันหลักที่กำลังเล่นอยู่
@@ -109,7 +105,7 @@ if (target.class === "PhantomBoss" && attacker && !attacker.isEnemy) {
     }
   }
 
-  // 📊 เก็บสถิติดาเมจ ทำ/รับ ต่อหน่วย ไว้โชว์ในหน้าสรุปผลหลังจบการต่อสู้ (ดู hub-ui.js)
+  //  เก็บสถิติดาเมจ ทำ/รับ ต่อหน่วย ไว้โชว์ในหน้าสรุปผลหลังจบการต่อสู้ (ดู hub-ui.js)
   if (window.HubUI && typeof HubUI.trackDamage === "function") {
     HubUI.trackDamage(attacker, target, dmg);
   }
@@ -118,7 +114,7 @@ if (target.class === "PhantomBoss" && attacker && !attacker.isEnemy) {
     addBossDamage(dmg);
   }
 
-  // ✨ Rebirth Trigger (คงไว้ตามเดิม)
+  //  Rebirth Trigger (คงไว้ตามเดิม)
   if (target.skill?.startsWith("Rebirth") && !target.usedRebirth) {
     let healPercent = 0;
     if (target.skill === "Rebirth L1") healPercent = 0.5;
@@ -136,7 +132,7 @@ if (target.class === "PhantomBoss" && attacker && !attacker.isEnemy) {
       const healed = target.hp - oldHp;
 
       log(
-        `✨ ${target.name} ใช้ ${target.skill}! ฟื้นคืนชีพด้วย ${target.hp} HP และปล่อยระเบิดพลัง!`,
+        `<span class=gicon-sparkle></span> ${target.name} ใช้ ${target.skill}! ฟื้นคืนชีพด้วย ${target.hp} HP และปล่อยระเบิดพลัง!`,
         target.isEnemy ? "enemy" : "player"
       );
 
@@ -153,7 +149,7 @@ if (target.class === "PhantomBoss" && attacker && !attacker.isEnemy) {
             target,
             e,
             dmgPerEnemy,
-            `💥 พลัง Rebirth ระเบิดใส่ ${e.name} -${dmgPerEnemy} HP`,
+            `<span class=gicon-impact></span> พลัง Rebirth ระเบิดใส่ ${e.name} -${dmgPerEnemy} HP`,
             { noMove: true }
           );
         });
@@ -188,30 +184,30 @@ if (target.class === "PhantomBoss" && attacker && !attacker.isEnemy) {
     }, hitDuration);
   }
 
-  // 🩸 BigBoss Heal เมื่อถูกสกิลโจมตี
+  //  BigBoss Heal เมื่อถูกสกิลโจมตี
   if (target.class === "BigBoss" && attacker && !attacker.isEnemy && attacker.skill) {
     if (Math.random() < 0.3) {  // 30% chance
       const heal = Math.floor(target.maxHp * 0.002);
       target.hp = Math.min(target.maxHp, target.hp + heal);
-log(`💖 ${target.name} ฮีลตัวเอง +${heal} HP (BigBoss Reactive Heal)`, "enemy");
-updateHpBar(target);   // 🟢 อัปเดตทันที
+log(`<span class=gicon-heart></span> ${target.name} ฮีลตัวเอง +${heal} HP (BigBoss Reactive Heal)`, "enemy");
+updateHpBar(target);   // <span class=gicon-dot-green></span> อัปเดตทันที
     }
   }
-  // 🩸 UltraBoss: โอกาสตายทันทีถ้าถูกผู้เล่นใช้สกิล
+  //  UltraBoss: โอกาสตายทันทีถ้าถูกผู้เล่นใช้สกิล
 if (target.class === "UltraBoss" && attacker && !attacker.isEnemy && attacker.skill && !target.ultraDeathTriggered) {
   if (Math.random() < 0.1) { // 10% chance
     target.hp = 0;
     target.ultraDeathTriggered = true;
-    log(`☠️ ${target.name} โดนสกิลเด็ดขาด! ตายทันที!`, "enemy");
+    log(`<span class=gicon-skull></span> ${target.name} โดนสกิลเด็ดขาด! ตายทันที!`, "enemy");
     updateHpBar(target);
     handleDeath(target, attacker);
     return;
   }
 }
-  // ✅ อัปเดต HP bar เสมอ
+  //  อัปเดต HP bar เสมอ
   updateHpBar(target);
 
-  // ✅ เช็กการตายเสมอ
+  //  เช็กการตายเสมอ
   if (target.hp <= 0) {
     handleDeath(target, attacker);
   }

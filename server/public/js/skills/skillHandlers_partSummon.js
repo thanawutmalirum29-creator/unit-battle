@@ -2,7 +2,7 @@ window.skillHandlers_partSummon = {
   
   "SummonMinions": async (user, allies, enemies) => {
     if (user.hasSummoned) {
-      log(`⚠️ ${user.name} ใช้ Summon ได้ครั้งเดียวต่อเกม`, "enemy");
+      log(`<span class=gicon-warning></span> ${user.name} ใช้ Summon ได้ครั้งเดียวต่อเกม`, "enemy");
       return normalAttack(user, enemies);
     }
 
@@ -21,7 +21,7 @@ window.skillHandlers_partSummon = {
     allies.splice(idx, 0, ...summons);
 
     user.hasSummoned = true;
-    log(`🧟 ${user.name} ซัมมอนลูกน้อง 2 ตัวออกมา!`, "enemy");
+    log(`<span class=gicon-skull></span> ${user.name} ซัมมอนลูกน้อง 2 ตัวออกมา!`, "enemy");
 
     renderBattlefield();
     user.cooldown = 8;
@@ -41,7 +41,7 @@ window.skillHandlers_partSummon = {
     // กันซ้ำ
     const existingGolem = team.find(m => m.name === "Summoned Golem" && m.hp > 0);
     if (existingGolem) {
-      log(`❌ ${user.name} มี Golem อยู่แล้ว ซัมมอนไม่ได้`, user.isEnemy ? "enemy" : "player");
+      log(`<span class=gicon-x></span> ${user.name} มี Golem อยู่แล้ว ซัมมอนไม่ได้`, user.isEnemy ? "enemy" : "player");
       return false;
     }
 
@@ -68,7 +68,7 @@ window.skillHandlers_partSummon = {
       team.push(summon);
     }
 
-    log(`🪨 ${user.name} อัญเชิญ Golem มาช่วย`, user.isEnemy ? "enemy" : "player");
+    log(`<span class=gicon-rock></span> ${user.name} อัญเชิญ Golem มาช่วย`, user.isEnemy ? "enemy" : "player");
 
     renderBattlefield();
 
@@ -93,7 +93,7 @@ window.skillHandlers_partSummon = {
 
     const existingGolem = team.find(m => m.name === "Summoned Golem" && m.hp > 0);
     if (existingGolem) {
-      log(`❌ ${user.name} มี Golem อยู่แล้ว ซัมมอนไม่ได้`, user.isEnemy ? "enemy" : "player");
+      log(`<span class=gicon-x></span> ${user.name} มี Golem อยู่แล้ว ซัมมอนไม่ได้`, user.isEnemy ? "enemy" : "player");
       return false;
     }
 
@@ -101,7 +101,7 @@ window.skillHandlers_partSummon = {
       name: "Summoned Golem",
       hp: Math.floor(user.hp * 1.01),
       maxHp: Math.floor(user.hp * 1.01),
-      // 🔧 FIX: เดิมเป็น `user.hp * 0.0` (ATK เท่ากับ 0 เสมอ) ทำให้ Golem จาก Summon L2 ต่อยไม่มีดาเมจ
+      //  FIX: เดิมเป็น `user.hp * 0.0` (ATK เท่ากับ 0 เสมอ) ทำให้ Golem จาก Summon L2 ต่อยไม่มีดาเมจ
       // เลยเลยทั้งที่เป็นสกิลเลเวลกลาง (L1=0.08, L3=0.09) — ปรับให้อยู่ระหว่างกลางตามลำดับเลเวล
       atk: Math.floor(user.hp * 0.085),
       def: Math.floor(user.hp * 0.05),
@@ -121,7 +121,7 @@ window.skillHandlers_partSummon = {
       team.push(summon);
     }
 
-    log(`🪨 ${user.name} อัญเชิญ Golem มาช่วย`, user.isEnemy ? "enemy" : "player");
+    log(`<span class=gicon-rock></span> ${user.name} อัญเชิญ Golem มาช่วย`, user.isEnemy ? "enemy" : "player");
 
     const casterEl = document.querySelector(`[data-id="${user.instanceId}"]`);
     if (casterEl) {
@@ -154,13 +154,13 @@ window.skillHandlers_partSummon = {
 
     const existingGolem = team.find(m => m.name === "Summoned Golem" && m.hp > 0);
     if (existingGolem) {
-      log(`❌ ${user.name} มี Golem อยู่แล้ว ซัมมอนไม่ได้`, user.isEnemy ? "enemy" : "player");
+      log(`<span class=gicon-x></span> ${user.name} มี Golem อยู่แล้ว ซัมมอนไม่ได้`, user.isEnemy ? "enemy" : "player");
       return false;
     }
 
     const summon = {
       name: "Summoned Golem",
-      // 🔧 FIX: เดิม hp ใช้ตัวคูณ 1.02 แต่ maxHp ใช้ 1.012 → Golem เกิดมาเลือดเกิน maxHp ตัวเองทันที
+      //  FIX: เดิม hp ใช้ตัวคูณ 1.02 แต่ maxHp ใช้ 1.012  Golem เกิดมาเลือดเกิน maxHp ตัวเองทันที
       // (แถบ HP/สูตรคำนวณ % ที่อื่นอาจเพี้ยน) ปรับให้ hp กับ maxHp ใช้ตัวคูณเดียวกัน
       hp: Math.floor(user.hp * 1.02),
       maxHp: Math.floor(user.hp * 1.02),
@@ -182,7 +182,7 @@ window.skillHandlers_partSummon = {
       team.push(summon);
     }
 
-    log(`🪨 ${user.name} อัญเชิญ Golem มาช่วย`, user.isEnemy ? "enemy" : "player");
+    log(`<span class=gicon-rock></span> ${user.name} อัญเชิญ Golem มาช่วย`, user.isEnemy ? "enemy" : "player");
 
     const casterEl = document.querySelector(`[data-id="${user.instanceId}"]`);
     if (casterEl) {
