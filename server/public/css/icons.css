@@ -387,25 +387,33 @@
 }
 
 /* ---------- sword (single) ---------- */
-/* upright sword: straight tapered blade + crossguard/handle, drawn on the
-   vertical axis so it reads immediately as a sword rather than a rotated
-   chevron */
+/* detailed silhouette (tapered blade + centre fuller, curled-flourish
+   crossguard, grip, round pommel) via an SVG mask so the curves are
+   properly smooth instead of built from flat CSS shapes; still tints with
+   currentColor like every other icon here */
 .gicon-sword::before {
-  top: 4%;
-  left: 42%;
-  width: 16%;
-  height: 56%;
+  inset: 0;
   background: currentColor;
-  clip-path: polygon(50% 0%, 100% 20%, 78% 100%, 22% 100%, 0% 20%);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cpath%20d%3D%22M50%204%20L57.5%2059%20L42.5%2059%20Z%22%20fill%3D%22black%22/%3E%3Cpath%20d%3D%22M50%2059%20L57.5%2059%20C%2064%2057.5%2C%2072%2057%2C%2079%2060%20C%2085%2062.5%2C%2088%2066.5%2C%2085.5%2070%20C%2082.5%2068%2C%2078.5%2065.5%2C%2072%2065%20C%2065.5%2064.5%2C%2059%2065.5%2C%2053%2068%20L%2047%2068%20C%2041%2065.5%2C%2034.5%2064.5%2C%2028%2065%20C%2021.5%2065.5%2C%2017.5%2068%2C%2014.5%2070%20C%2012%2066.5%2C%2015%2062.5%2C%2021%2060%20C%2028%2057%2C%2036%2057.5%2C%2042.5%2059%20Z%22%20fill%3D%22black%22/%3E%3Crect%20x%3D%2245.5%22%20y%3D%2265%22%20width%3D%229%22%20height%3D%2219%22%20rx%3D%223%22%20fill%3D%22black%22/%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2289%22%20r%3D%226.5%22%20fill%3D%22black%22/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cpath%20d%3D%22M50%204%20L57.5%2059%20L42.5%2059%20Z%22%20fill%3D%22black%22/%3E%3Cpath%20d%3D%22M50%2059%20L57.5%2059%20C%2064%2057.5%2C%2072%2057%2C%2079%2060%20C%2085%2062.5%2C%2088%2066.5%2C%2085.5%2070%20C%2082.5%2068%2C%2078.5%2065.5%2C%2072%2065%20C%2065.5%2064.5%2C%2059%2065.5%2C%2053%2068%20L%2047%2068%20C%2041%2065.5%2C%2034.5%2064.5%2C%2028%2065%20C%2021.5%2065.5%2C%2017.5%2068%2C%2014.5%2070%20C%2012%2066.5%2C%2015%2062.5%2C%2021%2060%20C%2028%2057%2C%2036%2057.5%2C%2042.5%2059%20Z%22%20fill%3D%22black%22/%3E%3Crect%20x%3D%2245.5%22%20y%3D%2265%22%20width%3D%229%22%20height%3D%2219%22%20rx%3D%223%22%20fill%3D%22black%22/%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2289%22%20r%3D%226.5%22%20fill%3D%22black%22/%3E%3C/svg%3E");
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
 }
 .gicon-sword::after {
-  top: 58%;
-  left: 18%;
-  width: 64%;
-  height: 12%;
-  background: currentColor;
-  border-radius: 0.05em;
-  box-shadow: 0 0.24em 0 -0.04em currentColor;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cpath%20d%3D%22M50%209%20L51.4%2057%20L48.6%2057%20Z%22%20fill%3D%22black%22/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cpath%20d%3D%22M50%209%20L51.4%2057%20L48.6%2057%20Z%22%20fill%3D%22black%22/%3E%3C/svg%3E");
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
 }
 
 /* ---------- crossed swords (battle) ---------- */
