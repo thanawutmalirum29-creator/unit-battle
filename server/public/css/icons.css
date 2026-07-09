@@ -1297,103 +1297,49 @@
 }
 
 /* =========================================================
-   BOSS ICONS — bigger, dramatic, always their own fixed color
-   (never currentColor — a boss portrait shouldn't change with
-   the surrounding text). Designed for raid/boss select cards.
+   BOSS PORTRAIT ICONS — full illustrated boss art, embedded as
+   inline SVG data-URIs so each stays a single drop-in class
+   (no <img> tag, no extra asset file, no network request).
+   Sized bigger than the small glyph icons above — use at
+   3-5em+ on boss-select cards, not inline with text.
    ========================================================= */
 
-/* ---------- slime king ---------- */
-/* Glossy jagged blob with a jagged gold crown resting on top and
-   a drop-shadow "ooze glow" so it reads as gelatinous, not flat. */
-.gicon-slime-king { position: relative; display: inline-block; width: 1em; height: 1em; }
-.gicon-slime-king::before {
-  content: ""; position: absolute; left: 2%; top: 26%; width: 96%; height: 70%;
-  background:
-    radial-gradient(circle at 34% 22%, rgba(255,255,255,.65), transparent 40%),
-    linear-gradient(165deg, #8ce99a 0%, #37b24d 55%, #2b8a3e 100%);
-  clip-path: polygon(
-    50% 0%, 82% 8%, 100% 34%, 90% 48%, 98% 72%,
-    80% 62%, 72% 100%, 56% 74%, 44% 100%, 28% 66%,
-    18% 96%, 8% 60%, 0% 34%, 18% 8%
-  );
-  filter: drop-shadow(0 0 0.1em rgba(55, 178, 77, 0.55));
-}
-.gicon-slime-king::after {
-  content: ""; position: absolute; left: 16%; top: 0%; width: 68%; height: 30%;
-  background: linear-gradient(180deg, #ffe066, #f5a524);
-  clip-path: polygon(0% 100%, 0% 34%, 18% 62%, 32% 6%, 50% 58%, 68% 6%, 82% 62%, 100% 34%, 100% 100%);
+.gicon-slime-king {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3CradialGradient id='bodyGrad' cx='38%25' cy='28%25' r='75%25'%3E%3Cstop offset='0%25' stop-color='%23baf7c0'/%3E%3Cstop offset='45%25' stop-color='%2351cf66'/%3E%3Cstop offset='80%25' stop-color='%232f9e44'/%3E%3Cstop offset='100%25' stop-color='%231c6b2a'/%3E%3C/radialGradient%3E%3CradialGradient id='shine' cx='50%25' cy='50%25' r='50%25'%3E%3Cstop offset='0%25' stop-color='%23ffffff' stop-opacity='0.85'/%3E%3Cstop offset='100%25' stop-color='%23ffffff' stop-opacity='0'/%3E%3C/radialGradient%3E%3ClinearGradient id='crownGrad' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0%25' stop-color='%23fff3bf'/%3E%3Cstop offset='60%25' stop-color='%23ffd43b'/%3E%3Cstop offset='100%25' stop-color='%23f08c00'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cellipse cx='120' cy='212' rx='76' ry='14' fill='%23000000' opacity='0.28'/%3E%3Cpath d='M120 60 C165 60 200 95 205 140 C210 175 198 190 182 200 C205 205 208 222 190 226 C160 236 92 236 60 224 C42 218 46 202 68 200 C50 190 38 175 42 140 C46 95 75 60 120 60 Z' fill='url(%23bodyGrad)' stroke='%231c6b2a' stroke-width='3'/%3E%3Cellipse cx='88' cy='105' rx='34' ry='26' fill='url(%23shine)'/%3E%3Cpath d='M64 200 C60 214 66 226 78 224 C84 210 78 200 64 200 Z' fill='%232f9e44' stroke='%231c6b2a' stroke-width='2.5'/%3E%3Cpath d='M176 200 C182 214 176 228 164 224 C158 210 164 200 176 200 Z' fill='%232f9e44' stroke='%231c6b2a' stroke-width='2.5'/%3E%3Cellipse cx='95' cy='128' rx='15' ry='19' fill='%230b1f10'/%3E%3Cellipse cx='150' cy='128' rx='15' ry='19' fill='%230b1f10'/%3E%3Ccircle cx='100' cy='121' r='5' fill='%23ffffff'/%3E%3Ccircle cx='155' cy='121' r='5' fill='%23ffffff'/%3E%3Cpath d='M85 158 Q120 190 158 156 Q150 176 120 180 Q92 178 85 158 Z' fill='%230b1f10'/%3E%3Cpath d='M100 160 L108 168 L96 170 Z' fill='%23f1f3f5'/%3E%3Cpath d='M140 160 L148 168 L136 170 Z' fill='%23f1f3f5'/%3E%3Cg transform='translate(120 40)'%3E%3Cpath d='M-46 34 L-46 6 L-28 22 L-14 -6 L0 18 L14 -6 L28 22 L46 6 L46 34 Z' fill='url(%23crownGrad)' stroke='%23b8860b' stroke-width='3' stroke-linejoin='round'/%3E%3Ccircle cx='0' cy='16' r='6' fill='%23e03131'/%3E%3Ccircle cx='-24' cy='20' r='4' fill='%234dabf7'/%3E%3Ccircle cx='24' cy='20' r='4' fill='%234dabf7'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
-/* ---------- ancient golem ---------- */
-/* Blocky carved-stone head, mossy gradient, cracked seams and a
-   single glowing rune eye punched through with a mask + real glow. */
-.gicon-golem { position: relative; display: inline-block; width: 1em; height: 1em; }
-.gicon-golem::before {
-  content: ""; position: absolute; inset: 4% 6% 6% 6%;
-  background:
-    linear-gradient(155deg, #9c9a92 0%, #706e64 55%, #4d4b43 100%);
-  clip-path: polygon(
-    30% 0%, 70% 0%, 92% 16%, 100% 46%, 88% 78%,
-    64% 100%, 36% 100%, 12% 78%, 0% 46%, 8% 16%
-  );
-  -webkit-mask-image:
-    linear-gradient(115deg, transparent 42%, black 43%, black 45%, transparent 46%),
-    linear-gradient(20deg, transparent 60%, black 61%, black 62%, transparent 63%),
-    radial-gradient(circle at 50% 46%, transparent 15%, black 16%);
-  mask-image:
-    linear-gradient(115deg, transparent 42%, black 43%, black 45%, transparent 46%),
-    linear-gradient(20deg, transparent 60%, black 61%, black 62%, transparent 63%),
-    radial-gradient(circle at 50% 46%, transparent 15%, black 16%);
-}
-.gicon-golem::after {
-  content: ""; position: absolute; left: 39%; top: 38%; width: 22%; height: 16%;
-  background: #ffd54f;
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-  filter: drop-shadow(0 0 0.14em #ffb703) drop-shadow(0 0 0.05em #fff3bf);
+.gicon-dragon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='scaleGrad' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23ff8c73'/%3E%3Cstop offset='45%25' stop-color='%23e8402f'/%3E%3Cstop offset='100%25' stop-color='%238a1207'/%3E%3C/linearGradient%3E%3ClinearGradient id='wingGrad' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0%25' stop-color='%23a61b0f'/%3E%3Cstop offset='100%25' stop-color='%234a0904'/%3E%3C/linearGradient%3E%3CradialGradient id='fireGrad' cx='30%25' cy='50%25' r='70%25'%3E%3Cstop offset='0%25' stop-color='%23fff3bf'/%3E%3Cstop offset='45%25' stop-color='%23ffd43b'/%3E%3Cstop offset='80%25' stop-color='%23ff922b'/%3E%3Cstop offset='100%25' stop-color='%23e8590c'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='120' cy='214' rx='90' ry='12' fill='%23000000' opacity='0.28'/%3E%3Cpath d='M40 150 C10 120 6 74 34 46 C30 78 42 98 60 108 Z' fill='url(%23wingGrad)' stroke='%233a0a04' stroke-width='2'/%3E%3Cpath d='M200 150 C230 120 234 74 206 46 C210 78 198 98 180 108 Z' fill='url(%23wingGrad)' stroke='%233a0a04' stroke-width='2'/%3E%3Cpath d='M120 214 C90 214 66 196 62 168 C58 140 74 116 92 104 C86 90 90 74 100 62 C96 52 100 38 112 30 C110 44 118 50 126 44 C132 34 146 30 158 36 C150 42 148 52 156 58 C172 66 184 82 186 102 C202 112 210 136 200 162 C192 190 162 214 120 214 Z' fill='url(%23scaleGrad)' stroke='%235c0d05' stroke-width='3'/%3E%3Cpath d='M108 34 L118 4 L124 32 Z' fill='%23ffe066' stroke='%238a1207' stroke-width='2'/%3E%3Cpath d='M144 36 L156 8 L160 34 Z' fill='%23ffe066' stroke='%238a1207' stroke-width='2'/%3E%3Cpath d='M96 108 C90 112 86 120 88 128 C96 122 104 122 110 128 C108 116 104 108 96 108 Z' fill='%235c0d05'/%3E%3Cpath d='M164 108 C170 112 174 120 172 128 C164 122 156 122 150 128 C152 116 156 108 164 108 Z' fill='%235c0d05'/%3E%3Cellipse cx='98' cy='120' rx='9' ry='11' fill='%230b0602'/%3E%3Cellipse cx='158' cy='120' rx='9' ry='11' fill='%230b0602'/%3E%3Cellipse cx='98' cy='120' rx='9' ry='11' fill='none' stroke='%23ffd43b' stroke-width='2'/%3E%3Cellipse cx='158' cy='120' rx='9' ry='11' fill='none' stroke='%23ffd43b' stroke-width='2'/%3E%3Ccircle cx='100' cy='116' r='2.4' fill='%23ffe066'/%3E%3Ccircle cx='160' cy='116' r='2.4' fill='%23ffe066'/%3E%3Cpath d='M92 168 Q128 200 176 158 Q168 186 130 194 Q98 192 92 168 Z' fill='%233a0a04'/%3E%3Cpath d='M104 172 L112 182 L98 184 Z' fill='%23fff5eb'/%3E%3Cpath d='M124 178 L132 190 L116 190 Z' fill='%23fff5eb'/%3E%3Cpath d='M146 174 L154 184 L140 186 Z' fill='%23fff5eb'/%3E%3Cpath d='M84 174 C60 176 34 168 18 148 C36 154 54 156 76 150 C70 168 74 178 84 174 Z' fill='url(%23fireGrad)'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
-/* ---------- deity / god (เทพเจ้า) ---------- */
-/* Radiant eight-point sunburst in gold with a bright divine core —
-   reads as "worship this, fear this" rather than a generic bolt. */
-.gicon-deity { position: relative; display: inline-block; width: 1em; height: 1em; }
-.gicon-deity::before {
-  content: ""; position: absolute; inset: 0%;
-  background: linear-gradient(160deg, #fff3bf, #ffd43b 45%, #f59f00 100%);
-  clip-path: polygon(
-    50% 0%, 61% 30%, 90% 10%, 72% 38%, 100% 50%,
-    72% 62%, 90% 90%, 61% 70%, 50% 100%, 39% 70%,
-    10% 90%, 28% 62%, 0% 50%, 28% 38%, 10% 10%, 39% 30%
-  );
-  filter: drop-shadow(0 0 0.16em rgba(255, 212, 59, 0.75));
-}
-.gicon-deity::after {
-  content: ""; position: absolute; inset: 36%;
-  border-radius: 50%;
-  background: radial-gradient(circle at 40% 35%, #ffffff, #fff3bf 60%, transparent 100%);
+.gicon-golem {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='stoneGrad' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0%25' stop-color='%23adaa9f'/%3E%3Cstop offset='55%25' stop-color='%23787564'/%3E%3Cstop offset='100%25' stop-color='%234a4739'/%3E%3C/linearGradient%3E%3ClinearGradient id='stoneArm' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%238a8878'/%3E%3Cstop offset='100%25' stop-color='%234a4739'/%3E%3C/linearGradient%3E%3CradialGradient id='runeGlow' cx='50%25' cy='50%25' r='50%25'%3E%3Cstop offset='0%25' stop-color='%23fff3bf'/%3E%3Cstop offset='45%25' stop-color='%23ffd43b'/%3E%3Cstop offset='100%25' stop-color='%23f08c00' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='120' cy='220' rx='82' ry='12' fill='%23000000' opacity='0.3'/%3E%3Cpath d='M46 214 L36 150 L60 118 L54 96 L86 96 L96 214 Z' fill='url(%23stoneArm)' stroke='%23332f22' stroke-width='3'/%3E%3Cpath d='M194 214 L204 150 L180 118 L186 96 L154 96 L144 214 Z' fill='url(%23stoneArm)' stroke='%23332f22' stroke-width='3'/%3E%3Cpath d='M78 214 L70 130 C68 96 90 74 120 74 C150 74 172 96 170 130 L162 214 Z' fill='url(%23stoneGrad)' stroke='%23332f22' stroke-width='3'/%3E%3Cpath d='M92 96 C86 66 100 40 120 40 C140 40 154 66 148 96 C138 84 102 84 92 96 Z' fill='url(%23stoneGrad)' stroke='%23332f22' stroke-width='3'/%3E%3Cpath d='M100 46 L96 30 M112 40 L110 22 M128 40 L130 22 M140 46 L144 30' stroke='%23332f22' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M78 130 L96 138 M150 140 L168 132 M90 170 L108 176 M150 178 L134 172' stroke='%23332f22' stroke-width='3' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='103' cy='70' r='18' fill='%23332f22'/%3E%3Ccircle cx='137' cy='70' r='18' fill='%23332f22'/%3E%3Ccircle cx='103' cy='70' r='10' fill='url(%23runeGlow)'/%3E%3Ccircle cx='137' cy='70' r='10' fill='url(%23runeGlow)'/%3E%3Ccircle cx='103' cy='70' r='4' fill='%23fff3bf'/%3E%3Ccircle cx='137' cy='70' r='4' fill='%23fff3bf'/%3E%3Cg transform='translate(120 155)'%3E%3Ccircle r='26' fill='none' stroke='%23ffd43b' stroke-width='3' opacity='0.9'/%3E%3Cpath d='M0 -26 L6 -6 L26 0 L6 6 L0 26 L-6 6 L-26 0 L-6 -6 Z' fill='url(%23runeGlow)'/%3E%3Cpath d='M0 -26 L6 -6 L26 0 L6 6 L0 26 L-6 6 L-26 0 L-6 -6 Z' fill='none' stroke='%23fff3bf' stroke-width='2'/%3E%3C/g%3E%3Cellipse cx='60' cy='180' rx='16' ry='10' fill='%235c7a3b' opacity='0.7'/%3E%3Cellipse cx='180' cy='118' rx='14' ry='9' fill='%235c7a3b' opacity='0.7'/%3E%3Cellipse cx='94' cy='200' rx='10' ry='7' fill='%235c7a3b' opacity='0.6'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
-/* ---------- dragon head, redesigned (fiercer) ---------- */
-/* Overrides the earlier .gicon-dragon rule below it in cascade order —
-   sharper horn, wider fanged jaw, deeper crimson, real fire glow. */
-.gicon-dragon::before {
-  inset: 6% 3% 12% 1%;
-  background:
-    radial-gradient(circle at 28% 18%, rgba(255,255,255,.3), transparent 40%),
-    linear-gradient(150deg, #ff5c4d 0%, #c0221a 55%, #7f1410 100%);
-  clip-path: polygon(
-    0% 46%, 14% 16%, 26% 30%, 36% 2%, 46% 28%,
-    58% 8%, 68% 30%, 84% 10%, 100% 36%, 92% 50%,
-    100% 62%, 70% 60%, 54% 82%, 40% 62%, 20% 66%
-  );
-  -webkit-mask-image: radial-gradient(circle at 62% 38%, transparent 7%, black 8%);
-  mask-image: radial-gradient(circle at 62% 38%, transparent 7%, black 8%);
-}
-.gicon-dragon::after {
-  top: 48%;
-  left: 64%;
-  width: 38%;
-  height: 18%;
-  background: linear-gradient(90deg, #ffd43b, #ff922b 60%, #ff4d1a);
-  clip-path: polygon(0% 10%, 55% 0%, 100% 30%, 62% 42%, 100% 55%, 55% 70%, 0% 90%);
-  filter: drop-shadow(0 0 0.12em rgba(255, 146, 43, 0.7));
+.gicon-deity {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3CradialGradient id='auraGlow' cx='50%25' cy='42%25' r='60%25'%3E%3Cstop offset='0%25' stop-color='%23fff9db' stop-opacity='0.9'/%3E%3Cstop offset='55%25' stop-color='%23ffd43b' stop-opacity='0.35'/%3E%3Cstop offset='100%25' stop-color='%23ffd43b' stop-opacity='0'/%3E%3C/radialGradient%3E%3ClinearGradient id='robeGrad' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0%25' stop-color='%23fff3bf'/%3E%3Cstop offset='45%25' stop-color='%23ffd43b'/%3E%3Cstop offset='100%25' stop-color='%23e8590c'/%3E%3C/linearGradient%3E%3ClinearGradient id='skinGrad' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0%25' stop-color='%23ffe8cc'/%3E%3Cstop offset='100%25' stop-color='%23f4b183'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='120' cy='120' r='112' fill='url(%23auraGlow)'/%3E%3Cg stroke='%23ffd43b' stroke-width='2' opacity='0.85'%3E%3Cline x1='120' y1='4' x2='120' y2='26'/%3E%3Cline x1='120' y1='214' x2='120' y2='236'/%3E%3Cline x1='4' y1='120' x2='26' y2='120'/%3E%3Cline x1='214' y1='120' x2='236' y2='120'/%3E%3Cline x1='36' y1='36' x2='52' y2='52'/%3E%3Cline x1='204' y1='36' x2='188' y2='52'/%3E%3Cline x1='36' y1='204' x2='52' y2='188'/%3E%3Cline x1='204' y1='204' x2='188' y2='188'/%3E%3C/g%3E%3Cellipse cx='120' cy='220' rx='70' ry='12' fill='%23000000' opacity='0.22'/%3E%3Cpath d='M60 220 C56 160 66 118 90 100 C82 84 90 60 120 58 C150 60 158 84 150 100 C174 118 184 160 180 220 Z' fill='url(%23robeGrad)' stroke='%23a15c00' stroke-width='3'/%3E%3Cpath d='M92 104 C86 96 88 84 96 78 C90 92 96 100 104 100 Z' fill='%23fff3bf' opacity='0.8'/%3E%3Cpath d='M148 104 C154 96 152 84 144 78 C150 92 144 100 136 100 Z' fill='%23fff3bf' opacity='0.8'/%3E%3Ccircle cx='120' cy='76' r='30' fill='url(%23skinGrad)' stroke='%23a15c00' stroke-width='2.5'/%3E%3Cpath d='M96 62 Q120 40 144 62 C146 48 134 34 120 34 C106 34 94 48 96 62 Z' fill='url(%23robeGrad)' stroke='%23a15c00' stroke-width='2.5'/%3E%3Ccircle cx='120' cy='30' r='6' fill='%23fff3bf' stroke='%23a15c00' stroke-width='2'/%3E%3Cellipse cx='109' cy='78' rx='4' ry='5' fill='%233a2a1a'/%3E%3Cellipse cx='131' cy='78' rx='4' ry='5' fill='%233a2a1a'/%3E%3Cpath d='M112 92 Q120 98 128 92' stroke='%238a5a2a' stroke-width='2.5' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='60' cy='150' r='9' fill='%23fff3bf' opacity='0.9'/%3E%3Ccircle cx='182' cy='146' r='7' fill='%23fff3bf' opacity='0.8'/%3E%3Ccircle cx='76' cy='60' r='5' fill='%23fff3bf' opacity='0.7'/%3E%3Ccircle cx='168' cy='58' r='5' fill='%23fff3bf' opacity='0.7'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
 }
