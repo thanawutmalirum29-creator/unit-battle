@@ -881,6 +881,33 @@ const GameAPI = (() => {
     return post("/api/daily/missions/claim-bonus", {}, true);
   }
 
+  // ---- Weekly + monthly quest boards (same shape as daily missions above,
+  // see routes/daily.js /weekly/* and /monthly/*) ----
+  async function weeklyStatus() {
+    if (!isLoggedIn()) return null;
+    return get("/api/daily/weekly/status", true);
+  }
+  async function weeklyClaimMission(key) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/daily/weekly/missions/claim", { key }, true);
+  }
+  async function weeklyClaimBonus() {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/daily/weekly/missions/claim-bonus", {}, true);
+  }
+  async function monthlyStatus() {
+    if (!isLoggedIn()) return null;
+    return get("/api/daily/monthly/status", true);
+  }
+  async function monthlyClaimMission(key) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/daily/monthly/missions/claim", { key }, true);
+  }
+  async function monthlyClaimBonus() {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/daily/monthly/missions/claim-bonus", {}, true);
+  }
+
   // ---- Achievement badges (account page) ----
   async function fetchBadges() {
     if (!isLoggedIn()) return null;
@@ -926,6 +953,22 @@ const GameAPI = (() => {
     return data;
   }
 
+  // ---- Heartbeat: real accumulated online time for the premium "playtime"
+  // frames/badges (see routes/players.js POST /heartbeat + GET /playtime).
+  // Called from the periodic interval at the bottom of this file, only while
+  // the tab/app is actually visible — see that interval for the gating.
+  // Server computes the credited duration itself from its own stored
+  // last-heartbeat timestamp, so calling this more/less often than expected
+  // can't earn extra credit either way. ----
+  async function heartbeat() {
+    if (!isLoggedIn()) return null;
+    return post("/api/players/heartbeat", {}, true);
+  }
+  async function fetchPlaytime() {
+    if (!isLoggedIn()) return null;
+    return get("/api/players/playtime", true);
+  }
+
 return {
     ensurePlayer, reportNormalClear, fetchNormalProgress, infRunStart, infStageClear, infRunFinish, getInfRunId, fetchInfProgress,
     isLoggedIn, register, login, loginWithGoogle, logout, getAuthConfig, updateUsername, getUsername,
@@ -949,7 +992,10 @@ return {
     pvpStatus, pvpGetDefense, pvpSetDefense, pvpOpponents, pvpAttack, pvpLeaderboard, pvpHistory, pvpBattleDetail,
     fetchBadges, setEquippedBadges,
     fetchCosmetics, setAvatar, setEquippedFrame,
+    heartbeat, fetchPlaytime,
     dailyStatus, dailyClaimLogin, dailyClaimMission, dailyClaimBonus,
+    weeklyStatus, weeklyClaimMission, weeklyClaimBonus,
+    monthlyStatus, monthlyClaimMission, monthlyClaimBonus,
     setSessionKickedHandler,
   };
 })();
@@ -957,9 +1003,19 @@ return {
 // ตรวจสถานะเซสชันเป็นระยะ (ทุก 20 วิ) แม้ระหว่างนั้นผู้เล่นจะไม่ได้กดอะไรที่ยิง API
 // เลยก็ตาม (เช่น อ่านหน้ากิลด์เฉยๆ) — ให้รู้ตัวว่าโดนล็อกอินเครื่องอื่นเบียดออกโดยไว
 // (ไม่ต้องรอให้บังเอิญกดอะไรสักอย่างก่อนถึงจะเจอ 401)
+//
+// heartbeat() piggybacks on the same 20s tick (matches server-side
+// HEARTBEAT_INTERVAL_SECONDS in game-data/playtime-data.js) but only fires
+// while the tab/app is actually visible — a backgrounded tab shouldn't rack
+// up "online time" toward the premium playtime frames/badges. The server
+// still independently caps how much any single call can credit, this check
+// just avoids sending pointless heartbeats while hidden.
 setInterval(() => {
-  if (window.GameAPI && GameAPI.isLoggedIn && GameAPI.isLoggedIn() && GameAPI.checkAccountStatus) {
-    GameAPI.checkAccountStatus();
+  if (window.GameAPI && GameAPI.isLoggedIn && GameAPI.isLoggedIn()) {
+    if (GameAPI.checkAccountStatus) GameAPI.checkAccountStatus();
+    if (GameAPI.heartbeat && (typeof document === "undefined" || document.visibilityState === "visible")) {
+      GameAPI.heartbeat();
+    }
   }
 }, 20000);
 
