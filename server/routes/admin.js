@@ -17,6 +17,7 @@ const pool = require('../db/pool');
 const asyncHandler = require('../middleware/asyncHandler');
 const { CHARACTER_DB } = require('../public/js/data/character-data.js');
 const { EQUIP_GACHA_POOLS, SELL_PRICE_BY_RARITY } = require('../game-data/economy-data.js');
+const { ensureAdminPrivileges } = require('../db/adminPrivileges');
 
 const router = express.Router();
 
@@ -119,7 +120,7 @@ router.get('/players', requireAdmin, asyncHandler(async (req, res) => {
     where = `WHERE p.username ILIKE $1 OR p.public_id ILIKE $1`;
   }
   const { rows } = await pool.query(
-    `SELECT p.id, p.public_id, p.username, p.status, p.status_reason, p.status_changed_at, p.suspended_until, p.created_at, p.is_guest,
+    `SELECT p.id, p.public_id, p.username, p.status, p.status_reason, p.status_changed_at, p.suspended_until, p.created_at, p.is_guest, p.is_admin,
             COALESCE(e.money, 0) AS money,
             COALESCE(jsonb_array_length(e.deck), 0) AS deck_count,
             COALESCE(jsonb_array_length(e.equip_bag), 0) AS equip_count
@@ -140,6 +141,7 @@ router.get('/players', requireAdmin, asyncHandler(async (req, res) => {
     suspendedUntil: r.suspended_until,
     createdAt: r.created_at,
     isGuest: r.is_guest,
+    isAdmin: r.is_admin,
     money: Number(r.money),
     deckCount: r.deck_count,
     equipCount: r.equip_count,
@@ -149,7 +151,7 @@ router.get('/players', requireAdmin, asyncHandler(async (req, res) => {
 // GET /api/admin/players/:id — full detail (economy + bag) for one account.
 router.get('/players/:id', requireAdmin, asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT p.id, p.public_id, p.username, p.status, p.status_reason, p.status_changed_at, p.suspended_until, p.created_at, p.is_guest,
+    `SELECT p.id, p.public_id, p.username, p.status, p.status_reason, p.status_changed_at, p.suspended_until, p.created_at, p.is_guest, p.is_admin,
             e.money, e.bag, e.deck, e.equip_bag
      FROM players p
      LEFT JOIN player_economy e ON e.player_id = p.id
@@ -168,6 +170,7 @@ router.get('/players/:id', requireAdmin, asyncHandler(async (req, res) => {
     suspendedUntil: r.suspended_until,
     createdAt: r.created_at,
     isGuest: r.is_guest,
+    isAdmin: r.is_admin,
     money: Number(r.money || 0),
     bag: r.bag || {},
     deck: Array.isArray(r.deck) ? r.deck : [],
@@ -249,6 +252,32 @@ router.patch('/players/:id', requireAdmin, asyncHandler(async (req, res) => {
     statusChangedAt: rows[0].status_changed_at,
     suspendedUntil: rows[0].suspended_until,
   });
+}));
+
+// PATCH /api/admin/players/:id/admin-status { isAdmin } — ticks/unticks the
+// admin (cheat-account) flag from the console's checkbox. Turning it ON
+// immediately runs the full privilege grant (see db/adminPrivileges.js) —
+// unlimited money, unlimited bag resources, every stage unlocked, one of
+// every character already maxed, one of every legendary equip item, and
+// (handled separately, per-request, over in routes/players.js and
+// routes/economy.js) every badge/frame shown unlocked and equipping never
+// consuming inventory — rather than waiting on the account's next request.
+// Turning it OFF only stops future top-ups; it does NOT claw back anything
+// already granted (money/cards/equips/unlocks all stay as-is). Use the
+// "เรียกคืน" (reclaim) tab afterwards if those need to be pulled back too.
+router.patch('/players/:id/admin-status', requireAdmin, asyncHandler(async (req, res) => {
+  const isAdmin = !!req.body?.isAdmin;
+  const { rows } = await pool.query(
+    `UPDATE players SET is_admin = $2 WHERE id = $1 RETURNING id, is_admin`,
+    [req.params.id, isAdmin]
+  );
+  if (rows.length === 0) return res.status(404).json({ error: 'player not found' });
+
+  if (isAdmin) {
+    await ensureAdminPrivileges(req.params.id, { force: true });
+  }
+
+  res.json({ ok: true, id: rows[0].id, isAdmin: rows[0].is_admin });
 }));
 
 // DELETE /api/admin/players/:id — permanently deletes the account and everything

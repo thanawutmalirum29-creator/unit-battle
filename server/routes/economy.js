@@ -970,13 +970,16 @@ router.post('/equip/equip', requireAuth, asyncHandler(async (req, res) => {
     card.equips = Array.isArray(card.equips) ? [...card.equips] : [];
     const item = bag[bagIdx];
 
-    let newBag = bag.filter((_, i) => i !== bagIdx);
+    // Admin accounts have an unlimited equip supply: equipping an item never
+    // removes it from the bag (see db/adminPrivileges.js, which also seeds
+    // one of every legendary item into the bag to begin with).
+    let newBag = req.isAdmin ? [...bag] : bag.filter((_, i) => i !== bagIdx);
 
     // Same type already equipped -> unequip it back to the bag first (matches
     // equipItem() in the old client equip.js).
     const existingIdx = card.equips.findIndex(e => e.type === item.type);
     if (existingIdx !== -1) {
-      newBag = [...newBag, card.equips[existingIdx]];
+      if (!req.isAdmin) newBag = [...newBag, card.equips[existingIdx]];
       card.equips.splice(existingIdx, 1);
     }
 

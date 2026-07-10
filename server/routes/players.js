@@ -338,8 +338,11 @@ async function computePlayerBadgeStats(playerId) {
 // (unlocked) keys are currently equipped.
 router.get('/badges', requireAuth, asyncHandler(async (req, res) => {
   const stats = await computePlayerBadgeStats(req.playerId);
-  const unlockedKeys = computeUnlockedBadgeKeys(stats);
-  const unlockedSet = new Set(unlockedKeys);
+  // Admin accounts see every badge as unlocked — see db/adminPrivileges.js
+  // comment for why this is checked here rather than stored anywhere.
+  const unlockedSet = req.isAdmin
+    ? new Set(BADGE_CATALOG.map((b) => b.key))
+    : new Set(computeUnlockedBadgeKeys(stats));
 
   const { rows } = await pool.query(`SELECT equipped_badges FROM players WHERE id = $1`, [req.playerId]);
   // Only ever report equipped badges that are STILL unlocked — guards against
@@ -373,7 +376,9 @@ router.put('/badges/equipped', requireAuth, asyncHandler(async (req, res) => {
   }
 
   const stats = await computePlayerBadgeStats(req.playerId);
-  const unlockedSet = new Set(computeUnlockedBadgeKeys(stats));
+  const unlockedSet = req.isAdmin
+    ? new Set(BADGE_CATALOG.map((b) => b.key))
+    : new Set(computeUnlockedBadgeKeys(stats));
   const notUnlocked = uniqueKeys.filter((k) => !unlockedSet.has(k));
   if (notUnlocked.length > 0) {
     return res.status(400).json({ error: 'badge not unlocked yet', badges: notUnlocked });
@@ -407,7 +412,9 @@ router.get('/cosmetics', requireAuth, asyncHandler(async (req, res) => {
   // A frame stops being shown as equipped if it's no longer available (e.g.
   // an achievement frame tied to a guild the player has since left) — same
   // self-healing behavior as equipped badges above.
-  const isAvailable = (key) => achievementUnlocked.has(key) || owned.has(key);
+  // Admin accounts see every frame as unlocked — see db/adminPrivileges.js
+  // comment for why this is checked here rather than stored anywhere.
+  const isAvailable = (key) => req.isAdmin || achievementUnlocked.has(key) || owned.has(key);
   const equippedFrame = player.equipped_frame && isAvailable(player.equipped_frame) ? player.equipped_frame : null;
 
   res.json({
@@ -457,7 +464,7 @@ router.put('/frame', requireAuth, asyncHandler(async (req, res) => {
   ]);
   const achievementUnlocked = new Set(computeUnlockedAchievementFrameKeys(stats));
   const owned = new Set(row.rows[0]?.owned_frames || []);
-  if (!achievementUnlocked.has(requested) && !owned.has(requested)) {
+  if (!req.isAdmin && !achievementUnlocked.has(requested) && !owned.has(requested)) {
     return res.status(400).json({ error: 'frame not unlocked yet' });
   }
 
