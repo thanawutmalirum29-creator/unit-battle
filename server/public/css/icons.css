@@ -65,6 +65,7 @@
 .gicon-skull,
 .gicon-snowflake,
 .gicon-star,
+.gicon-star-up,
 .gicon-store,
 .gicon-sword,
 .gicon-trash,
@@ -83,7 +84,7 @@
   flex-shrink: 0;
   line-height: 1;
 }
-.gicon-arrow-down::before,.gicon-arrow-up::before,.gicon-bag::before,.gicon-battle::before,.gicon-block::before,.gicon-bolt::before,.gicon-card::before,.gicon-cart::before,.gicon-castle::before,.gicon-chart-up::before,.gicon-chat::before,.gicon-check::before,.gicon-check-circle::before,.gicon-clock::before,.gicon-close::before,.gicon-coin::before,.gicon-crown::before,.gicon-door::before,.gicon-dragon::before,.gicon-eagle::before,.gicon-fire::before,.gicon-frame::before,.gicon-gear::before,.gicon-gem::before,.gicon-handshake::before,.gicon-help::before,.gicon-hourglass::before,.gicon-infinity::before,.gicon-lock::before,.gicon-mail::before,.gicon-mailbox::before,.gicon-medal::before,.gicon-moon::before,.gicon-note::before,.gicon-party::before,.gicon-pencil::before,.gicon-plus::before,.gicon-refresh::before,.gicon-search::before,.gicon-shield::before,.gicon-skull::before,.gicon-snowflake::before,.gicon-star::before,.gicon-store::before,.gicon-sword::before,.gicon-trash::before,.gicon-trophy::before,.gicon-unlock::before,.gicon-user::before,.gicon-users::before,.gicon-warning::before,.gicon-wolf::before,.gicon-x::before,
+.gicon-arrow-down::before,.gicon-arrow-up::before,.gicon-bag::before,.gicon-battle::before,.gicon-block::before,.gicon-bolt::before,.gicon-card::before,.gicon-cart::before,.gicon-castle::before,.gicon-chart-up::before,.gicon-chat::before,.gicon-check::before,.gicon-check-circle::before,.gicon-clock::before,.gicon-close::before,.gicon-coin::before,.gicon-crown::before,.gicon-door::before,.gicon-dragon::before,.gicon-eagle::before,.gicon-fire::before,.gicon-frame::before,.gicon-gear::before,.gicon-gem::before,.gicon-handshake::before,.gicon-help::before,.gicon-hourglass::before,.gicon-infinity::before,.gicon-lock::before,.gicon-mail::before,.gicon-mailbox::before,.gicon-medal::before,.gicon-moon::before,.gicon-note::before,.gicon-party::before,.gicon-pencil::before,.gicon-plus::before,.gicon-refresh::before,.gicon-search::before,.gicon-shield::before,.gicon-skull::before,.gicon-snowflake::before,.gicon-star::before,.gicon-star-up::before,.gicon-star-up::after,.gicon-store::before,.gicon-sword::before,.gicon-trash::before,.gicon-trophy::before,.gicon-unlock::before,.gicon-user::before,.gicon-users::before,.gicon-warning::before,.gicon-wolf::before,.gicon-x::before,
 .gicon-arrow-down::after,.gicon-arrow-up::after,.gicon-bag::after,.gicon-battle::after,.gicon-block::after,.gicon-bolt::after,.gicon-card::after,.gicon-cart::after,.gicon-castle::after,.gicon-chart-up::after,.gicon-chat::after,.gicon-check::after,.gicon-check-circle::after,.gicon-clock::after,.gicon-close::after,.gicon-coin::after,.gicon-crown::after,.gicon-door::after,.gicon-dragon::after,.gicon-eagle::after,.gicon-fire::after,.gicon-frame::after,.gicon-gear::after,.gicon-gem::after,.gicon-handshake::after,.gicon-help::after,.gicon-hourglass::after,.gicon-infinity::after,.gicon-lock::after,.gicon-mail::after,.gicon-mailbox::after,.gicon-medal::after,.gicon-moon::after,.gicon-note::after,.gicon-party::after,.gicon-pencil::after,.gicon-plus::after,.gicon-refresh::after,.gicon-search::after,.gicon-shield::after,.gicon-skull::after,.gicon-snowflake::after,.gicon-star::after,.gicon-store::after,.gicon-sword::after,.gicon-trash::after,.gicon-trophy::after,.gicon-unlock::after,.gicon-user::after,.gicon-users::after,.gicon-warning::after,.gicon-wolf::after,.gicon-x::after {
   content: "";
   position: absolute;
@@ -663,6 +664,29 @@
     82% 96%, 50% 75%, 18% 96%, 28% 60%,
     0% 38%, 37% 35%
   );
+}
+
+/* ---------- star, tier 2 (6★–8★ / "awakened" stars) ---------- */
+/* Same gold family as the base 5-point star (never a different color —
+   these are still "star" icons), but a 4-point sparkle/diamond shape so
+   a card that has rolled past 5★ reads as visually distinct from a
+   1-5★ card at a glance. All 6-8★ stars use this same shape, so they
+   stay consistent with each other while never being mistaken for the
+   1-5★ star icon. */
+.gicon-star-up::before {
+  inset: 6%;
+  background: var(--gold, #ffd54f);
+  filter: drop-shadow(0 0 0.08em rgba(255, 213, 79, 0.65));
+  clip-path: polygon(
+    50% 0%, 62% 38%, 100% 50%, 62% 62%,
+    50% 100%, 38% 62%, 0% 50%, 38% 38%
+  );
+}
+.gicon-star-up::after {
+  inset: 40%;
+  border-radius: 50%;
+  background: var(--gold, #ffd54f);
+  box-shadow: 0 0 0.1em rgba(255, 213, 79, 0.65);
 }
 
 /* ---------- crown ---------- */
