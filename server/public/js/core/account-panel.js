@@ -47,9 +47,8 @@
     // กรอบดาเมจบอสกิลด์ (แทนที่กรอบเดิมของหมวด boss) — ตัดพื้นหลังแล้ว, รูโปร่งใสตรงกลาง
     // ไม่ได้อยู่กึ่งกลางภาพเป๊ะ (ยอดมงกุฎ/พลอยด้านบนสูงกว่าด้านล่าง) ค่า tx/ty คำนวณจาก
     // bounding box จริงของรูตรงกลางเทียบกับขนาดภาพต้นฉบับ เหมือนกรอบพิเศษอื่น ๆ ด้านบน
-    // TODO: เปลี่ยน key ให้ตรงกับ key จริงในแคตตาล็อกฝั่ง backend ถ้าไม่ตรงกับที่เดาไว้นี้
-    frame_boss_dmg_1000000:   { src: "/img/frames/frame-boss-dmg-1000000.png",   width: "192%", tx: "-50%",   ty: "-51.4%" },
-    frame_boss_dmg_5000000:   { src: "/img/frames/frame-boss-dmg-5000000.png",   width: "191%", tx: "-49.9%", ty: "-52%" },
+    frame_boss_1m:            { src: "/img/frames/frame-boss-dmg-1000000.png",   width: "192%", tx: "-50%",   ty: "-51.4%" },
+    frame_boss_5m:            { src: "/img/frames/frame-boss-dmg-5000000.png",   width: "191%", tx: "-49.9%", ty: "-52%" },
   };
 
   // เลือก markup ตกแต่งของ ring: กรอบที่มีอยู่ใน SPECIAL_FRAME_IMAGES ใช้ภาพพิเศษ กรอบอื่นใช้เพชรทั่วไปตาม tier
