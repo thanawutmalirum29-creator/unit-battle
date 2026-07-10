@@ -28,6 +28,7 @@
   .adm-badge.suspended{ background:rgba(255,213,79,.15); color:var(--gold); }
   .adm-badge.banned{ background:rgba(239,68,68,.15); color:var(--bad); }
   .adm-badge.guest{ background:rgba(147,161,181,.18); color:var(--muted); border:1px solid rgba(147,161,181,.35); margin-left:6px; }
+  .adm-badge.gold{ background:rgba(255,213,79,.18); color:var(--gold); border:1px solid rgba(255,213,79,.4); margin-left:6px; }
   .adm-toolbar{ display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center; }
   .adm-toolbar input[type="text"]{ flex:1 1 220px; }
 
@@ -153,7 +154,7 @@
       <table class="adm-table">
         <thead>
           <tr>
-            <th>ผู้เล่น</th><th>Public ID</th><th>Internal ID</th><th><span class=gicon-coin></span> เงิน</th><th>สถานะ</th><th></th>
+            <th>ผู้เล่น</th><th>Public ID</th><th>Internal ID</th><th><span class=gicon-coin></span> เงิน</th><th>สถานะ</th><th style="text-align:center">แอดมิน</th><th></th>
           </tr>
         </thead>
         <tbody id="adminTableBody"></tbody>
@@ -307,7 +308,7 @@
   function renderTable() {
     const body = document.getElementById("adminTableBody");
     if (players.length === 0) {
-      body.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">ไม่พบบัญชี</td></tr>`;
+      body.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">ไม่พบบัญชี</td></tr>`;
       return;
     }
     body.innerHTML = players.map((p) => `
@@ -317,12 +318,46 @@
         <td class="adm-id">${p.id}</td>
         <td class="adm-money${p.money < 0 ? " negative" : ""}">${Number(p.money).toLocaleString()}</td>
         <td><span class="adm-badge ${p.status}">${statusLabel(p.status)}</span></td>
+        <td style="text-align:center">
+          <input type="checkbox" class="adm-admin-toggle" data-id="${p.id}" ${p.isAdmin ? "checked" : ""} title="ติ๊กเพื่อตั้งบัญชีนี้เป็นแอดมิน (ปลดล็อคทุกอย่างไม่จำกัด)" />
+        </td>
         <td class="adm-chevron">›</td>
       </tr>
     `).join("");
 
     body.querySelectorAll("tr[data-id]").forEach((row) => {
       row.addEventListener("click", () => openPlayerModal(row.dataset.id));
+    });
+
+    body.querySelectorAll(".adm-admin-toggle").forEach((cb) => {
+      cb.addEventListener("click", (e) => e.stopPropagation());
+      cb.addEventListener("change", async (e) => {
+        e.stopPropagation();
+        const id = cb.dataset.id;
+        const wantAdmin = cb.checked;
+        const p = players.find((x) => x.id === id);
+        const statusMsg = document.getElementById("adminStatusMsg");
+        if (wantAdmin && !confirm(`ตั้งค่าบัญชี "${p ? p.username : id}" เป็นแอดมิน?\n\nจะได้รับ: เงิน/ทรัพยากรไม่จำกัด, ปลดล็อคทุกด่าน, ตัวละครครบทุกตัว (แม็กซ์เลเวล/ดาว), อุปกรณ์ลีเจ้นครบทุกชิ้น (ใส่แล้วไม่หาย), กรอบรูป/ฉายาทั้งหมด`)) {
+          cb.checked = false;
+          return;
+        }
+        cb.disabled = true;
+        try {
+          await adminFetch(`/players/${id}/admin-status`, {
+            method: "PATCH",
+            body: JSON.stringify({ isAdmin: wantAdmin }),
+          });
+          if (p) p.isAdmin = wantAdmin;
+          statusMsg.textContent = wantAdmin
+            ? `ตั้งค่าเป็นแอดมินแล้ว — ปลดล็อคสิทธิ์ทั้งหมดเรียบร้อย`
+            : `ปลดสถานะแอดมินแล้ว (ของที่เคยได้รับจะไม่ถูกริบคืนอัตโนมัติ)`;
+        } catch (err) {
+          cb.checked = !wantAdmin;
+          statusMsg.textContent = "เปลี่ยนสถานะแอดมินไม่สำเร็จ: " + err.message;
+        } finally {
+          cb.disabled = false;
+        }
+      });
     });
   }
 
@@ -443,7 +478,7 @@
 
     return `
       <div class="adm-overview-row"><span class="label">สถานะ</span><span class="adm-badge ${p.status}">${statusLabel(p.status)}</span></div>
-      <div class="adm-overview-row"><span class="label">ประเภทบัญชี</span><span>${p.isGuest ? '<span class="adm-badge guest">ชั่วคราว (ไม่มี PIN)</span>' : 'ปกติ'}</span></div>
+      <div class="adm-overview-row"><span class="label">ประเภทบัญชี</span><span>${p.isGuest ? '<span class="adm-badge guest">ชั่วคราว (ไม่มี PIN)</span>' : 'ปกติ'}${p.isAdmin ? ' <span class="adm-badge gold">แอดมิน (ไม่จำกัด)</span>' : ''}</span></div>
       ${statusDetailRows.join("")}
       <div class="adm-overview-row"><span class="label">สมัครเมื่อ</span><span>${created}</span></div>
       <div class="adm-overview-row"><span class="label"><span class=gicon-coin></span> เงิน</span><span class="${moneyNeg ? "adm-money negative" : ""}">${Number(d.money).toLocaleString()}${moneyNeg ? " (ติดลบ/เป็นหนี้)" : ""}</span></div>
