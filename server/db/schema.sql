@@ -213,6 +213,16 @@ ALTER TABLE players ADD COLUMN IF NOT EXISTS owned_frames JSONB NOT NULL DEFAULT
 -- routes/players.js) — only admins can see who's a guest (routes/admin.js).
 ALTER TABLE players ADD COLUMN IF NOT EXISTS is_guest BOOLEAN NOT NULL DEFAULT false;
 
+-- Admin/cheat account flag — ticked from the hidden admin console (see
+-- routes/admin.js PATCH /players/:id/admin-status, and the checkbox in
+-- public/pages/admin-251029.html). While true, the account is kept
+-- topped-up with every admin privilege (unlimited money, unlimited bag
+-- resources, every stage unlocked, one of every character already maxed,
+-- one of every legendary equip item, equipping never consumes inventory)
+-- on every authenticated request — see db/adminPrivileges.js. Turning it
+-- back off just stops future top-ups; it does not claw anything back.
+ALTER TABLE players ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false;
+
 -- Last time this player made an authenticated request (see middleware/auth.js).
 -- Used to show an "online" / "offline for X" indicator on the friends and
 -- guild-members lists — not a precise presence system, just a cheap proxy.
