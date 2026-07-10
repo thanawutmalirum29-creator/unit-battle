@@ -149,7 +149,11 @@ function renderDeck() {
     }
 
     function getStarsDisplay(stars, isMaxed) {
-      let out = (stars <= 5) ? "<span class=gicon-star></span>".repeat(stars) : "<span class=gicon-star></span>".repeat(stars - 5);
+      // ดาว 1-5 = ไอคอนดาว 5 แฉกปกติ, ดาว 6-8 = นับ 1-3 ใหม่แต่ใช้ไอคอน "star-up"
+      // (ประกายทอง 4 แฉก) สีเหลือง/ทองเหมือนเดิม เพื่อแยกให้เห็นชัดว่าคือดาวที่อัปขึ้น 6-8 แล้ว
+      let out = (stars <= 5)
+        ? "<span class=gicon-star></span>".repeat(stars)
+        : "<span class=gicon-star-up></span>".repeat(stars - 5);
       return isMaxed ? `<span class="glow-stars">${out}</span>` : out;
     }
     const starsDisplay = getStarsDisplay(card.stars, isMaxed);
