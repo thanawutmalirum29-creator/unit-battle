@@ -3,6 +3,7 @@
 // leaderboard names, anything that touches player_economy requires proof of the PIN.
 const pool = require('../db/pool');
 const { resolveAccountStatus, accountBlockedPayload } = require('../db/accountStatus');
+const { ensureAdminPrivileges } = require('../db/adminPrivileges');
 
 // Reads "Authorization: Bearer <token>", looks up the player it belongs to,
 // and attaches req.playerId. 401s if missing/invalid.
@@ -13,7 +14,7 @@ async function requireAuth(req, res, next) {
 
   try {
     const { rows } = await pool.query(
-      `SELECT id, status, status_reason, status_changed_at, suspended_until, session_expires_at, last_seen_at, is_guest
+      `SELECT id, status, status_reason, status_changed_at, suspended_until, session_expires_at, last_seen_at, is_guest, is_admin
        FROM players WHERE session_token = $1`,
       [token]
     );
@@ -27,6 +28,19 @@ async function requireAuth(req, res, next) {
     }
     req.playerId = rows[0].id;
     req.isGuest = !!rows[0].is_guest;
+    req.isAdmin = !!rows[0].is_admin;
+
+    // Admin (cheat) accounts get topped back up to their unlimited floors
+    // before the route below reads player_economy — see db/adminPrivileges.js.
+    // Internally throttled, so this is cheap on every request but for the
+    // first one after the throttle window.
+    if (req.isAdmin) {
+      try {
+        await ensureAdminPrivileges(req.playerId);
+      } catch (err) {
+        console.error('ensureAdminPrivileges failed for', req.playerId, err);
+      }
+    }
 
     // Bump last_seen_at, but only if it's been >30s since the last write —
     // this endpoint is hit constantly during normal play, so throttling
