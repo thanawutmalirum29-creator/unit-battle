@@ -211,7 +211,7 @@
 
   function helperPreviewHtml(card) {
     if (!card) return "";
-    const stars = "<span class=gicon-star></span>".repeat(Math.min(card.stars || 1, 5)) + (card.stars > 5 ? "<span class=gicon-star></span>".repeat(card.stars - 5) : "");
+    const stars = "<span class=gicon-star></span>".repeat(Math.min(card.stars || 1, 5)) + (card.stars > 5 ? "<span class=gicon-star-up></span>".repeat(card.stars - 5) : "");
     return `
       <div class="helper-name">${escapeHtml(card.name)} <span style="color:var(--muted);font-weight:400">(${escapeHtml(card.rarity || "")})</span></div>
       <div class="helper-stats">${stars} Lv.${escapeHtml(String(card.level ?? 1))} · HP ${card.hp} · ATK ${card.atk} · DEF ${card.def ?? "?"} · Skill: ${escapeHtml(card.skill || "None")}</div>
