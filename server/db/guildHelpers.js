@@ -6,18 +6,22 @@
 // any request touches the guild boss, inside a single locked transaction.
 const {
   currentGuildCycle, GUILD_BOSS_MAX_HP, rewardForBossDamage, GUILD_BOSS_DEFEAT_BONUS,
-  levelForExp, computeMaxMembers,
+  levelForExp, computeMaxMembers, GUILD_LEADER_RANK_POINTS, GUILD_OFFICER_RANK_POINTS,
 } = require('../game-data/guild-data');
 
 // Looks up the calling player's guild membership row (if any), joined with
-// the guild itself. Returns null if the player isn't in a guild.
+// the guild itself AND their custom rank (if assigned) — rank_permissions
+// comes back as a plain object (jsonb) or null when no rank is assigned.
+// Returns null if the player isn't in a guild.
 async function getMembership(db, playerId) {
   const { rows } = await db.query(
     `SELECT gm.*, g.name, g.tag, g.description, g.emblem, g.leader_id, g.join_mode,
             g.max_members, g.treasury_money, g.total_contribution, g.created_at AS guild_created_at,
-            g.exp, g.level, g.extra_capacity_purchased
+            g.exp, g.level, g.extra_capacity_purchased,
+            gr.name AS rank_name, gr.permissions AS rank_permissions, gr.rank_points AS rank_points
      FROM guild_members gm
      JOIN guilds g ON g.id = gm.guild_id
+     LEFT JOIN guild_ranks gr ON gr.id = gm.rank_id
      WHERE gm.player_id = $1`,
     [playerId]
   );
@@ -26,6 +30,52 @@ async function getMembership(db, playerId) {
 
 function isLeaderOrOfficer(role) {
   return role === 'leader' || role === 'officer';
+}
+
+// A member's own "rank points" ("แต้มยศ") for hierarchy comparisons — the
+// leader and built-in officer role get fixed benchmarks (see game-data), a
+// member with no custom rank has 0, and a member with a custom rank uses
+// that rank's own points. Used exclusively to gate who can assign/unassign
+// which ranks (see the guard below) — NOT a permission check by itself.
+function rankPointsOf(membership) {
+  if (!membership) return -1;
+  if (membership.role === 'leader') return GUILD_LEADER_RANK_POINTS;
+  if (membership.role === 'officer') return GUILD_OFFICER_RANK_POINTS;
+  return membership.rank_points != null ? Number(membership.rank_points) : 0;
+}
+
+// Central permission check combining the base leader/officer/member
+// hierarchy with any custom rank the member holds (see GUILD_RANK_PERMISSIONS
+// in game-data/guild-data.js). The leader can always do everything. Officers
+// keep exactly the powers they always had (invite, manage applications, kick
+// plain members) regardless of any rank — a custom rank is how the leader
+// extends those same abilities to a 'member' without a full promotion, and
+// can also grant the two officer-exclusive-until-now abilities (editSettings,
+// manageRanks) to anyone the leader trusts with them.
+function hasGuildPermission(membership, permKey) {
+  if (!membership) return false;
+  if (membership.role === 'leader') return true;
+  if (membership.role === 'officer' && ['invite', 'manageApplications', 'kickMembers'].includes(permKey)) {
+    return true;
+  }
+  return !!(membership.rank_permissions && membership.rank_permissions[permKey]);
+}
+
+// Shared by routes/guilds.js (POST /disband, sole-leader /leave) and
+// routes/admin.js (force-close from the console, and deleting a sole-member
+// leader's account) — wipes a guild and everything that references it. Must
+// be called with `client` inside an already-open transaction.
+async function disbandGuildTx(client, guildId) {
+  await client.query(`DELETE FROM guild_chat_messages WHERE guild_id = $1`, [guildId]);
+  await client.query(`DELETE FROM guild_donations WHERE guild_id = $1`, [guildId]);
+  await client.query(`DELETE FROM guild_shop_purchases WHERE guild_id = $1`, [guildId]);
+  await client.query(`DELETE FROM guild_boss_attacks WHERE guild_id = $1`, [guildId]);
+  await client.query(`DELETE FROM guild_boss_state WHERE guild_id = $1`, [guildId]);
+  await client.query(`DELETE FROM guild_join_requests WHERE guild_id = $1`, [guildId]);
+  await client.query(`DELETE FROM guild_invites WHERE guild_id = $1`, [guildId]);
+  await client.query(`DELETE FROM guild_ranks WHERE guild_id = $1`, [guildId]);
+  await client.query(`DELETE FROM guild_members WHERE guild_id = $1`, [guildId]);
+  await client.query(`DELETE FROM guilds WHERE id = $1`, [guildId]);
 }
 
 // Ensures a guild_boss_state row exists for this guild and is current for
@@ -151,4 +201,4 @@ async function grantGuildExpTx(client, guildId, expDelta) {
   return { exp: newExp, level: newLevel, leveledUp, previousLevel: row.level };
 }
 
-module.exports = { getMembership, isLeaderOrOfficer, ensureGuildBossStateTx, grantGuildExpTx };
+module.exports = { getMembership, isLeaderOrOfficer, hasGuildPermission, rankPointsOf, disbandGuildTx, ensureGuildBossStateTx, grantGuildExpTx };

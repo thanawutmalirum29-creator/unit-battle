@@ -377,8 +377,14 @@ CREATE TABLE IF NOT EXISTS pvp_season_history (
   wins            INT NOT NULL DEFAULT 0,
   losses          INT NOT NULL DEFAULT 0,
   reward_mail_id  BIGINT REFERENCES mailbox(id) ON DELETE SET NULL,
+  acknowledged_at TIMESTAMPTZ,
   PRIMARY KEY (season_id, player_id)
 );
+-- acknowledged_at: set once the player has actually seen the season-end
+-- summary popup (GET /api/pvp/season-summary + POST .../ack in routes/pvp.js).
+-- Reward itself is already delivered via the mailbox row above regardless —
+-- this column only gates whether the "จบซีซั่น" popup still owes them a look.
+ALTER TABLE pvp_season_history ADD COLUMN IF NOT EXISTS acknowledged_at TIMESTAMPTZ;
 
 -- Lifetime-best rating ever reached across all seasons — needed because
 -- pvp_ratings resets every season. Feeds the PvP achievement badges
@@ -526,6 +532,32 @@ CREATE TABLE IF NOT EXISTS guild_members (
   joined_at             TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_guild_members_guild ON guild_members (guild_id, contribution_lifetime DESC);
+
+-- Custom ranks ("ยศ") — the leader creates named ranks with a hand-picked
+-- subset of permissions (see GUILD_RANK_PERMISSIONS in game-data/guild-data.js)
+-- and hands them to regular members, without promoting them all the way to
+-- 'officer'. A rank is purely additive on top of the base leader/officer/member
+-- hierarchy above — see hasGuildPermission() in db/guildHelpers.js.
+CREATE TABLE IF NOT EXISTS guild_ranks (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  guild_id      UUID NOT NULL REFERENCES guilds(id),
+  name          TEXT NOT NULL,
+  permissions   JSONB NOT NULL DEFAULT '{}',
+  created_at    TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (guild_id, name)
+);
+CREATE INDEX IF NOT EXISTS idx_guild_ranks_guild ON guild_ranks (guild_id);
+
+-- Nullable: no rank assigned = just their base role. ON DELETE SET NULL so
+-- deleting a rank definition quietly reverts every holder to plain member
+-- instead of failing or leaving a dangling reference.
+ALTER TABLE guild_members ADD COLUMN IF NOT EXISTS rank_id UUID REFERENCES guild_ranks(id) ON DELETE SET NULL;
+
+-- Rank points ("แต้มยศ") — see the comment above GUILD_RANK_POINTS_MAX in
+-- game-data/guild-data.js. Added via ALTER (not the CREATE TABLE above) so
+-- re-running this file against a database that already has guild_ranks from
+-- before this feature still picks up the new column.
+ALTER TABLE guild_ranks ADD COLUMN IF NOT EXISTS rank_points INT NOT NULL DEFAULT 0;
 
 -- Applications for join_mode = 'apply' guilds. Leader/officer accepts or rejects.
 CREATE TABLE IF NOT EXISTS guild_join_requests (
