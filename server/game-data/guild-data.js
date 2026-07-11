@@ -251,6 +251,55 @@ function computeBossAttackDamage(deck) {
   return Math.max(GUILD_BOSS_MIN_DAMAGE, damage);
 }
 
+// ---------------------------------------------------------------------------
+// Custom guild ranks ("ยศ") — the leader names a rank and hand-picks which of
+// these permissions it grants. Purely additive on top of the base
+// leader/officer/member hierarchy (see hasGuildPermission in db/guildHelpers.js);
+// a 'member' holding a rank with e.g. `invite: true` can invite players
+// without being promoted all the way to officer. `key` is what's stored in
+// guild_ranks.permissions (jsonb) and checked server-side — never trust a
+// permissions object from the client beyond these keys (sanitizeRankPermissions).
+// ---------------------------------------------------------------------------
+const GUILD_RANK_PERMISSIONS = [
+  { key: 'invite', label: 'เชิญผู้เล่นเข้ากิลด์' },
+  { key: 'manageApplications', label: 'จัดการคำขอเข้าร่วม (รับ/ปฏิเสธ)' },
+  { key: 'kickMembers', label: 'เตะสมาชิกทั่วไปออกจากกิลด์ (ยกเว้นหัวหน้า/รองหัวหน้า)' },
+  { key: 'manageRanks', label: 'มอบ/ถอดยศให้สมาชิกคนอื่น' },
+  { key: 'editSettings', label: 'แก้ไขข้อมูลกิลด์ (คำอธิบาย/สัญลักษณ์/รูปแบบเข้าร่วม)' },
+];
+const GUILD_RANK_NAME_MIN = 1;
+const GUILD_RANK_NAME_MAX = 16;
+const GUILD_MAX_RANKS = 10; // per guild, sanity cap on how many custom ranks can exist
+
+// Rank points ("แต้มยศ") — a numeric hierarchy layered on top of permissions so
+// that assigning/reassigning ranks itself has a pecking order: anyone handing
+// out a rank (the leader, or a member holding manageRanks) can never grant a
+// rank whose points exceed their own current points (see rankPointsOf() and
+// the assign/unassign guards in db/guildHelpers.js + routes/guilds.js). The
+// leader and the built-in 'officer' role get fixed, non-editable point values
+// so custom ranks always have something concrete to compare against — the
+// leader sets each custom rank's points (0 to just below the leader's own)
+// when creating it.
+const GUILD_RANK_POINTS_MIN = 0;
+const GUILD_LEADER_RANK_POINTS = 999;   // fixed — the leader always outranks every custom rank
+const GUILD_OFFICER_RANK_POINTS = 500;  // fixed — the built-in "officer" (รองหัวหน้า) role's benchmark
+const GUILD_RANK_POINTS_MAX = GUILD_LEADER_RANK_POINTS - 1; // custom ranks must stay below the leader
+
+// Strips a client-supplied permissions object down to only the known keys
+// above, coerced to booleans — never persist anything else into guild_ranks.
+function sanitizeRankPermissions(input) {
+  const out = {};
+  for (const perm of GUILD_RANK_PERMISSIONS) out[perm.key] = !!(input && input[perm.key]);
+  return out;
+}
+
+// Clamps a client-supplied rank-points value into the valid custom-rank range.
+function sanitizeRankPoints(input) {
+  const n = Math.floor(Number(input));
+  if (!Number.isFinite(n)) return GUILD_RANK_POINTS_MIN;
+  return Math.max(GUILD_RANK_POINTS_MIN, Math.min(GUILD_RANK_POINTS_MAX, n));
+}
+
 module.exports = {
   GUILD_NAME_MIN, GUILD_NAME_MAX, GUILD_TAG_MIN, GUILD_TAG_MAX,
   GUILD_DESC_MAX, GUILD_CREATE_COST, GUILD_EMBLEMS, GUILD_JOIN_MODES,
@@ -265,4 +314,6 @@ module.exports = {
   GUILD_LEVEL_THRESHOLDS, levelForExp, expProgress,
   GUILD_BASE_MAX_MEMBERS, GUILD_LEVEL_MEMBER_BONUS_CAP, GUILD_CAPACITY_EXPANSION_MIN_LEVEL,
   GUILD_CAPACITY_EXPANSION_BONUS, GUILD_CAPACITY_EXPANSION_COST, levelMemberBonus, computeMaxMembers,
+  GUILD_RANK_PERMISSIONS, GUILD_RANK_NAME_MIN, GUILD_RANK_NAME_MAX, GUILD_MAX_RANKS, sanitizeRankPermissions,
+  GUILD_RANK_POINTS_MIN, GUILD_RANK_POINTS_MAX, GUILD_LEADER_RANK_POINTS, GUILD_OFFICER_RANK_POINTS, sanitizeRankPoints,
 };

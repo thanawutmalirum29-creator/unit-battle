@@ -11,6 +11,14 @@ const DAILY_FREE_ATTACKS = 5;
 const ATTACK_COOLDOWN_MINUTES = 10; // can't hit the same defender again within this window
 const MAX_BATTLE_ROUNDS = 60; // safety cap — engine always terminates well before this in practice
 
+// "Freeze window": the stretch right before a season's ends_at where the
+// ladder locks — no attacks, so nobody's rating (attacker OR defender, since
+// rating only ever moves as a side-effect of an attack) can change while the
+// season-end standings are effectively already final. Gives everyone a fair,
+// known cutoff instead of whoever happens to get an attack in right as the
+// season timer rolls over. See isFrozen() in routes/pvp.js.
+const FREEZE_HOURS_BEFORE_SEASON_END = 4;
+
 // Bag currency awarded per attack + at season end — see player_economy.bag.
 const PVP_MEDAL_KEY = 'pvpMedal';
 
@@ -144,6 +152,7 @@ function seasonRewardFor(finalRank, tierKey) {
 
 module.exports = {
   START_RATING, SEASON_DURATION_DAYS, DAILY_FREE_ATTACKS, ATTACK_COOLDOWN_MINUTES, MAX_BATTLE_ROUNDS,
+  FREEZE_HOURS_BEFORE_SEASON_END,
   PVP_MEDAL_KEY, PVP_TIERS, rankInfo, tierIndexForRating,
   kFactor, expectedScore, computeEloDeltas,
   ATTACK_REWARDS, DEFENSE_REWARDS, RANK_REWARD_BRACKETS, TIER_SEASON_REWARDS, seasonRewardFor,
