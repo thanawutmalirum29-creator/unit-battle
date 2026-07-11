@@ -827,6 +827,47 @@ const GameAPI = (() => {
     if (!isLoggedIn()) return { error: "not logged in" };
     return post("/api/guilds/expand-capacity", {}, true);
   }
+  // ---- Custom guild ranks ("ยศ") ----
+  async function guildRanks() {
+    if (!isLoggedIn()) return { ranks: [], permissionCatalog: [] };
+    return get("/api/guilds/ranks", true);
+  }
+  async function guildCreateRank(payload) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/guilds/ranks", payload, true);
+  }
+  async function guildUpdateRank(rankId, payload) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    try {
+      const headers = { "Content-Type": "application/json", Authorization: "Bearer " + authToken };
+      const res = await fetch(BASE + `/api/guilds/ranks/${rankId}`, { method: "PATCH", headers, body: JSON.stringify(payload || {}) });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) return { error: data?.error || `http ${res.status}` };
+      return data;
+    } catch (err) {
+      return { error: "network" };
+    }
+  }
+  async function guildDeleteRank(rankId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    try {
+      const headers = { Authorization: "Bearer " + authToken };
+      const res = await fetch(BASE + `/api/guilds/ranks/${rankId}`, { method: "DELETE", headers });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) return { error: data?.error || `http ${res.status}` };
+      return data;
+    } catch (err) {
+      return { error: "network" };
+    }
+  }
+  async function guildAssignRank(rankId, playerId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post(`/api/guilds/ranks/${rankId}/assign`, { playerId }, true);
+  }
+  async function guildUnassignRank(playerId) {
+    if (!isLoggedIn()) return { error: "not logged in" };
+    return post("/api/guilds/ranks/unassign", { playerId }, true);
+  }
 
   // ---- PvP Ranked Arena ("สมรภูมิจัดอันดับ") — see routes/pvp.js ----
   async function pvpStatus() {
@@ -861,6 +902,14 @@ const GameAPI = (() => {
   async function pvpBattleDetail(battleId) {
     if (!isLoggedIn()) return null;
     return get(`/api/pvp/history/${battleId}`, true);
+  }
+  async function pvpSeasonSummary() {
+    if (!isLoggedIn()) return { hasSummary: false };
+    return get("/api/pvp/season-summary", true);
+  }
+  async function pvpAckSeasonSummary() {
+    if (!isLoggedIn()) return { ok: false };
+    return post("/api/pvp/season-summary/ack", {}, true);
   }
 
   // ---- Daily login streak + daily missions (see routes/daily.js) ----
@@ -989,7 +1038,9 @@ return {
     guildInvite, guildMyInvites, guildAcceptInvite, guildRejectInvite, guildCancelInvite,
     guildMembers, guildLeave, guildDisband, guildKick, guildPromote, guildDemote, guildTransferLeadership,
     guildChatFetch, guildChatSend, guildDonate, guildShopStatus, guildShopBuy, guildBossStatus, guildBossAttack, guildExpandCapacity,
+    guildRanks, guildCreateRank, guildUpdateRank, guildDeleteRank, guildAssignRank, guildUnassignRank,
     pvpStatus, pvpGetDefense, pvpSetDefense, pvpOpponents, pvpAttack, pvpLeaderboard, pvpHistory, pvpBattleDetail,
+    pvpSeasonSummary, pvpAckSeasonSummary,
     fetchBadges, setEquippedBadges,
     fetchCosmetics, setAvatar, setEquippedFrame,
     heartbeat, fetchPlaytime,
