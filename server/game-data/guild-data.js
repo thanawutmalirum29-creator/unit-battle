@@ -213,6 +213,14 @@ const GUILD_BOSS_DAMAGE_MULTIPLIER = 8;
 const GUILD_BOSS_MIN_DAMAGE = 100;
 const GUILD_BOSS_TOP_CARDS = 6; // only the N strongest deck cards count toward power
 
+// atk/def/skill for the real turn-based fight (routes/battle.js mode==='guildboss',
+// server/battle/engine.js). hp is NOT here — each attempt uses the guild's actual
+// remaining shared HP at fight-start (see buildGuildBossUnit in team-builder.js).
+// Stats sit a notch above the hardest solo boss (Dragon: atk 110 / def 50) since a
+// full 4-player guild leans on this fight, and "AOE Attack Boss" is an existing,
+// already-battle-tested skill handler — no new skill logic needed.
+const GUILD_BOSS_COMBAT = { atk: 130, def: 60, skill: 'AOE Attack Boss', class: null };
+
 // Cumulative damage-this-cycle thresholds -> mail reward. Highest tier the
 // player reached is what gets mailed once the cycle rolls over.
 const GUILD_BOSS_REWARD_TIERS = [
@@ -310,6 +318,7 @@ module.exports = {
   GUILD_CYCLE_MS, currentGuildCycle, guildCycleEndsAt,
   GUILD_BOSS_NAME, GUILD_BOSS_MAX_HP, GUILD_BOSS_ATTACKS_PER_DAY, GUILD_BOSS_MIN_DAMAGE,
   GUILD_BOSS_REWARD_TIERS, GUILD_BOSS_DEFEAT_BONUS, rewardForBossDamage, computeBossAttackDamage,
+  GUILD_BOSS_COMBAT,
   GUILD_MAX_LEVEL, GUILD_EXP_PER_CONTRIBUTION, GUILD_EXP_PER_BOSS_DAMAGE,
   GUILD_LEVEL_THRESHOLDS, levelForExp, expProgress,
   GUILD_BASE_MAX_MEMBERS, GUILD_LEVEL_MEMBER_BONUS_CAP, GUILD_CAPACITY_EXPANSION_MIN_LEVEL,
