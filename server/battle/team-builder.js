@@ -76,4 +76,28 @@ function buildBossUnit(bossDef, bossKey) {
   };
 }
 
-module.exports = { getRenderStats, buildPlayerUnit, buildEnemyUnit, buildBossUnit };
+// เหมือน buildBossUnit ด้านบน แต่ hp มาจาก guild_boss_state.current_hp จริง (HP กองกลาง
+// ที่กิลด์ตีร่วมกันสะสมทั้งสัปดาห์) ไม่ใช่ค่าคงที่จาก bossDef แบบบอสเดี่ยว — atk/def/skill
+// มาจาก GUILD_BOSS_COMBAT (game-data/guild-data.js)
+function buildGuildBossUnit(name, hp, combat) {
+  return {
+    name,
+    class: combat.class || null,
+    skill: combat.skill,
+    baseHp: hp,
+    baseAtk: combat.atk,
+    baseDef: combat.def,
+    hp,
+    maxHp: hp,
+    atk: combat.atk,
+    def: combat.def,
+    defBase: combat.def,
+    tempDef: 0,
+    cooldown: 0,
+    isEnemy: true,
+    statusEffects: [],
+    instanceId: 'BOSS', // engine.applyDamage เช็ค instanceId === "BOSS" เพื่อนับดาเมจสะสม (ctx.addBossDamage)
+  };
+}
+
+module.exports = { getRenderStats, buildPlayerUnit, buildEnemyUnit, buildBossUnit, buildGuildBossUnit };
