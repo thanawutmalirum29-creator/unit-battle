@@ -932,7 +932,7 @@
 
     const btn = document.getElementById("bossAttackBtn");
     btn.disabled = data.defeated || data.attacksLeftToday <= 0;
-    btn.innerHTML = data.defeated ? "บอสถูกปราบแล้ว รอสัปดาห์หน้า" : data.attacksLeftToday <= 0 ? "โจมตีครบวันนี้แล้ว" : "<span class=gicon-battle></span> โจมตี";
+    btn.innerHTML = data.defeated ? "บอสถูกปราบแล้ว รอสัปดาห์หน้า" : data.attacksLeftToday <= 0 ? "โจมตีครบวันนี้แล้ว" : "<span class=gicon-battle></span> เลือกทีม & โจมตี";
 
     const topMount = document.getElementById("bossTopMount");
     topMount.innerHTML = data.topDamage.length === 0
@@ -941,11 +941,12 @@
         <div class="row"><div class="row-name">#${i+1} ${escapeHtml(t.username)}</div><div>${fmtNum(t.damage)}</div></div>
       `).join("");
   }
-  document.getElementById("bossAttackBtn").addEventListener("click", async () => {
-    const r = await GameAPI.guildBossAttack();
-    if (r?.error) return alert(r.error);
-    alert(`สร้างดาเมจ ${fmtNum(r.damage)}!` + (r.defeated ? " บอสถูกปราบแล้ว!" : "") + (r.leveledUp ? `\nกิลด์เลื่อนเป็นเลเวล ${r.guildLevel}!` : ""));
-    await renderBoss();
+  // เดิมกดปุ่มนี้แล้วยิง GameAPI.guildBossAttack() ครั้งเดียวได้ดาเมจจากสูตรคำนวณทันที
+  // ไม่มีสนามรบ ไม่เห็นสกิล — ตอนนี้พาไปหน้าต่อสู้จริง (เลือกทีม + อนิเมชันสกิลเต็มรูปแบบ
+  // เหมือนโหมด Boss เดี่ยว) ที่ game.html?mode=guildboss แล้วเซิฟรันผลจริงทีละเทิร์นแทน
+  // (ดู routes/battle.js mode==='guildboss', js/modes/GUILDBOSS/guildboss.js)
+  document.getElementById("bossAttackBtn").addEventListener("click", () => {
+    location.href = "game.html?mode=guildboss";
   });
 
   // ================= อันดับกิลด์ =================
@@ -1005,7 +1006,8 @@
     myGuildState.myPlayerId = GameAPI.isLoggedIn() ? localStorage.getItem("playerId") : null;
     document.getElementById("guildMainView").style.display = "";
     renderOverview();
-    switchTab(document.querySelector(".guild-tab-btn.active")?.dataset.tab || "overview");
+    const urlTab = new URLSearchParams(location.search).get("tab");
+    switchTab(urlTab || document.querySelector(".guild-tab-btn.active")?.dataset.tab || "overview");
   }
 
   document.querySelectorAll(".guild-tab-btn").forEach((btn) => {
