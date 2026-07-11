@@ -685,6 +685,12 @@ CREATE TABLE IF NOT EXISTS battle_sessions (
 
 CREATE INDEX IF NOT EXISTS idx_battle_sessions_player ON battle_sessions (player_id, status);
 
+-- allow 'guildboss' as a battle_sessions mode too (guild boss fights now run
+-- through the same server-authoritative turn engine as solo Boss mode instead
+-- of a single flat-damage formula — see routes/battle.js mode==='guildboss')
+ALTER TABLE battle_sessions DROP CONSTRAINT IF EXISTS battle_sessions_mode_check;
+ALTER TABLE battle_sessions ADD CONSTRAINT battle_sessions_mode_check CHECK (mode IN ('normal', 'boss', 'inf', 'guildboss'));
+
 -- ============================================================================
 -- Daily login streak + daily missions ("ล็อกอินรายวัน" / "ภารกิจรายวัน")
 -- Both reset on the same 04:00-Thailand "game day" boundary already used by

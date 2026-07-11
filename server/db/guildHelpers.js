@@ -7,6 +7,7 @@
 const {
   currentGuildCycle, GUILD_BOSS_MAX_HP, rewardForBossDamage, GUILD_BOSS_DEFEAT_BONUS,
   levelForExp, computeMaxMembers, GUILD_LEADER_RANK_POINTS, GUILD_OFFICER_RANK_POINTS,
+  GUILD_BOSS_ATTACKS_PER_DAY, GUILD_EXP_PER_BOSS_DAMAGE,
 } = require('../game-data/guild-data');
 
 // Looks up the calling player's guild membership row (if any), joined with
@@ -201,4 +202,78 @@ async function grantGuildExpTx(client, guildId, expDelta) {
   return { exp: newExp, level: newLevel, leveledUp, previousLevel: row.level };
 }
 
-module.exports = { getMembership, isLeaderOrOfficer, hasGuildPermission, rankPointsOf, disbandGuildTx, ensureGuildBossStateTx, grantGuildExpTx };
+// ---------------------------------------------------------------------------
+// Guild boss — real battle flow (routes/battle.js mode==='guildboss')
+//
+// Replaces the old "click attack, get an instant flat-formula damage number"
+// UX with an actual server-run turn-based fight against the guild's shared
+// HP pool (same engine as solo Boss mode). Two calls:
+//   reserveGuildBossAttackTx     — at battle start: checks eligibility (in a
+//                                   guild, boss alive, under the daily cap)
+//                                   and reserves one of today's attempts.
+//   applyGuildBossDamageDeltaTx  — called once per turn with just THIS turn's
+//                                   new damage, so the shared HP pool (and
+//                                   every other guild member watching it)
+//                                   updates live as the fight plays out, and
+//                                   forfeiting/losing connection mid-fight
+//                                   never loses damage already dealt.
+// ---------------------------------------------------------------------------
+
+async function reserveGuildBossAttackTx(client, guildId, playerId) {
+  const state = await ensureGuildBossStateTx(client, guildId);
+  if (Number(state.current_hp) <= 0) {
+    return { error: 'บอสกิลด์ถูกปราบไปแล้วในสัปดาห์นี้ รอสัปดาห์หน้า' };
+  }
+
+  const attacksToday = await client.query(
+    `SELECT COUNT(*)::int AS n FROM guild_boss_attacks WHERE player_id = $1 AND attacked_at > now() - interval '24 hours'`,
+    [playerId]
+  );
+  if (attacksToday.rows[0].n >= GUILD_BOSS_ATTACKS_PER_DAY) {
+    return { error: `โจมตีได้สูงสุด ${GUILD_BOSS_ATTACKS_PER_DAY} ครั้งต่อวัน` };
+  }
+
+  const ins = await client.query(
+    `INSERT INTO guild_boss_attacks (guild_id, player_id, cycle, damage) VALUES ($1, $2, $3, 0) RETURNING id`,
+    [guildId, playerId, Number(state.cycle)]
+  );
+
+  return { attackRowId: ins.rows[0].id, currentHp: Number(state.current_hp), maxHp: Number(state.max_hp) };
+}
+
+async function applyGuildBossDamageDeltaTx(client, guildId, playerId, attackRowId, delta) {
+  delta = Math.max(0, Math.floor(Number(delta) || 0));
+  const state = await ensureGuildBossStateTx(client, guildId); // fresh + row-locked read
+  const applied = Math.min(delta, Number(state.current_hp));
+  const newHp = Number(state.current_hp) - applied;
+
+  if (applied > 0) {
+    await client.query(
+      `UPDATE guild_boss_state SET current_hp = $2, defeated_at = CASE WHEN $2::bigint <= 0 THEN now() ELSE defeated_at END, updated_at = now() WHERE guild_id = $1`,
+      [guildId, newHp]
+    );
+    await client.query(
+      `UPDATE guild_members SET boss_damage_cycle = boss_damage_cycle + $2, boss_damage_lifetime = boss_damage_lifetime + $2 WHERE player_id = $1`,
+      [playerId, applied]
+    );
+    if (attackRowId) {
+      await client.query(`UPDATE guild_boss_attacks SET damage = damage + $2 WHERE id = $1`, [attackRowId, applied]);
+    }
+  }
+
+  const levelResult = applied > 0 ? await grantGuildExpTx(client, guildId, applied * GUILD_EXP_PER_BOSS_DAMAGE) : null;
+
+  return {
+    damageApplied: applied,
+    currentHp: newHp,
+    maxHp: Number(state.max_hp),
+    defeated: newHp <= 0,
+    guildLevel: levelResult?.level,
+    leveledUp: !!levelResult?.leveledUp,
+  };
+}
+
+module.exports = {
+  getMembership, isLeaderOrOfficer, hasGuildPermission, rankPointsOf, disbandGuildTx, ensureGuildBossStateTx, grantGuildExpTx,
+  reserveGuildBossAttackTx, applyGuildBossDamageDeltaTx,
+};
