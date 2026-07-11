@@ -10,7 +10,7 @@ const express = require('express');
 const pool = require('../db/pool');
 const asyncHandler = require('../middleware/asyncHandler');
 const { requireAuth, blockGuests } = require('../middleware/auth');
-const { getMembership, isLeaderOrOfficer, ensureGuildBossStateTx, grantGuildExpTx } = require('../db/guildHelpers');
+const { getMembership, isLeaderOrOfficer, hasGuildPermission, rankPointsOf, disbandGuildTx, ensureGuildBossStateTx, grantGuildExpTx } = require('../db/guildHelpers');
 const {
   GUILD_NAME_MIN, GUILD_NAME_MAX, GUILD_TAG_MIN, GUILD_TAG_MAX,
   GUILD_DESC_MAX, GUILD_CREATE_COST, GUILD_EMBLEMS, GUILD_JOIN_MODES,
@@ -23,6 +23,8 @@ const {
   GUILD_MAX_LEVEL, GUILD_EXP_PER_CONTRIBUTION, GUILD_EXP_PER_BOSS_DAMAGE, expProgress,
   GUILD_CAPACITY_EXPANSION_MIN_LEVEL, GUILD_CAPACITY_EXPANSION_COST,
   computeMaxMembers,
+  GUILD_RANK_PERMISSIONS, GUILD_RANK_NAME_MIN, GUILD_RANK_NAME_MAX, GUILD_MAX_RANKS, sanitizeRankPermissions,
+  GUILD_RANK_POINTS_MIN, GUILD_RANK_POINTS_MAX, GUILD_LEADER_RANK_POINTS, GUILD_OFFICER_RANK_POINTS, sanitizeRankPoints,
 } = require('../game-data/guild-data');
 
 const router = express.Router();
@@ -77,6 +79,12 @@ router.get('/mine', requireAuth, asyncHandler(async (req, res) => {
     guild: guildSummary(membership),
     memberCount: countRows[0].n,
     myRole: membership.role,
+    myRankId: membership.rank_id || null,
+    myRankName: membership.rank_name || null,
+    myRankPoints: rankPointsOf(membership),
+    leaderRankPoints: GUILD_LEADER_RANK_POINTS,
+    officerRankPoints: GUILD_OFFICER_RANK_POINTS,
+    myPermissions: Object.fromEntries(GUILD_RANK_PERMISSIONS.map((p) => [p.key, hasGuildPermission(membership, p.key)])),
     myContributionLifetime: Number(membership.contribution_lifetime),
     myContributionBalance: Number(membership.contribution_balance),
     myBossDamageCycle: Number(membership.boss_damage_cycle),
@@ -217,7 +225,7 @@ router.post('/create', requireAuth, blockGuests, asyncHandler(async (req, res) =
 router.patch('/settings', requireAuth, asyncHandler(async (req, res) => {
   const membership = await getMembership(pool, req.playerId);
   if (!membership) return res.status(404).json({ error: 'คุณยังไม่ได้อยู่ในกิลด์' });
-  if (membership.role !== 'leader') return res.status(403).json({ error: 'หัวหน้ากิลด์เท่านั้นที่แก้ไขได้' });
+  if (!hasGuildPermission(membership, 'editSettings')) return res.status(403).json({ error: 'ไม่มีสิทธิ์แก้ไขข้อมูลกิลด์' });
 
   const fields = [];
   const params = [membership.guild_id];
@@ -391,11 +399,11 @@ router.delete('/requests/mine/:id', requireAuth, asyncHandler(async (req, res) =
   res.json({ ok: true });
 }));
 
-// GET /api/guilds/requests — pending applications to MY guild (leader/officer only).
+// GET /api/guilds/requests — pending applications to MY guild (leader/officer/manageApplications rank).
 router.get('/requests', requireAuth, asyncHandler(async (req, res) => {
   const membership = await getMembership(pool, req.playerId);
-  if (!membership || !isLeaderOrOfficer(membership.role)) {
-    return res.status(403).json({ error: 'ต้องเป็นหัวหน้าหรือรองหัวหน้ากิลด์' });
+  if (!membership || !hasGuildPermission(membership, 'manageApplications')) {
+    return res.status(403).json({ error: 'ต้องมีสิทธิ์จัดการคำขอเข้าร่วม' });
   }
   const { rows } = await pool.query(
     `SELECT r.id, p.id AS player_id, p.username, p.public_id, r.message, r.created_at
@@ -411,8 +419,8 @@ router.get('/requests', requireAuth, asyncHandler(async (req, res) => {
 
 router.post('/requests/:id/accept', requireAuth, asyncHandler(async (req, res) => {
   const membership = await getMembership(pool, req.playerId);
-  if (!membership || !isLeaderOrOfficer(membership.role)) {
-    return res.status(403).json({ error: 'ต้องเป็นหัวหน้าหรือรองหัวหน้ากิลด์' });
+  if (!membership || !hasGuildPermission(membership, 'manageApplications')) {
+    return res.status(403).json({ error: 'ต้องมีสิทธิ์จัดการคำขอเข้าร่วม' });
   }
 
   const client = await pool.connect();
@@ -461,8 +469,8 @@ router.post('/requests/:id/accept', requireAuth, asyncHandler(async (req, res) =
 
 router.post('/requests/:id/reject', requireAuth, asyncHandler(async (req, res) => {
   const membership = await getMembership(pool, req.playerId);
-  if (!membership || !isLeaderOrOfficer(membership.role)) {
-    return res.status(403).json({ error: 'ต้องเป็นหัวหน้าหรือรองหัวหน้ากิลด์' });
+  if (!membership || !hasGuildPermission(membership, 'manageApplications')) {
+    return res.status(403).json({ error: 'ต้องมีสิทธิ์จัดการคำขอเข้าร่วม' });
   }
   const { rows } = await pool.query(
     `UPDATE guild_join_requests SET status = 'rejected', responded_at = now()
@@ -479,8 +487,8 @@ router.post('/requests/:id/reject', requireAuth, asyncHandler(async (req, res) =
 // ---------------------------------------------------------------------------
 router.post('/invite', requireAuth, asyncHandler(async (req, res) => {
   const membership = await getMembership(pool, req.playerId);
-  if (!membership || !isLeaderOrOfficer(membership.role)) {
-    return res.status(403).json({ error: 'ต้องเป็นหัวหน้าหรือรองหัวหน้ากิลด์' });
+  if (!membership || !hasGuildPermission(membership, 'invite')) {
+    return res.status(403).json({ error: 'ต้องมีสิทธิ์เชิญผู้เล่นเข้ากิลด์' });
   }
   const publicId = typeof req.body?.publicId === 'string' ? req.body.publicId.trim() : '';
   if (!publicId) return res.status(400).json({ error: 'missing publicId' });
@@ -581,8 +589,8 @@ router.post('/invites/:id/reject', requireAuth, asyncHandler(async (req, res) =>
 // DELETE /api/guilds/invites/:id — leader/officer cancels an invite they sent.
 router.delete('/invites/:id', requireAuth, asyncHandler(async (req, res) => {
   const membership = await getMembership(pool, req.playerId);
-  if (!membership || !isLeaderOrOfficer(membership.role)) {
-    return res.status(403).json({ error: 'ต้องเป็นหัวหน้าหรือรองหัวหน้ากิลด์' });
+  if (!membership || !hasGuildPermission(membership, 'invite')) {
+    return res.status(403).json({ error: 'ต้องมีสิทธิ์เชิญผู้เล่นเข้ากิลด์' });
   }
   const { rows } = await pool.query(
     `UPDATE guild_invites SET status = 'cancelled', responded_at = now()
@@ -601,16 +609,20 @@ router.get('/members', requireAuth, asyncHandler(async (req, res) => {
   if (!membership) return res.status(404).json({ error: 'คุณยังไม่ได้อยู่ในกิลด์' });
 
   const { rows } = await pool.query(
-    `SELECT gm.player_id, gm.role, gm.contribution_lifetime, gm.contribution_balance,
+    `SELECT gm.player_id, gm.role, gm.rank_id, gr.name AS rank_name, gr.rank_points AS rank_points,
+            gm.contribution_lifetime, gm.contribution_balance,
             gm.boss_damage_cycle, gm.boss_damage_lifetime, gm.joined_at,
             p.username, p.public_id, p.status, p.suspended_until, p.last_seen_at
      FROM guild_members gm JOIN players p ON p.id = gm.player_id
+     LEFT JOIN guild_ranks gr ON gr.id = gm.rank_id
      WHERE gm.guild_id = $1
      ORDER BY (gm.role = 'leader') DESC, (gm.role = 'officer') DESC, gm.contribution_lifetime DESC`,
     [membership.guild_id]
   );
   res.json(rows.map((r) => ({
     playerId: r.player_id, username: r.username, publicId: r.public_id, role: r.role,
+    rankId: r.rank_id, rankName: r.rank_name,
+    rankPoints: r.role === 'leader' ? GUILD_LEADER_RANK_POINTS : r.role === 'officer' ? GUILD_OFFICER_RANK_POINTS : (r.rank_points != null ? Number(r.rank_points) : 0),
     contributionLifetime: Number(r.contribution_lifetime), contributionBalance: Number(r.contribution_balance),
     bossDamageCycle: Number(r.boss_damage_cycle), bossDamageLifetime: Number(r.boss_damage_lifetime),
     joinedAt: r.joined_at,
@@ -680,17 +692,7 @@ router.post('/disband', requireAuth, asyncHandler(async (req, res) => {
   }
 }));
 
-async function disbandGuildTx(client, guildId) {
-  await client.query(`DELETE FROM guild_chat_messages WHERE guild_id = $1`, [guildId]);
-  await client.query(`DELETE FROM guild_donations WHERE guild_id = $1`, [guildId]);
-  await client.query(`DELETE FROM guild_shop_purchases WHERE guild_id = $1`, [guildId]);
-  await client.query(`DELETE FROM guild_boss_attacks WHERE guild_id = $1`, [guildId]);
-  await client.query(`DELETE FROM guild_boss_state WHERE guild_id = $1`, [guildId]);
-  await client.query(`DELETE FROM guild_join_requests WHERE guild_id = $1`, [guildId]);
-  await client.query(`DELETE FROM guild_invites WHERE guild_id = $1`, [guildId]);
-  await client.query(`DELETE FROM guild_members WHERE guild_id = $1`, [guildId]);
-  await client.query(`DELETE FROM guilds WHERE id = $1`, [guildId]);
-}
+// disbandGuildTx now lives in db/guildHelpers.js (shared with routes/admin.js).
 
 // ---------------------------------------------------------------------------
 // POST /api/guilds/kick { playerId } — leader/officer. Officers can't kick
@@ -702,14 +704,14 @@ router.post('/kick', requireAuth, asyncHandler(async (req, res) => {
   if (targetId === req.playerId) return res.status(400).json({ error: 'ใช้ปุ่มออกจากกิลด์แทน' });
 
   const membership = await getMembership(pool, req.playerId);
-  if (!membership || !isLeaderOrOfficer(membership.role)) {
-    return res.status(403).json({ error: 'ต้องเป็นหัวหน้าหรือรองหัวหน้ากิลด์' });
+  if (!membership || !hasGuildPermission(membership, 'kickMembers')) {
+    return res.status(403).json({ error: 'ต้องมีสิทธิ์เตะสมาชิกออกจากกิลด์' });
   }
 
   const target = await pool.query(`SELECT role FROM guild_members WHERE player_id = $1 AND guild_id = $2`, [targetId, membership.guild_id]);
   if (target.rows.length === 0) return res.status(404).json({ error: 'ไม่พบสมาชิกคนนี้ในกิลด์' });
-  if (membership.role === 'officer' && target.rows[0].role !== 'member') {
-    return res.status(403).json({ error: 'รองหัวหน้าเตะได้เฉพาะสมาชิกทั่วไป' });
+  if (membership.role !== 'leader' && target.rows[0].role !== 'member') {
+    return res.status(403).json({ error: 'เตะได้เฉพาะสมาชิกทั่วไปเท่านั้น' });
   }
   if (target.rows[0].role === 'leader') return res.status(403).json({ error: 'เตะหัวหน้ากิลด์ไม่ได้' });
 
@@ -775,6 +777,178 @@ router.post('/transfer-leadership', requireAuth, asyncHandler(async (req, res) =
   } finally {
     client.release();
   }
+}));
+
+// ---------------------------------------------------------------------------
+// Custom guild ranks ("ยศ") — the leader names a rank and hand-picks which
+// permissions it grants (see GUILD_RANK_PERMISSIONS in game-data/guild-data.js),
+// then hands it to regular members without a full promotion to officer.
+// Creating/editing/deleting rank DEFINITIONS is leader-only (keeps control of
+// what powers exist in the leader's hands); ASSIGNING an existing rank to a
+// member can be delegated to anyone who already holds manageRanks.
+// ---------------------------------------------------------------------------
+router.get('/ranks', requireAuth, asyncHandler(async (req, res) => {
+  const membership = await getMembership(pool, req.playerId);
+  if (!membership) return res.status(404).json({ error: 'คุณยังไม่ได้อยู่ในกิลด์' });
+  const { rows } = await pool.query(
+    `SELECT gr.*, (SELECT COUNT(*)::int FROM guild_members m WHERE m.rank_id = gr.id) AS member_count
+     FROM guild_ranks gr WHERE gr.guild_id = $1 ORDER BY gr.rank_points DESC, gr.created_at ASC`,
+    [membership.guild_id]
+  );
+  res.json({
+    permissionCatalog: GUILD_RANK_PERMISSIONS,
+    maxRanks: GUILD_MAX_RANKS,
+    rankPointsMin: GUILD_RANK_POINTS_MIN,
+    rankPointsMax: GUILD_RANK_POINTS_MAX,
+    leaderRankPoints: GUILD_LEADER_RANK_POINTS,
+    officerRankPoints: GUILD_OFFICER_RANK_POINTS,
+    myRankPoints: rankPointsOf(membership),
+    canManageRanks: hasGuildPermission(membership, 'manageRanks'),
+    canCreateRanks: membership.role === 'leader',
+    ranks: rows.map((r) => ({
+      id: r.id, name: r.name, permissions: r.permissions, rankPoints: r.rank_points,
+      memberCount: r.member_count, createdAt: r.created_at,
+    })),
+  });
+}));
+
+// Only the leader creates/edits/deletes rank DEFINITIONS (name/permissions/
+// points) — keeps control of what powers exist to one person. Handing an
+// EXISTING rank to a member (below) can be delegated via manageRanks, but
+// even then the hierarchy guard stops anyone from assigning a rank stronger
+// than themselves.
+router.post('/ranks', requireAuth, asyncHandler(async (req, res) => {
+  const membership = await getMembership(pool, req.playerId);
+  if (!membership || membership.role !== 'leader') return res.status(403).json({ error: 'หัวหน้ากิลด์เท่านั้นที่สร้างยศได้' });
+
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+  if (name.length < GUILD_RANK_NAME_MIN || name.length > GUILD_RANK_NAME_MAX) {
+    return res.status(400).json({ error: `ชื่อยศต้องยาว ${GUILD_RANK_NAME_MIN}-${GUILD_RANK_NAME_MAX} ตัวอักษร` });
+  }
+  const permissions = sanitizeRankPermissions(req.body?.permissions);
+  const rankPoints = sanitizeRankPoints(req.body?.rankPoints);
+
+  const countRes = await pool.query(`SELECT COUNT(*)::int AS n FROM guild_ranks WHERE guild_id = $1`, [membership.guild_id]);
+  if (countRes.rows[0].n >= GUILD_MAX_RANKS) {
+    return res.status(409).json({ error: `สร้างยศได้สูงสุด ${GUILD_MAX_RANKS} ยศต่อกิลด์` });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO guild_ranks (guild_id, name, permissions, rank_points) VALUES ($1, $2, $3, $4) RETURNING *`,
+      [membership.guild_id, name, JSON.stringify(permissions), rankPoints]
+    );
+    res.json({ ok: true, rank: { id: rows[0].id, name: rows[0].name, permissions: rows[0].permissions, rankPoints: rows[0].rank_points, memberCount: 0, createdAt: rows[0].created_at } });
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: 'มียศชื่อนี้อยู่แล้ว' });
+    throw err;
+  }
+}));
+
+router.patch('/ranks/:id', requireAuth, asyncHandler(async (req, res) => {
+  const membership = await getMembership(pool, req.playerId);
+  if (!membership || membership.role !== 'leader') return res.status(403).json({ error: 'หัวหน้ากิลด์เท่านั้นที่แก้ไขยศได้' });
+
+  const fields = [];
+  const params = [req.params.id, membership.guild_id];
+  if (typeof req.body?.name === 'string') {
+    const name = req.body.name.trim();
+    if (name.length < GUILD_RANK_NAME_MIN || name.length > GUILD_RANK_NAME_MAX) {
+      return res.status(400).json({ error: `ชื่อยศต้องยาว ${GUILD_RANK_NAME_MIN}-${GUILD_RANK_NAME_MAX} ตัวอักษร` });
+    }
+    params.push(name);
+    fields.push(`name = $${params.length}`);
+  }
+  if (req.body?.permissions !== undefined) {
+    params.push(JSON.stringify(sanitizeRankPermissions(req.body.permissions)));
+    fields.push(`permissions = $${params.length}`);
+  }
+  if (req.body?.rankPoints !== undefined) {
+    params.push(sanitizeRankPoints(req.body.rankPoints));
+    fields.push(`rank_points = $${params.length}`);
+  }
+  if (fields.length === 0) return res.status(400).json({ error: 'ไม่มีข้อมูลให้แก้ไข' });
+
+  try {
+    const { rows } = await pool.query(
+      `UPDATE guild_ranks SET ${fields.join(', ')} WHERE id = $1 AND guild_id = $2 RETURNING *`,
+      params
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'ไม่พบยศนี้' });
+    res.json({ ok: true, rank: { id: rows[0].id, name: rows[0].name, permissions: rows[0].permissions, rankPoints: rows[0].rank_points } });
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: 'มียศชื่อนี้อยู่แล้ว' });
+    throw err;
+  }
+}));
+
+router.delete('/ranks/:id', requireAuth, asyncHandler(async (req, res) => {
+  const membership = await getMembership(pool, req.playerId);
+  if (!membership || membership.role !== 'leader') return res.status(403).json({ error: 'หัวหน้ากิลด์เท่านั้นที่ลบยศได้' });
+  const { rows } = await pool.query(
+    `DELETE FROM guild_ranks WHERE id = $1 AND guild_id = $2 RETURNING id`,
+    [req.params.id, membership.guild_id]
+  );
+  if (rows.length === 0) return res.status(404).json({ error: 'ไม่พบยศนี้' });
+  res.json({ ok: true }); // holders' rank_id auto-reverts to NULL via ON DELETE SET NULL
+}));
+
+// Hand an existing rank to a member. Guarded two ways: the actor needs
+// manageRanks (leader always does), AND — this is the important one — the
+// actor can never grant a rank whose points exceed their own current points
+// ("ไม่สามารถมอบยศที่สูงกว่าตัวเองให้คนอื่นได้"). The leader's own points are
+// the fixed max, so this never blocks the leader; it only stops a delegated
+// rank-manager from handing out something stronger than themselves.
+router.post('/ranks/:id/assign', requireAuth, asyncHandler(async (req, res) => {
+  const membership = await getMembership(pool, req.playerId);
+  if (!membership || !hasGuildPermission(membership, 'manageRanks')) {
+    return res.status(403).json({ error: 'ต้องมีสิทธิ์จัดการยศ' });
+  }
+  const targetId = req.body?.playerId;
+  if (!targetId) return res.status(400).json({ error: 'missing playerId' });
+
+  const rank = await pool.query(`SELECT id, rank_points FROM guild_ranks WHERE id = $1 AND guild_id = $2`, [req.params.id, membership.guild_id]);
+  if (rank.rows.length === 0) return res.status(404).json({ error: 'ไม่พบยศนี้' });
+
+  const actorPoints = rankPointsOf(membership);
+  if (Number(rank.rows[0].rank_points) > actorPoints) {
+    return res.status(403).json({ error: 'ไม่สามารถมอบยศที่มีแต้มยศสูงกว่าของตัวเองให้คนอื่นได้' });
+  }
+
+  const target = await pool.query(`SELECT role FROM guild_members WHERE player_id = $1 AND guild_id = $2`, [targetId, membership.guild_id]);
+  if (target.rows.length === 0) return res.status(404).json({ error: 'ไม่พบสมาชิกคนนี้ในกิลด์' });
+  if (target.rows[0].role === 'leader') return res.status(400).json({ error: 'หัวหน้ากิลด์มีสิทธิ์เต็มอยู่แล้ว ไม่ต้องตั้งยศ' });
+
+  await pool.query(`UPDATE guild_members SET rank_id = $2 WHERE player_id = $1`, [targetId, req.params.id]);
+  res.json({ ok: true });
+}));
+
+// Same hierarchy guard applies to stripping a rank: can't touch someone whose
+// current rank points outrank you (stops a low-ranked delegate from demoting
+// a more senior one).
+router.post('/ranks/unassign', requireAuth, asyncHandler(async (req, res) => {
+  const membership = await getMembership(pool, req.playerId);
+  if (!membership || !hasGuildPermission(membership, 'manageRanks')) {
+    return res.status(403).json({ error: 'ต้องมีสิทธิ์จัดการยศ' });
+  }
+  const targetId = req.body?.playerId;
+  if (!targetId) return res.status(400).json({ error: 'missing playerId' });
+
+  const target = await pool.query(
+    `SELECT gm.role, gr.rank_points FROM guild_members gm LEFT JOIN guild_ranks gr ON gr.id = gm.rank_id
+     WHERE gm.player_id = $1 AND gm.guild_id = $2`,
+    [targetId, membership.guild_id]
+  );
+  if (target.rows.length === 0) return res.status(404).json({ error: 'ไม่พบสมาชิกคนนี้ในกิลด์' });
+  const targetPoints = target.rows[0].role === 'leader' ? GUILD_LEADER_RANK_POINTS
+    : target.rows[0].role === 'officer' ? GUILD_OFFICER_RANK_POINTS
+    : Number(target.rows[0].rank_points) || 0;
+  if (targetPoints > rankPointsOf(membership)) {
+    return res.status(403).json({ error: 'ไม่สามารถถอดยศของคนที่มีแต้มยศสูงกว่าตัวเองได้' });
+  }
+
+  await pool.query(`UPDATE guild_members SET rank_id = NULL WHERE player_id = $1 AND guild_id = $2`, [targetId, membership.guild_id]);
+  res.json({ ok: true });
 }));
 
 // ---------------------------------------------------------------------------

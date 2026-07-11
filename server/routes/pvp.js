@@ -23,7 +23,7 @@ const { bumpMissionProgress } = require('../db/dailyMissions');
 const engine = require('../battle/engine');
 const { buildPlayerUnit } = require('../battle/team-builder');
 const {
-  START_RATING, DAILY_FREE_ATTACKS, ATTACK_COOLDOWN_MINUTES, MAX_BATTLE_ROUNDS,
+  START_RATING, DAILY_FREE_ATTACKS, ATTACK_COOLDOWN_MINUTES, MAX_BATTLE_ROUNDS, FREEZE_HOURS_BEFORE_SEASON_END,
   PVP_MEDAL_KEY, rankInfo, computeEloDeltas, ATTACK_REWARDS, DEFENSE_REWARDS, seasonRewardFor,
 } = require('../game-data/pvp-data');
 
@@ -140,6 +140,21 @@ async function finalizeSeason(client, season) {
   );
 }
 
+// Start of the pre-season-end freeze window (ends_at minus the freeze
+// duration), or null if the season isn't active / has no end date yet.
+function freezeStartsAt(season) {
+  if (!season || season.status !== 'active' || !season.ends_at) return null;
+  return new Date(new Date(season.ends_at).getTime() - FREEZE_HOURS_BEFORE_SEASON_END * 3600 * 1000);
+}
+
+// True once we're inside that window — attacks (and therefore ANY rating
+// change, attacker or defender) are blocked so the final standings sit still
+// while finalizeSeason() gets a chance to run at the natural rollover.
+function isFrozen(season) {
+  const starts = freezeStartsAt(season);
+  return starts !== null && new Date() >= starts;
+}
+
 async function ensureRatingRow(client, seasonId, playerId) {
   await client.query(
     `INSERT INTO pvp_ratings (season_id, player_id, rating) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
@@ -189,6 +204,8 @@ router.get('/status', requireAuth, asyncHandler(async (req, res) => {
         startsAt: season.starts_at,
         endsAt: season.ends_at,
         durationDays: season.duration_days,
+        frozen: isFrozen(season),
+        freezeStartsAt: freezeStartsAt(season),
       },
       rating: myRating ? myRating.rating : null,
       wins: myRating ? myRating.wins : 0,
@@ -257,6 +274,10 @@ router.get('/opponents', requireAuth, asyncHandler(async (req, res) => {
       await client.query('ROLLBACK');
       return res.json({ seasonActive: false, opponents: [] });
     }
+    if (isFrozen(season)) {
+      await client.query('ROLLBACK');
+      return res.json({ seasonActive: true, frozen: true, opponents: [] });
+    }
     const myRating = await ensureRatingRow(client, season.id, req.playerId);
 
     const { rows } = await client.query(
@@ -317,6 +338,12 @@ router.post('/attack', requireAuth, asyncHandler(async (req, res) => {
     if (season.status !== 'active') {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'ยังไม่มีซีซั่นที่เปิดใช้งานอยู่ตอนนี้' });
+    }
+    if (isFrozen(season)) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        error: `สมรภูมิปิดรับการโจมตีชั่วคราว — กำลังเตรียมสรุปผลซีซั่นที่ ${season.season_number} อีกไม่นาน`,
+      });
     }
 
     // ---- daily ticket ----
@@ -534,6 +561,71 @@ router.get('/history/:battleId', requireAuth, asyncHandler(async (req, res) => {
   );
   if (rows.length === 0) return res.status(404).json({ error: 'battle not found' });
   res.json({ log: rows[0].log, win: rows[0].win, createdAt: rows[0].created_at });
+}));
+
+// ---------------------------------------------------------------------------
+// GET /api/pvp/season-summary — the player's most recent NOT-YET-SEEN
+// season-end result (final rank/rating/tier + the reward already mailed to
+// them), so the client can pop up a "จบซีซั่น" summary the moment they land
+// on/are sitting on the PvP page after a rollover — plus what the fresh
+// season resets everyone to, so the popup can show "ซีซั่นใหม่เริ่มที่ ...".
+// Reward money/medals were already credited via mailbox in finalizeSeason();
+// this is purely a "have you seen this yet" read, never re-grants anything.
+// ---------------------------------------------------------------------------
+router.get('/season-summary', requireAuth, asyncHandler(async (req, res) => {
+  // Touch season state first so a season that just rolled over gets frozen
+  // into pvp_season_history before we look for it.
+  const client = await pool.connect();
+  let currentSeason;
+  try {
+    await client.query('BEGIN');
+    currentSeason = await ensureSeasonState(client);
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  const { rows } = await pool.query(
+    `SELECT h.*, s.season_number
+     FROM pvp_season_history h JOIN pvp_seasons s ON s.id = h.season_id
+     WHERE h.player_id = $1 AND h.acknowledged_at IS NULL
+     ORDER BY h.season_id DESC LIMIT 1`,
+    [req.playerId]
+  );
+  if (rows.length === 0) return res.json({ hasSummary: false });
+
+  const row = rows[0];
+  const reward = seasonRewardFor(row.final_rank, row.tier_key);
+  res.json({
+    hasSummary: true,
+    summary: {
+      seasonNumber: row.season_number,
+      finalRank: row.final_rank,
+      finalRating: row.final_rating,
+      rankInfo: rankInfo(row.final_rating),
+      wins: row.wins,
+      losses: row.losses,
+      reward: { money: reward.money, medals: reward.medals },
+    },
+    newSeason: {
+      seasonNumber: currentSeason.season_number,
+      status: currentSeason.status,
+      startRating: START_RATING,
+      startRankInfo: rankInfo(START_RATING),
+    },
+  });
+}));
+
+// POST /api/pvp/season-summary/ack — dismiss it so it doesn't pop up again.
+router.post('/season-summary/ack', requireAuth, asyncHandler(async (req, res) => {
+  await pool.query(
+    `UPDATE pvp_season_history SET acknowledged_at = now() WHERE player_id = $1 AND acknowledged_at IS NULL`,
+    [req.playerId]
+  );
+  res.json({ ok: true });
 }));
 
 module.exports = router;

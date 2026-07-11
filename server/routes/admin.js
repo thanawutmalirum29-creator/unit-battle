@@ -18,6 +18,13 @@ const asyncHandler = require('../middleware/asyncHandler');
 const { CHARACTER_DB } = require('../public/js/data/character-data.js');
 const { EQUIP_GACHA_POOLS, SELL_PRICE_BY_RARITY } = require('../game-data/economy-data.js');
 const { ensureAdminPrivileges } = require('../db/adminPrivileges');
+const { disbandGuildTx } = require('../db/guildHelpers');
+const {
+  GUILD_MAX_LEVEL, GUILD_LEVEL_THRESHOLDS, levelForExp, computeMaxMembers,
+  GUILD_JOIN_MODES, GUILD_EMBLEMS, GUILD_DESC_MAX,
+  GUILD_RANK_PERMISSIONS, GUILD_RANK_NAME_MIN, GUILD_RANK_NAME_MAX, GUILD_MAX_RANKS, sanitizeRankPermissions,
+  GUILD_RANK_POINTS_MIN, GUILD_RANK_POINTS_MAX, GUILD_LEADER_RANK_POINTS, GUILD_OFFICER_RANK_POINTS, sanitizeRankPoints,
+} = require('../game-data/guild-data');
 
 const router = express.Router();
 
@@ -313,15 +320,7 @@ router.delete('/players/:id', requireAdmin, asyncHandler(async (req, res) => {
         );
         if (successor.rows.length === 0) {
           // Sole member — disband the guild entirely.
-          await client.query(`DELETE FROM guild_chat_messages WHERE guild_id = $1`, [guildId]);
-          await client.query(`DELETE FROM guild_donations WHERE guild_id = $1`, [guildId]);
-          await client.query(`DELETE FROM guild_shop_purchases WHERE guild_id = $1`, [guildId]);
-          await client.query(`DELETE FROM guild_boss_attacks WHERE guild_id = $1`, [guildId]);
-          await client.query(`DELETE FROM guild_boss_state WHERE guild_id = $1`, [guildId]);
-          await client.query(`DELETE FROM guild_join_requests WHERE guild_id = $1`, [guildId]);
-          await client.query(`DELETE FROM guild_invites WHERE guild_id = $1`, [guildId]);
-          await client.query(`DELETE FROM guild_members WHERE guild_id = $1`, [guildId]);
-          await client.query(`DELETE FROM guilds WHERE id = $1`, [guildId]);
+          await disbandGuildTx(client, guildId);
         } else {
           const newLeaderId = successor.rows[0].player_id;
           await client.query(`UPDATE guild_members SET role = 'leader' WHERE player_id = $1`, [newLeaderId]);
@@ -790,6 +789,345 @@ router.post('/pvp/season/end', requireAdmin, asyncHandler(async (req, res) => {
 
     await client.query('COMMIT');
     res.json({ ok: true, endedSeason: season.season_number, playersRewarded: standings.length, nextSeason: nextRes.rows[0] });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}));
+
+// ============================================================================
+// Guild management — the admin console can act with full leader authority
+// over any guild: retune level/exp, edit the shared treasury and settings,
+// manage members (role/kick/custom rank), transfer leadership, and
+// permanently close (disband) a guild. Mirrors the leader-facing endpoints
+// in routes/guilds.js; see db/guildHelpers.js for the shared disbandGuildTx
+// used by both this console and a player's own POST /api/guilds/disband.
+// ============================================================================
+function adminGuildSummary(row) {
+  const level = levelForExp(Number(row.exp) || 0);
+  return {
+    id: row.id,
+    name: row.name,
+    tag: row.tag,
+    description: row.description,
+    emblem: row.emblem,
+    leaderId: row.leader_id,
+    joinMode: row.join_mode,
+    maxMembers: row.max_members,
+    treasuryMoney: Number(row.treasury_money),
+    totalContribution: Number(row.total_contribution),
+    createdAt: row.created_at,
+    exp: Number(row.exp) || 0,
+    level,
+    maxLevel: GUILD_MAX_LEVEL,
+    extraCapacityPurchased: !!row.extra_capacity_purchased,
+  };
+}
+
+// GET /api/admin/guilds?q= — list every guild, newest first.
+router.get('/guilds', requireAdmin, asyncHandler(async (req, res) => {
+  const q = (req.query.q || '').trim();
+  const params = [];
+  let where = '';
+  if (q) {
+    params.push(`%${q}%`);
+    where = `WHERE g.name ILIKE $1 OR g.tag ILIKE $1`;
+  }
+  const { rows } = await pool.query(
+    `SELECT g.*, p.username AS leader_username,
+            (SELECT COUNT(*)::int FROM guild_members m WHERE m.guild_id = g.id) AS member_count
+     FROM guilds g JOIN players p ON p.id = g.leader_id
+     ${where}
+     ORDER BY g.created_at DESC LIMIT 300`,
+    params
+  );
+  res.json(rows.map((r) => ({ ...adminGuildSummary(r), leaderUsername: r.leader_username, memberCount: r.member_count })));
+}));
+
+// GET /api/admin/guilds/:id — full detail: guild + members + custom ranks.
+router.get('/guilds/:id', requireAdmin, asyncHandler(async (req, res) => {
+  const guildRes = await pool.query(
+    `SELECT g.*, p.username AS leader_username
+     FROM guilds g JOIN players p ON p.id = g.leader_id WHERE g.id = $1`,
+    [req.params.id]
+  );
+  if (guildRes.rows.length === 0) return res.status(404).json({ error: 'guild not found' });
+
+  const [membersRes, ranksRes] = await Promise.all([
+    pool.query(
+      `SELECT gm.player_id, gm.role, gm.rank_id, gr.name AS rank_name, gr.rank_points AS rank_points,
+              gm.contribution_lifetime, gm.contribution_balance,
+              gm.boss_damage_cycle, gm.boss_damage_lifetime, gm.joined_at,
+              p.username, p.public_id, p.status
+       FROM guild_members gm
+       JOIN players p ON p.id = gm.player_id
+       LEFT JOIN guild_ranks gr ON gr.id = gm.rank_id
+       WHERE gm.guild_id = $1
+       ORDER BY (gm.role = 'leader') DESC, (gm.role = 'officer') DESC, gm.contribution_lifetime DESC`,
+      [req.params.id]
+    ),
+    pool.query(
+      `SELECT gr.*, (SELECT COUNT(*)::int FROM guild_members m WHERE m.rank_id = gr.id) AS member_count
+       FROM guild_ranks gr WHERE gr.guild_id = $1 ORDER BY gr.rank_points DESC, gr.created_at ASC`,
+      [req.params.id]
+    ),
+  ]);
+
+  res.json({
+    guild: { ...adminGuildSummary(guildRes.rows[0]), leaderUsername: guildRes.rows[0].leader_username },
+    members: membersRes.rows.map((r) => ({
+      playerId: r.player_id, username: r.username, publicId: r.public_id, accountStatus: r.status,
+      role: r.role, rankId: r.rank_id, rankName: r.rank_name,
+      rankPoints: r.role === 'leader' ? GUILD_LEADER_RANK_POINTS : r.role === 'officer' ? GUILD_OFFICER_RANK_POINTS : (r.rank_points != null ? Number(r.rank_points) : 0),
+      contributionLifetime: Number(r.contribution_lifetime), contributionBalance: Number(r.contribution_balance),
+      bossDamageCycle: Number(r.boss_damage_cycle), bossDamageLifetime: Number(r.boss_damage_lifetime),
+      joinedAt: r.joined_at,
+    })),
+    ranks: ranksRes.rows.map((r) => ({
+      id: r.id, name: r.name, permissions: r.permissions, rankPoints: r.rank_points, memberCount: r.member_count, createdAt: r.created_at,
+    })),
+    permissionCatalog: GUILD_RANK_PERMISSIONS,
+    rankPointsMin: GUILD_RANK_POINTS_MIN,
+    rankPointsMax: GUILD_RANK_POINTS_MAX,
+    leaderRankPoints: GUILD_LEADER_RANK_POINTS,
+    officerRankPoints: GUILD_OFFICER_RANK_POINTS,
+  });
+}));
+
+// PATCH /api/admin/guilds/:id — edit anything about the guild itself: name,
+// tag, description, emblem, join mode, treasury money, exp/level, and the
+// one-time capacity-expansion flag. Setting `exp` (or `level`, converted to
+// its threshold exp) recomputes level + max_members the same way
+// grantGuildExpTx does during normal play, so nothing gets out of sync.
+router.patch('/guilds/:id', requireAdmin, asyncHandler(async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const guildRes = await client.query(`SELECT * FROM guilds WHERE id = $1 FOR UPDATE`, [req.params.id]);
+    if (guildRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'guild not found' });
+    }
+    const guild = guildRes.rows[0];
+    const body = req.body || {};
+    const fields = [];
+    const params = [req.params.id];
+
+    if (typeof body.name === 'string') {
+      const name = body.name.trim();
+      if (name.length < 3 || name.length > 24) { await client.query('ROLLBACK'); return res.status(400).json({ error: 'name must be 3-24 characters' }); }
+      const clash = await client.query(`SELECT id FROM guilds WHERE name = $1 AND id != $2`, [name, req.params.id]);
+      if (clash.rows.length > 0) { await client.query('ROLLBACK'); return res.status(409).json({ error: 'guild name already taken' }); }
+      params.push(name); fields.push(`name = $${params.length}`);
+    }
+    if (typeof body.tag === 'string') {
+      const tag = body.tag.trim().toUpperCase();
+      if (tag.length < 2 || tag.length > 5) { await client.query('ROLLBACK'); return res.status(400).json({ error: 'tag must be 2-5 characters' }); }
+      const clash = await client.query(`SELECT id FROM guilds WHERE tag = $1 AND id != $2`, [tag, req.params.id]);
+      if (clash.rows.length > 0) { await client.query('ROLLBACK'); return res.status(409).json({ error: 'guild tag already taken' }); }
+      params.push(tag); fields.push(`tag = $${params.length}`);
+    }
+    if (typeof body.description === 'string') {
+      params.push(body.description.trim().slice(0, GUILD_DESC_MAX)); fields.push(`description = $${params.length}`);
+    }
+    if (GUILD_EMBLEMS.includes(body.emblem)) { params.push(body.emblem); fields.push(`emblem = $${params.length}`); }
+    if (GUILD_JOIN_MODES.includes(body.joinMode)) { params.push(body.joinMode); fields.push(`join_mode = $${params.length}`); }
+
+    if (body.treasuryMoney !== undefined) {
+      const v = Math.floor(Number(body.treasuryMoney));
+      if (!Number.isFinite(v) || v < 0) { await client.query('ROLLBACK'); return res.status(400).json({ error: 'treasuryMoney must be >= 0' }); }
+      params.push(v); fields.push(`treasury_money = $${params.length}`);
+    }
+
+    let newExtraCapacity = guild.extra_capacity_purchased;
+    if (body.extraCapacityPurchased !== undefined) {
+      newExtraCapacity = !!body.extraCapacityPurchased;
+      params.push(newExtraCapacity); fields.push(`extra_capacity_purchased = $${params.length}`);
+    }
+
+    if (body.exp !== undefined || body.level !== undefined) {
+      let newExp;
+      if (body.exp !== undefined) {
+        newExp = Math.floor(Number(body.exp));
+        if (!Number.isFinite(newExp) || newExp < 0) { await client.query('ROLLBACK'); return res.status(400).json({ error: 'exp must be a non-negative number' }); }
+      } else {
+        const lvl = Math.max(1, Math.min(GUILD_MAX_LEVEL, Math.floor(Number(body.level)) || 1));
+        newExp = GUILD_LEVEL_THRESHOLDS[lvl];
+      }
+      const newLevel = levelForExp(newExp);
+      params.push(newExp); fields.push(`exp = $${params.length}`);
+      params.push(newLevel); fields.push(`level = $${params.length}`);
+      params.push(computeMaxMembers(newLevel, newExtraCapacity)); fields.push(`max_members = $${params.length}`);
+    } else if (body.extraCapacityPurchased !== undefined) {
+      // capacity flag changed but exp/level didn't — still recompute max_members
+      const currentLevel = levelForExp(Number(guild.exp) || 0);
+      params.push(computeMaxMembers(currentLevel, newExtraCapacity)); fields.push(`max_members = $${params.length}`);
+    }
+
+    if (fields.length === 0) { await client.query('ROLLBACK'); return res.status(400).json({ error: 'nothing to update' }); }
+
+    let updated;
+    try {
+      const r = await client.query(`UPDATE guilds SET ${fields.join(', ')} WHERE id = $1 RETURNING *`, params);
+      updated = r.rows[0];
+    } catch (err) {
+      await client.query('ROLLBACK');
+      if (err.code === '23505') return res.status(409).json({ error: 'name or tag already taken' });
+      throw err;
+    }
+
+    await client.query('COMMIT');
+    res.json({ ok: true, guild: adminGuildSummary(updated) });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}));
+
+// POST /api/admin/guilds/:id/members/:playerId/role { role: 'officer'|'member' }
+// Promotes/demotes within the guild. Leadership itself only moves via the
+// dedicated transfer-leadership endpoint below (keeps "exactly one leader"
+// invariant in one place, same as routes/guilds.js).
+router.post('/guilds/:id/members/:playerId/role', requireAdmin, asyncHandler(async (req, res) => {
+  const role = req.body?.role;
+  if (!['officer', 'member'].includes(role)) return res.status(400).json({ error: `role must be 'officer' or 'member'` });
+
+  const target = await pool.query(`SELECT role FROM guild_members WHERE player_id = $1 AND guild_id = $2`, [req.params.playerId, req.params.id]);
+  if (target.rows.length === 0) return res.status(404).json({ error: 'member not found in this guild' });
+  if (target.rows[0].role === 'leader') return res.status(400).json({ error: `cannot change the leader's role this way — use transfer-leadership` });
+
+  await pool.query(`UPDATE guild_members SET role = $3 WHERE player_id = $1 AND guild_id = $2`, [req.params.playerId, req.params.id, role]);
+  res.json({ ok: true });
+}));
+
+// POST /api/admin/guilds/:id/transfer-leadership { playerId }
+router.post('/guilds/:id/transfer-leadership', requireAdmin, asyncHandler(async (req, res) => {
+  const targetId = req.body?.playerId;
+  if (!targetId) return res.status(400).json({ error: 'missing playerId' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const guildRes = await client.query(`SELECT * FROM guilds WHERE id = $1 FOR UPDATE`, [req.params.id]);
+    if (guildRes.rows.length === 0) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'guild not found' }); }
+    const target = await client.query(`SELECT 1 FROM guild_members WHERE player_id = $1 AND guild_id = $2`, [targetId, req.params.id]);
+    if (target.rows.length === 0) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'target is not a member of this guild' }); }
+
+    await client.query(`UPDATE guild_members SET role = 'officer' WHERE guild_id = $1 AND role = 'leader'`, [req.params.id]);
+    await client.query(`UPDATE guild_members SET role = 'leader' WHERE player_id = $1`, [targetId]);
+    await client.query(`UPDATE guilds SET leader_id = $1 WHERE id = $2`, [targetId, req.params.id]);
+
+    await client.query('COMMIT');
+    res.json({ ok: true });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}));
+
+// POST /api/admin/guilds/:id/members/:playerId/kick — leader can't be kicked
+// this way (transfer or disband first); everyone else is removed outright,
+// no officer-vs-member restriction like the player-facing version (admin
+// authority is absolute here).
+router.post('/guilds/:id/members/:playerId/kick', requireAdmin, asyncHandler(async (req, res) => {
+  const target = await pool.query(`SELECT role FROM guild_members WHERE player_id = $1 AND guild_id = $2`, [req.params.playerId, req.params.id]);
+  if (target.rows.length === 0) return res.status(404).json({ error: 'member not found in this guild' });
+  if (target.rows[0].role === 'leader') return res.status(400).json({ error: `cannot kick the leader — transfer leadership or disband the guild instead` });
+
+  await pool.query(`DELETE FROM guild_members WHERE player_id = $1 AND guild_id = $2`, [req.params.playerId, req.params.id]);
+  res.json({ ok: true });
+}));
+
+// POST /api/admin/guilds/:id/members/:playerId/rank { rankId | null } — assign
+// or clear (null) a member's custom rank.
+router.post('/guilds/:id/members/:playerId/rank', requireAdmin, asyncHandler(async (req, res) => {
+  const rankId = req.body?.rankId || null;
+  const target = await pool.query(`SELECT role FROM guild_members WHERE player_id = $1 AND guild_id = $2`, [req.params.playerId, req.params.id]);
+  if (target.rows.length === 0) return res.status(404).json({ error: 'member not found in this guild' });
+
+  if (rankId) {
+    const rank = await pool.query(`SELECT id FROM guild_ranks WHERE id = $1 AND guild_id = $2`, [rankId, req.params.id]);
+    if (rank.rows.length === 0) return res.status(404).json({ error: 'rank not found in this guild' });
+  }
+  await pool.query(`UPDATE guild_members SET rank_id = $3 WHERE player_id = $1 AND guild_id = $2`, [req.params.playerId, req.params.id, rankId]);
+  res.json({ ok: true });
+}));
+
+// ---- Custom rank ("ยศ") CRUD — same shape as the leader-facing endpoints in
+// routes/guilds.js, just reachable for any guild from the admin console.
+router.post('/guilds/:id/ranks', requireAdmin, asyncHandler(async (req, res) => {
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+  if (name.length < GUILD_RANK_NAME_MIN || name.length > GUILD_RANK_NAME_MAX) {
+    return res.status(400).json({ error: `rank name must be ${GUILD_RANK_NAME_MIN}-${GUILD_RANK_NAME_MAX} characters` });
+  }
+  const permissions = sanitizeRankPermissions(req.body?.permissions);
+  const rankPoints = sanitizeRankPoints(req.body?.rankPoints);
+  const countRes = await pool.query(`SELECT COUNT(*)::int AS n FROM guild_ranks WHERE guild_id = $1`, [req.params.id]);
+  if (countRes.rows[0].n >= GUILD_MAX_RANKS) return res.status(409).json({ error: `max ${GUILD_MAX_RANKS} ranks per guild` });
+
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO guild_ranks (guild_id, name, permissions, rank_points) VALUES ($1, $2, $3, $4) RETURNING *`,
+      [req.params.id, name, JSON.stringify(permissions), rankPoints]
+    );
+    res.json({ ok: true, rank: { id: rows[0].id, name: rows[0].name, permissions: rows[0].permissions, rankPoints: rows[0].rank_points, memberCount: 0, createdAt: rows[0].created_at } });
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: 'a rank with this name already exists' });
+    if (err.code === '23503') return res.status(404).json({ error: 'guild not found' });
+    throw err;
+  }
+}));
+
+router.patch('/guilds/:id/ranks/:rankId', requireAdmin, asyncHandler(async (req, res) => {
+  const fields = [];
+  const params = [req.params.rankId, req.params.id];
+  if (typeof req.body?.name === 'string') {
+    const name = req.body.name.trim();
+    if (name.length < GUILD_RANK_NAME_MIN || name.length > GUILD_RANK_NAME_MAX) {
+      return res.status(400).json({ error: `rank name must be ${GUILD_RANK_NAME_MIN}-${GUILD_RANK_NAME_MAX} characters` });
+    }
+    params.push(name); fields.push(`name = $${params.length}`);
+  }
+  if (req.body?.permissions !== undefined) {
+    params.push(JSON.stringify(sanitizeRankPermissions(req.body.permissions))); fields.push(`permissions = $${params.length}`);
+  }
+  if (req.body?.rankPoints !== undefined) {
+    params.push(sanitizeRankPoints(req.body.rankPoints)); fields.push(`rank_points = $${params.length}`);
+  }
+  if (fields.length === 0) return res.status(400).json({ error: 'nothing to update' });
+
+  try {
+    const { rows } = await pool.query(`UPDATE guild_ranks SET ${fields.join(', ')} WHERE id = $1 AND guild_id = $2 RETURNING *`, params);
+    if (rows.length === 0) return res.status(404).json({ error: 'rank not found' });
+    res.json({ ok: true, rank: { id: rows[0].id, name: rows[0].name, permissions: rows[0].permissions, rankPoints: rows[0].rank_points } });
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: 'a rank with this name already exists' });
+    throw err;
+  }
+}));
+
+router.delete('/guilds/:id/ranks/:rankId', requireAdmin, asyncHandler(async (req, res) => {
+  const { rows } = await pool.query(`DELETE FROM guild_ranks WHERE id = $1 AND guild_id = $2 RETURNING id`, [req.params.rankId, req.params.id]);
+  if (rows.length === 0) return res.status(404).json({ error: 'rank not found' });
+  res.json({ ok: true });
+}));
+
+// POST /api/admin/guilds/:id/disband — permanently closes ("ปิดกิลด์") the
+// guild: same full cleanup as a leader's own POST /api/guilds/disband.
+router.post('/guilds/:id/disband', requireAdmin, asyncHandler(async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const exists = await client.query(`SELECT 1 FROM guilds WHERE id = $1 FOR UPDATE`, [req.params.id]);
+    if (exists.rows.length === 0) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'guild not found' }); }
+    await disbandGuildTx(client, req.params.id);
+    await client.query('COMMIT');
+    res.json({ ok: true });
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
