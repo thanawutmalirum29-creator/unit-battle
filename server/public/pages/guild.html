@@ -390,7 +390,7 @@
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "emblem-opt" + (e === initial ? " sel" : "");
-      btn.textContent = e;
+      btn.innerHTML = e;
       btn.addEventListener("click", () => {
         mount.querySelectorAll(".emblem-opt").forEach((b) => b.classList.remove("sel"));
         btn.classList.add("sel");
