@@ -16,11 +16,13 @@ window.HubUI = (function () {
     normal: "../js/modes/NORMAL/N-Mode.js",
     boss: "../js/modes/BOSS/boss.js",
     inf: "../js/modes/INF/inf-mode.js",
+    guildboss: "../js/modes/GUILDBOSS/guildboss.js",
   };
   const MODE_LABELS = {
     normal: "<span class=gicon-card></span> Normal Mode",
     boss: "<span class=gicon-skull></span> Boss Mode",
     inf: "<span class=gicon-refresh></span> Infinite Mode",
+    guildboss: "<span class=gicon-skull></span> บอสกิลด์",
   };
 
   let currentMode = "normal";
@@ -96,6 +98,7 @@ window.HubUI = (function () {
         normal: document.getElementById("normalSelect"),
         boss: document.getElementById("bossSelect"),
         inf: document.getElementById("infSelect"),
+        guildboss: document.getElementById("guildbossSelect"),
       },
       battleScreen: document.getElementById("battleScreen"),
       results: document.getElementById("resultsOverlay"),
