@@ -1292,7 +1292,7 @@ router.post('/boss/attack', requireAuth, asyncHandler(async (req, res) => {
     const newHp = Math.max(0, Number(state.current_hp) - damage);
 
     await client.query(
-      `UPDATE guild_boss_state SET current_hp = $2, defeated_at = CASE WHEN $2 <= 0 THEN now() ELSE defeated_at END, updated_at = now() WHERE guild_id = $1`,
+      `UPDATE guild_boss_state SET current_hp = $2, defeated_at = CASE WHEN $2::bigint <= 0 THEN now() ELSE defeated_at END, updated_at = now() WHERE guild_id = $1`,
       [membership.guild_id, newHp]
     );
     await client.query(
