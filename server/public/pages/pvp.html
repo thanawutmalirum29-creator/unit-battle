@@ -8,6 +8,7 @@
   <meta name="theme-color" content="#0c121b" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <script src="../js/core/ui-scale.js"></script>
+<script src="../js/core/scroll-lock.js"></script>
   <script src="../js/core/pwa-register.js" defer></script>
   <link rel="stylesheet" href="../css/game.css" />
   <link rel="stylesheet" href="../css/skills.css" />
@@ -88,6 +89,26 @@
 
     .battle-log{ max-height:260px; overflow-y:auto; font-size:12.5px; line-height:1.7; padding:10px; border-radius:10px; background:rgba(0,0,0,.2); border:1px solid var(--border); margin-top:8px; }
     .battle-log .r-hdr{ color:var(--accent-2); font-weight:700; margin-top:6px; }
+
+    .status-frozen{ background:rgba(248,113,113,.18); color:#f87171; }
+    .freeze-notice{
+      display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:10px; margin-bottom:12px;
+      background:rgba(248,113,113,.1); border:1px solid rgba(248,113,113,.3); color:#f87171; font-size:12.5px; line-height:1.5;
+    }
+
+    #seasonSummaryOverlay{
+      display:none; position:fixed; inset:0; background:rgba(4,6,10,.78);
+      align-items:center; justify-content:center; padding:16px; z-index:95;
+    }
+    #seasonSummaryOverlay.open{ display:flex; }
+    .ss-modal{ width:100%; max-width:380px; text-align:center; }
+    .ss-icon{ font-size:44px; line-height:1; }
+    .ss-title{ font-weight:800; font-size:18px; margin-top:6px; }
+    .ss-sub{ color:var(--muted); font-size:12.5px; margin-top:4px; }
+    .ss-block{ text-align:left; background:rgba(255,255,255,.04); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-top:14px; }
+    .ss-row{ display:flex; justify-content:space-between; font-size:13px; padding:4px 0; }
+    .ss-row span:first-child{ color:var(--muted); }
+    .ss-newseason{ margin-top:10px; font-size:12.5px; color:var(--accent-2); }
   </style>
 </head>
 <body>
@@ -176,6 +197,23 @@
   <div id="historyList"></div>
 </div>
 
+<!-- ===================== ป๊อปอัปสรุปผลจบซีซั่น ===================== -->
+<div id="seasonSummaryOverlay">
+  <div class="panel ss-modal" onclick="event.stopPropagation()">
+    <div class="ss-icon" id="ssIcon"><span class=gicon-trophy></span></div>
+    <div class="ss-title" id="ssTitle">สรุปผลซีซั่น</div>
+    <div class="ss-sub" id="ssSub"></div>
+    <div class="ss-block">
+      <div class="ss-row"><span>อันดับสุดท้าย</span><span id="ssRank">—</span></div>
+      <div class="ss-row"><span>เรตติ้งสุดท้าย</span><span id="ssRating">—</span></div>
+      <div class="ss-row"><span>ผลงาน</span><span id="ssRecord">—</span></div>
+      <div class="ss-row"><span>รางวัลที่ได้รับ (ส่งเข้าเมลแล้ว)</span><span id="ssReward">—</span></div>
+    </div>
+    <div class="ss-newseason" id="ssNewSeason"></div>
+    <button id="ssAckBtn" style="width:100%; margin-top:16px;">รับทราบ — เริ่มซีซั่นใหม่!</button>
+  </div>
+</div>
+
 <script src="../js/core/api.js"></script>
 <script src="../js/core/auth-ui.js"></script>
 <script src="../js/core/money.js"></script>
@@ -187,6 +225,7 @@
   let selectedDefenseIds = [];
   let selectedAttackIds = [];
   let currentOpponent = null;
+  let isFrozenNow = false;
 
   // ---------------------------------------------------------------- tabs
   document.querySelectorAll(".pvp-tabs button").forEach((btn) => {
@@ -237,7 +276,11 @@
       const daysLeft = Math.max(0, Math.ceil((end - new Date()) / 86400000));
       title.textContent = `ซีซั่นที่ ${s.season.seasonNumber} — เหลือ ${daysLeft} วัน`;
       sub.textContent = `ระยะเวลา ${s.season.durationDays} วัน/ซีซั่น`;
-      pill.textContent = "กำลังแข่งขัน"; pill.className = "season-status-pill status-active";
+      if (s.season.frozen) {
+        pill.textContent = "ปิดรับการโจมตี"; pill.className = "season-status-pill status-frozen";
+      } else {
+        pill.textContent = "กำลังแข่งขัน"; pill.className = "season-status-pill status-active";
+      }
     } else {
       title.textContent = "ไม่มีซีซั่นที่เปิดอยู่";
       pill.textContent = "จบแล้ว"; pill.className = "season-status-pill status-ended";
@@ -266,13 +309,17 @@
     }
 
     const hint = document.getElementById("homeHint");
-    if (s.season.status !== "active") {
+    if (s.season.status === "active" && s.season.frozen) {
+      hint.innerHTML = "<span class=gicon-warning></span> สมรภูมิปิดรับการโจมตีชั่วคราว กำลังเตรียมสรุปผลซีซั่น เรตติ้งจะไม่เปลี่ยนแปลงจนกว่าซีซั่นใหม่จะเริ่ม";
+    } else if (s.season.status !== "active") {
       hint.textContent = "";
     } else if (!s.hasDefenseTeam) {
       hint.innerHTML = "<span class=gicon-warning></span> ยังไม่ได้ตั้งทีมป้องกัน — ไปที่แท็บ \"แต่งทีมป้องกัน\" ก่อนถูกโจมตี!";
     } else {
       hint.textContent = "";
     }
+
+    isFrozenNow = !!(s.season.status === "active" && s.season.frozen);
   }
 
   // ---------------------------------------------------------------- deck loading (shared)
@@ -338,6 +385,7 @@
     list.innerHTML = "กำลังค้นหา...";
     const data = await GameAPI.pvpOpponents();
     if (!data.seasonActive) { list.innerHTML = `<div class="empty-hint">ยังไม่มีซีซั่นที่เปิดใช้งาน</div>`; return; }
+    if (data.frozen) { list.innerHTML = `<div class="empty-hint"><span class=gicon-warning></span> สมรภูมิปิดรับการโจมตีชั่วคราว กำลังเตรียมสรุปผลซีซั่น</div>`; return; }
     if (!data.opponents.length) { list.innerHTML = `<div class="empty-hint">ยังไม่พบคู่ต่อสู้ — ลองใหม่อีกครั้ง</div>`; return; }
     list.innerHTML = "";
     data.opponents.forEach((o) => {
@@ -454,17 +502,57 @@
     });
   }
 
+  // ---------------------------------------------------------------- season-end summary popup
+  // เช็คทุกครั้งที่เข้าหน้า/โฟกัสกลับมาที่หน้านี้ — ถ้าซีซั่นก่อนหน้าที่ผู้เล่นคนนี้
+  // เล่นอยู่เพิ่งสรุปผลไป (ไม่ว่าจะสรุปผลตอนที่ผู้เล่นออนไลน์อยู่ในหน้านี้พอดี หรือ
+  // สรุปไปแล้วตอนออฟไลน์) และยังไม่เคยเห็นป๊อปอัปนี้ ให้โชว์สรุปผล + รางวัล + ซีซั่นใหม่
+  async function checkSeasonSummary() {
+    const data = await GameAPI.pvpSeasonSummary();
+    if (!data || !data.hasSummary) return;
+    const sum = data.summary;
+    document.getElementById("ssIcon").innerHTML = sum.finalRank === 1 ? "<span class=gicon-trophy></span>" : sum.rankInfo.icon;
+    document.getElementById("ssTitle").textContent = `จบซีซั่นที่ ${sum.seasonNumber} แล้ว!`;
+    document.getElementById("ssSub").textContent = `${sum.rankInfo.label}`;
+    document.getElementById("ssRank").textContent = `#${sum.finalRank}`;
+    document.getElementById("ssRating").textContent = sum.finalRating;
+    document.getElementById("ssRecord").textContent = `${sum.wins} ชนะ / ${sum.losses} แพ้`;
+    document.getElementById("ssReward").textContent = `${sum.reward.money.toLocaleString()} เงิน + ${sum.reward.medals} เหรียญสมรภูมิ`;
+    const newSeasonEl = document.getElementById("ssNewSeason");
+    if (data.newSeason && data.newSeason.status === "active") {
+      newSeasonEl.innerHTML = `<span class=gicon-refresh></span> ซีซั่นที่ ${data.newSeason.seasonNumber} เริ่มแล้ว — เรตติ้งของทุกคนรีเซ็ตกลับไปที่ ${data.newSeason.startRating} (${data.newSeason.startRankInfo.label})`;
+    } else {
+      newSeasonEl.textContent = "";
+    }
+    document.getElementById("seasonSummaryOverlay").classList.add("open");
+  }
+
+  document.getElementById("ssAckBtn").addEventListener("click", async () => {
+    document.getElementById("seasonSummaryOverlay").classList.remove("open");
+    await GameAPI.pvpAckSeasonSummary();
+    loadStatus();
+  });
+
   // ---------------------------------------------------------------- init
   if (GameAPI.isLoggedIn()) {
     loadStatus();
+    checkSeasonSummary();
+    // ผู้เล่นบางคนค้างอยู่หน้านี้ยาว ๆ (เช่นดูลีดเดอร์บอร์ดตอนใกล้ตี 4) — โพลทุก 60
+    // วินาทีเพื่อจับทั้งช่วงปิดรับโจมตี (frozen) และจังหวะซีซั่นสรุปผลจริง โดยไม่ต้อง
+    // รีเฟรชหน้าเอง แต่ข้ามการโพลถ้ากำลังเปิดป๊อปอัปสรุปผลอยู่แล้ว หรืออยู่กลางการโจมตี
+    setInterval(() => {
+      const summaryOpen = document.getElementById("seasonSummaryOverlay").classList.contains("open");
+      const inAttackFlow = document.getElementById("attackStep2").style.display !== "none";
+      if (summaryOpen || inAttackFlow) return;
+      loadStatus();
+      checkSeasonSummary();
+    }, 60000);
   } else {
     document.getElementById("seasonTitle").textContent = "กรุณาเข้าสู่ระบบก่อนใช้งานสมรภูมิ";
   }
 })();
 </script>
 <script src="../js/core/nav-fab.js"></script>
-<script src="../js/core/mail-fab.js"></script>
-<script src="../js/core/daily-fab.js"></script>
+
 <script src="../js/core/account-panel.js"></script>
 </body>
 </html>

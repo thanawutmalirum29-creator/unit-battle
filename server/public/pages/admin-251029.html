@@ -32,21 +32,34 @@
   .adm-toolbar{ display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center; }
   .adm-toolbar input[type="text"]{ flex:1 1 220px; }
 
-  #adminOverlay{
+  #adminOverlay, #guildOverlay{
     display:none; position:fixed; inset:0; background:rgba(4,6,10,.72);
     align-items:flex-start; justify-content:center; padding:16px; z-index:90;
     overflow-y:auto;
   }
-  #adminOverlay.open{ display:flex; }
+  #adminOverlay.open, #guildOverlay.open{ display:flex; }
   .adm-modal{ width:100%; max-width:460px; margin:24px auto; }
   .adm-modal-header{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px; gap:8px; }
   .adm-modal-header button{ background:none; border:none; color:var(--muted); font-size:18px; padding:0; line-height:1; }
   .adm-modal-sub{ color:var(--muted); font-size:12px; margin-bottom:14px; }
 
   .adm-tabs{ display:flex; gap:4px; margin-bottom:14px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
-  .adm-tab{ background:none; border:none; padding:8px 10px; font-size:12.5px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; }
-  .adm-tab.active{ color:var(--text); border-bottom-color:var(--accent); font-weight:700; }
-  .adm-tab.danger.active{ color:#ffd5d5; border-bottom-color:var(--bad); }
+  .adm-tab, .adm-gtab{ background:none; border:none; padding:8px 10px; font-size:12.5px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; }
+  .adm-tab.active, .adm-gtab.active{ color:var(--text); border-bottom-color:var(--accent); font-weight:700; }
+  .adm-tab.danger.active, .adm-gtab.danger.active{ color:#ffd5d5; border-bottom-color:var(--bad); }
+
+  .adm-rank-card{ padding:10px; border-radius:10px; background:var(--panel-soft); border:1px solid var(--border); margin-bottom:8px; }
+  .adm-rank-card-name{ font-weight:800; font-size:13.5px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .adm-rank-perm-list{ display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
+  .adm-rank-perm-chip{ font-size:10.5px; padding:2px 7px; border-radius:999px; background:rgba(123,214,255,.12); color:var(--accent-2); border:1px solid rgba(123,214,255,.3); }
+  .adm-rank-perm-chip.off{ background:rgba(255,255,255,.04); color:var(--muted); border-color:var(--border); text-decoration:line-through; }
+  .adm-perm-check-list{ display:flex; flex-direction:column; gap:6px; margin-top:4px; }
+  .adm-perm-check-list label{ display:flex; align-items:flex-start; gap:8px; font-size:12px; }
+  .adm-perm-check-list input{ width:auto; margin-top:2px; }
+  .adm-member-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  .adm-member-row:last-child{ border-bottom:none; }
+  .adm-member-actions{ display:flex; gap:6px; flex-wrap:wrap; }
+  .adm-member-actions select, .adm-member-actions button{ font-size:11.5px; padding:4px 7px; }
 
   .adm-field{ margin-bottom:12px; }
   .adm-field label{ display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
@@ -144,6 +157,37 @@
 
   <div class="adm-stats-row" id="adminStatsRow"></div>
 
+  <section class="panel" id="pvpSeasonPanel">
+    <div class="adm-modal-header" style="margin-bottom:10px;">
+      <strong><span class=gicon-trophy></span> สมรภูมิจัดอันดับ (PvP)</strong>
+      <button id="pvpRefreshBtn"><span class=gicon-refresh></span></button>
+    </div>
+    <div id="pvpSeasonStatus" class="adm-hint" style="margin:0 0 10px;">กำลังโหลด...</div>
+    <div class="adm-toolbar" style="margin-bottom:0;">
+      <button id="pvpStartSeasonBtn" style="display:none;">เปิดซีซั่นนี้เลย</button>
+      <button id="pvpEndSeasonBtn" class="danger" style="display:none;">จบซีซั่นทันที (สรุปผล+แจกรางวัล)</button>
+    </div>
+    <div id="pvpSeasonFormMsg" class="adm-formmsg"></div>
+  </section>
+
+  <section class="panel" id="guildManagementPanel">
+    <div class="adm-toolbar">
+      <input type="text" id="guildSearch" placeholder="ค้นหากิลด์ด้วยชื่อหรือแท็ก" />
+      <button id="guildRefreshBtn"><span class=gicon-refresh></span> รีเฟรช</button>
+    </div>
+    <div id="guildStatusMsg" class="adm-hint" style="margin:0 0 10px;">กำลังโหลด…</div>
+    <div style="overflow-x:auto">
+      <table class="adm-table">
+        <thead>
+          <tr>
+            <th>กิลด์</th><th>หัวหน้า</th><th>เลเวล</th><th>สมาชิก</th><th><span class=gicon-coin></span> คลังกิลด์</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="guildTableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
   <section class="panel">
     <div class="adm-toolbar">
       <input type="text" id="adminSearch" placeholder="ค้นหาด้วยชื่อหรือ ID" />
@@ -185,6 +229,26 @@
   </div>
 </div>
 
+<!-- Guild detail / management popup — full leader authority from the console -->
+<div id="guildOverlay">
+  <div class="panel adm-modal" onclick="event.stopPropagation()">
+    <div class="adm-modal-header">
+      <div>
+        <strong id="guildModalTitle">กิลด์</strong>
+        <div class="adm-modal-sub" id="guildModalSub"></div>
+      </div>
+      <button id="guildModalCloseBtn"><span class=gicon-x></span></button>
+    </div>
+    <div class="adm-tabs" id="guildTabs">
+      <button class="adm-gtab" data-gtab="overview">ภาพรวม</button>
+      <button class="adm-gtab" data-gtab="members"><span class=gicon-user></span> สมาชิก</button>
+      <button class="adm-gtab" data-gtab="ranks"><span class=gicon-star></span> ยศ</button>
+      <button class="adm-gtab danger" data-gtab="danger"><span class=gicon-trash></span> ปิดกิลด์</button>
+    </div>
+    <div id="guildModalBody"></div>
+  </div>
+</div>
+
 <script>
   const ADMIN_TOKEN_KEY = "adminToken";
   let players = [];
@@ -193,6 +257,11 @@
   let activePlayerId = null;
   let activeTab = "overview";
   let activePlayerDetail = null; // cached full detail (deck/equip/bag) for the open modal
+
+  let guilds = [];
+  let activeGuildId = null;
+  let activeGuildTab = "overview";
+  let activeGuildDetail = null; // cached { guild, members, ranks, permissionCatalog } for the open guild modal
 
   function getToken() { return sessionStorage.getItem(ADMIN_TOKEN_KEY); }
   function setToken(t) { sessionStorage.setItem(ADMIN_TOKEN_KEY, t); }
@@ -227,7 +296,68 @@
     loadBagKeys();
     loadCatalog();
     loadPlayers();
+    loadPvpSeason();
+    loadGuilds();
   }
+
+  // ---------------------------------------------------------------------
+  // PvP Ranked Arena season control — see routes/admin.js (/pvp/season,
+  // /pvp/season/start, /pvp/season/end) and routes/pvp.js for the freeze
+  // window (last 4h before ends_at, attacks lock automatically — nothing
+  // to do here for that part, it's fully server-side).
+  // ---------------------------------------------------------------------
+  async function loadPvpSeason() {
+    const statusEl = document.getElementById("pvpSeasonStatus");
+    const startBtn = document.getElementById("pvpStartSeasonBtn");
+    const endBtn = document.getElementById("pvpEndSeasonBtn");
+    statusEl.textContent = "กำลังโหลด...";
+    startBtn.style.display = "none";
+    endBtn.style.display = "none";
+    try {
+      const data = await adminFetch("/pvp/season");
+      const s = data.season;
+      if (s.status === "upcoming") {
+        statusEl.innerHTML = `ซีซั่นที่ ${s.season_number} ยังไม่เปิด — ผู้เล่นจะเข้าโหมด PvP ไม่ได้จนกว่าจะกดเปิด`;
+        startBtn.style.display = "";
+      } else if (s.status === "active") {
+        const ends = new Date(s.ends_at);
+        statusEl.innerHTML = `ซีซั่นที่ ${s.season_number} กำลังแข่งขัน — สิ้นสุด ${ends.toLocaleString("th-TH")} (ปิดรับโจมตี 4 ชม.ก่อนหน้านั้นอัตโนมัติ) · ผู้เล่นในลีดเดอร์บอร์ด ${data.top.length} คน`;
+        endBtn.style.display = "";
+      } else {
+        statusEl.textContent = `ซีซั่นที่ ${s.season_number}: ${s.status}`;
+      }
+    } catch (err) {
+      statusEl.textContent = "โหลดไม่สำเร็จ: " + err.message;
+    }
+  }
+
+  document.getElementById("pvpRefreshBtn").addEventListener("click", loadPvpSeason);
+
+  document.getElementById("pvpStartSeasonBtn").addEventListener("click", async () => {
+    const msg = document.getElementById("pvpSeasonFormMsg");
+    msg.style.display = "none";
+    if (!(await uiConfirm("เปิดซีซั่น PvP ตอนนี้เลยหรือไม่? ผู้เล่นทุกคนจะเริ่มโจมตีกันได้ทันที"))) return;
+    try {
+      await adminFetch("/pvp/season/start", { method: "POST" });
+      msg.className = "adm-formmsg ok"; msg.textContent = "เปิดซีซั่นแล้ว"; msg.style.display = "block";
+      loadPvpSeason();
+    } catch (err) {
+      msg.className = "adm-formmsg error"; msg.textContent = err.message; msg.style.display = "block";
+    }
+  });
+
+  document.getElementById("pvpEndSeasonBtn").addEventListener("click", async () => {
+    const msg = document.getElementById("pvpSeasonFormMsg");
+    msg.style.display = "none";
+    if (!(await uiConfirm("จบซีซั่นทันทีหรือไม่? ระบบจะสรุปผล แจกรางวัลทางเมล และเปิดซีซั่นถัดไปเป็น 'ยังไม่เริ่ม' ทันที — ยกเลิกไม่ได้"))) return;
+    try {
+      const r = await adminFetch("/pvp/season/end", { method: "POST" });
+      msg.className = "adm-formmsg ok"; msg.textContent = `จบซีซั่นที่ ${r.endedSeason} แล้ว แจกรางวัลผู้เล่น ${r.playersRewarded} คน`; msg.style.display = "block";
+      loadPvpSeason();
+    } catch (err) {
+      msg.className = "adm-formmsg error"; msg.textContent = err.message; msg.style.display = "block";
+    }
+  });
 
   document.getElementById("gateForm").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -979,6 +1109,404 @@
         loadPlayers();
       } catch (err) {
         alert("ลบไม่สำเร็จ: " + err.message);
+      }
+    });
+  }
+
+  // ============================================================================
+  // Guild management console — full leader authority over any guild: level/exp,
+  // treasury, settings, member roles/kicks, custom ranks ("ยศ"), leadership
+  // transfer, and permanently closing ("ปิดกิลด์") a guild. Mirrors
+  // routes/admin.js's /guilds/* endpoints.
+  // ============================================================================
+  async function loadGuilds() {
+    const statusMsg = document.getElementById("guildStatusMsg");
+    statusMsg.textContent = "กำลังโหลด…";
+    try {
+      const q = document.getElementById("guildSearch").value.trim();
+      guilds = await adminFetch("/guilds" + (q ? `?q=${encodeURIComponent(q)}` : ""));
+      renderGuildsTable();
+      statusMsg.textContent = `กิลด์ทั้งหมด ${guilds.length} กิลด์`;
+    } catch (err) {
+      statusMsg.textContent = "โหลดไม่สำเร็จ: " + err.message;
+    }
+  }
+  document.getElementById("guildSearch").addEventListener("input", debounce(loadGuilds, 350));
+  document.getElementById("guildRefreshBtn").addEventListener("click", loadGuilds);
+
+  function renderGuildsTable() {
+    const body = document.getElementById("guildTableBody");
+    if (guilds.length === 0) {
+      body.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">ไม่พบกิลด์</td></tr>`;
+      return;
+    }
+    body.innerHTML = guilds.map((g) => `
+      <tr data-id="${g.id}">
+        <td><strong>[${escapeHtml(g.tag)}] ${escapeHtml(g.name)}</strong></td>
+        <td>${escapeHtml(g.leaderUsername)}</td>
+        <td>Lv.${g.level}</td>
+        <td>${g.memberCount}/${g.maxMembers}</td>
+        <td class="adm-money">${g.treasuryMoney.toLocaleString()}</td>
+        <td class="adm-chevron">›</td>
+      </tr>
+    `).join("");
+    body.querySelectorAll("tr[data-id]").forEach((row) => {
+      row.addEventListener("click", () => openGuildModal(row.dataset.id));
+    });
+  }
+
+  async function openGuildModal(id) {
+    activeGuildId = id;
+    activeGuildTab = "overview";
+    document.getElementById("guildOverlay").classList.add("open");
+    document.getElementById("guildModalBody").innerHTML = `<p class="muted" style="text-align:center;padding:20px 0">กำลังโหลด…</p>`;
+    setActiveGuildTab("overview");
+    try {
+      activeGuildDetail = await adminFetch(`/guilds/${id}`);
+    } catch (err) {
+      document.getElementById("guildModalBody").innerHTML = `<p style="color:var(--bad)">โหลดข้อมูลไม่สำเร็จ: ${escapeHtml(err.message)}</p>`;
+      return;
+    }
+    const g = activeGuildDetail.guild;
+    document.getElementById("guildModalTitle").textContent = `[${g.tag}] ${g.name}`;
+    document.getElementById("guildModalSub").innerHTML =
+      `หัวหน้า: ${escapeHtml(g.leaderUsername)} · สมาชิก ${activeGuildDetail.members.length}/${g.maxMembers} · <span class="adm-id">${g.id}</span>`;
+    renderGuildTabBody();
+  }
+
+  function closeGuildModal() {
+    document.getElementById("guildOverlay").classList.remove("open");
+    activeGuildId = null;
+    activeGuildDetail = null;
+  }
+  document.getElementById("guildModalCloseBtn").addEventListener("click", closeGuildModal);
+  document.getElementById("guildOverlay").addEventListener("click", closeGuildModal);
+
+  document.getElementById("guildTabs").addEventListener("click", (e) => {
+    const btn = e.target.closest(".adm-gtab");
+    if (!btn) return;
+    setActiveGuildTab(btn.dataset.gtab);
+    renderGuildTabBody();
+  });
+
+  function setActiveGuildTab(tab) {
+    activeGuildTab = tab;
+    document.querySelectorAll(".adm-gtab").forEach((b) => b.classList.toggle("active", b.dataset.gtab === tab));
+  }
+
+  function guildFormMsgHtml(id) {
+    return `<div id="${id}" class="adm-formmsg"></div>`;
+  }
+  function showGuildFormMsg(id, ok, text) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = "adm-formmsg " + (ok ? "ok" : "error");
+    el.textContent = text;
+    el.style.display = "block";
+  }
+
+  function renderGuildTabBody() {
+    if (!activeGuildDetail) return;
+    const body = document.getElementById("guildModalBody");
+    if (activeGuildTab === "overview") { body.innerHTML = guildOverviewTabHtml(); bindGuildOverviewTab(); }
+    else if (activeGuildTab === "members") { body.innerHTML = guildMembersTabHtml(); bindGuildMembersTab(); }
+    else if (activeGuildTab === "ranks") { body.innerHTML = guildRanksTabHtml(); bindGuildRanksTab(); }
+    else if (activeGuildTab === "danger") { body.innerHTML = guildDangerTabHtml(); bindGuildDangerTab(); }
+  }
+
+  // ---- ภาพรวม: ระดับ/EXP, คลังกิลด์, ข้อมูลกิลด์ (ทำได้ทุกอย่างแบบหัวหน้ากิลด์) ----
+  const GUILD_EMBLEM_OPTS_ADM = ["🛡️","⚔️","🐉","🦅","🔥","❄️","🌙","⭐","🏰","👑"];
+  const GUILD_JOIN_MODE_OPTS_ADM = [["open","เข้าร่วมได้ทันที"],["request","ต้องส่งคำขอ"],["invite","ต้องรับเชิญเท่านั้น"]];
+
+  function guildOverviewTabHtml() {
+    const g = activeGuildDetail.guild;
+    return `
+      <div class="adm-field">
+        <label>ชื่อกิลด์</label>
+        <input type="text" id="gEditName" value="${escapeHtml(g.name)}" maxlength="24" />
+      </div>
+      <div class="adm-field">
+        <label>แท็ก</label>
+        <input type="text" id="gEditTag" value="${escapeHtml(g.tag)}" maxlength="5" />
+      </div>
+      <div class="adm-field">
+        <label>คำอธิบาย</label>
+        <textarea id="gEditDesc" rows="2" maxlength="200">${escapeHtml(g.description || "")}</textarea>
+      </div>
+      <div class="adm-field">
+        <label>ตราสัญลักษณ์</label>
+        <div id="gEmblemPicker" style="display:flex;gap:6px;flex-wrap:wrap">
+          ${GUILD_EMBLEM_OPTS_ADM.map((e) => `<span class="emblem-opt${e === g.emblem ? " sel" : ""}" data-emblem="${e}" style="font-size:20px;padding:5px 8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;${e === g.emblem ? "background:linear-gradient(135deg,var(--accent),#3f63d6)" : ""}">${e}</span>`).join("")}
+        </div>
+      </div>
+      <div class="adm-field">
+        <label>รูปแบบการเข้าร่วม</label>
+        <select id="gEditJoinMode">
+          ${GUILD_JOIN_MODE_OPTS_ADM.map(([v, label]) => `<option value="${v}" ${v === g.joinMode ? "selected" : ""}>${label}</option>`).join("")}
+        </select>
+      </div>
+      <hr class="adm-divider" />
+      <div class="adm-row2">
+        <div class="adm-field">
+          <label>เลเวลกิลด์ (1-${g.maxLevel})</label>
+          <input type="number" id="gEditLevel" value="${g.level}" min="1" max="${g.maxLevel}" />
+        </div>
+        <div class="adm-field">
+          <label>EXP สะสม</label>
+          <input type="number" id="gEditExp" value="${g.exp}" min="0" />
+        </div>
+      </div>
+      <p class="adm-hint">แก้เลเวลหรือ EXP อย่างใดอย่างหนึ่งพอ ระบบจะคำนวณอีกค่าให้อัตโนมัติ</p>
+      <div class="adm-field">
+        <label><span class=gicon-coin></span> คลังกิลด์ (เงิน)</label>
+        <input type="number" id="gEditTreasury" value="${g.treasuryMoney}" min="0" />
+      </div>
+      <div class="adm-field">
+        <label><input type="checkbox" id="gEditExtraCap" ${g.extraCapacityPurchased ? "checked" : ""} style="width:auto;margin-right:6px" /> ซื้อขยายจำนวนสมาชิกสูงสุดแล้ว</label>
+      </div>
+      ${guildFormMsgHtml("gOverviewMsg")}
+      <button id="gSaveOverviewBtn" style="width:100%">บันทึกการเปลี่ยนแปลง</button>
+    `;
+  }
+
+  function bindGuildOverviewTab() {
+    let selectedEmblem = activeGuildDetail.guild.emblem;
+    document.getElementById("gEmblemPicker").addEventListener("click", (e) => {
+      const opt = e.target.closest(".emblem-opt");
+      if (!opt) return;
+      selectedEmblem = opt.dataset.emblem;
+      document.querySelectorAll("#gEmblemPicker .emblem-opt").forEach((el) => {
+        const sel = el.dataset.emblem === selectedEmblem;
+        el.classList.toggle("sel", sel);
+        el.style.background = sel ? "linear-gradient(135deg,var(--accent),#3f63d6)" : "";
+      });
+    });
+
+    document.getElementById("gSaveOverviewBtn").addEventListener("click", async () => {
+      const btn = document.getElementById("gSaveOverviewBtn");
+      const payload = {
+        name: document.getElementById("gEditName").value.trim(),
+        tag: document.getElementById("gEditTag").value.trim(),
+        description: document.getElementById("gEditDesc").value.trim(),
+        emblem: selectedEmblem,
+        joinMode: document.getElementById("gEditJoinMode").value,
+        level: Number(document.getElementById("gEditLevel").value),
+        exp: Number(document.getElementById("gEditExp").value),
+        treasuryMoney: Number(document.getElementById("gEditTreasury").value),
+        extraCapacityPurchased: document.getElementById("gEditExtraCap").checked,
+      };
+      btn.disabled = true;
+      try {
+        const r = await adminFetch(`/guilds/${activeGuildId}`, { method: "PATCH", body: JSON.stringify(payload) });
+        showGuildFormMsg("gOverviewMsg", true, "บันทึกแล้ว");
+        activeGuildDetail.guild = { ...activeGuildDetail.guild, ...r.guild };
+        const listRow = guilds.find((x) => x.id === activeGuildId);
+        if (listRow) Object.assign(listRow, r.guild);
+        renderGuildsTable();
+        document.getElementById("guildModalTitle").textContent = `[${r.guild.tag}] ${r.guild.name}`;
+      } catch (err) {
+        showGuildFormMsg("gOverviewMsg", false, err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
+
+  // ---- สมาชิก: เลื่อน/ปลด/เตะ/โอนหัวหน้า/มอบยศ ----
+  function guildRoleLabelAdm(role) {
+    if (role === "leader") return '<span class="role-pill role-leader" style="font-size:10px;padding:1px 6px">หัวหน้า</span>';
+    if (role === "officer") return '<span class="role-pill role-officer" style="font-size:10px;padding:1px 6px">รองหัวหน้า</span>';
+    return '<span class="role-pill role-member" style="font-size:10px;padding:1px 6px">สมาชิก</span>';
+  }
+
+  function guildMembersTabHtml() {
+    const ranks = activeGuildDetail.ranks || [];
+    const rankOptions = ranks.map((r) => `<option value="${r.id}">${escapeHtml(r.name)} (${r.rankPoints})</option>`).join("");
+    const rows = activeGuildDetail.members.map((m) => `
+      <div class="adm-member-row" data-player="${m.playerId}">
+        <div>
+          <strong style="font-size:13px">${escapeHtml(m.username)}</strong>
+          ${guildRoleLabelAdm(m.role)}
+          ${m.rankName ? `<span class="rank-pill" style="font-size:10px;padding:1px 6px">${escapeHtml(m.rankName)}</span>` : ""}
+          <span class="adm-hint" style="margin:0">แต้มยศ ${m.rankPoints}</span>
+          <div class="adm-hint" style="margin:2px 0 0">แต้มบริจาค ${Number(m.contributionLifetime).toLocaleString()} · ดาเมจบอส ${Number(m.bossDamageCycle).toLocaleString()}</div>
+        </div>
+        <div class="adm-member-actions">
+          ${m.role === "member" ? `<button data-act="promote" data-id="${m.playerId}">เลื่อนรองหัวหน้า</button>` : ""}
+          ${m.role === "officer" ? `<button data-act="demote" data-id="${m.playerId}">ปลดรองหัวหน้า</button>` : ""}
+          ${m.role !== "leader" ? `<button data-act="transfer" data-id="${m.playerId}">โอนหัวหน้า</button>` : ""}
+          ${ranks.length > 0 && m.role !== "leader" ? `
+            <select data-act="rank" data-id="${m.playerId}">
+              <option value="">${m.rankName ? "เปลี่ยนยศ..." : "มอบยศ..."}</option>
+              ${rankOptions}
+              ${m.rankName ? `<option value="__clear__">— ถอดยศ —</option>` : ""}
+            </select>` : ""}
+          ${m.role !== "leader" ? `<button class="danger" data-act="kick" data-id="${m.playerId}">เตะออก</button>` : ""}
+        </div>
+      </div>
+    `).join("");
+    return `${guildFormMsgHtml("gMembersMsg")}${rows || '<p class="adm-mini-empty">ไม่มีสมาชิก</p>'}`;
+  }
+
+  async function guildMemberAction(action, playerId, extra) {
+    try {
+      if (action === "promote") await adminFetch(`/guilds/${activeGuildId}/members/${playerId}/role`, { method: "POST", body: JSON.stringify({ role: "officer" }) });
+      else if (action === "demote") await adminFetch(`/guilds/${activeGuildId}/members/${playerId}/role`, { method: "POST", body: JSON.stringify({ role: "member" }) });
+      else if (action === "kick") {
+        if (!(await uiConfirm("ยืนยันเตะสมาชิกคนนี้ออกจากกิลด์?"))) return;
+        await adminFetch(`/guilds/${activeGuildId}/members/${playerId}/kick`, { method: "POST" });
+      } else if (action === "transfer") {
+        if (!(await uiConfirm("ยืนยันโอนตำแหน่งหัวหน้ากิลด์ให้สมาชิกคนนี้?"))) return;
+        await adminFetch(`/guilds/${activeGuildId}/transfer-leadership`, { method: "POST", body: JSON.stringify({ playerId }) });
+      } else if (action === "rank") {
+        const rankId = extra === "__clear__" ? null : (extra || null);
+        await adminFetch(`/guilds/${activeGuildId}/members/${playerId}/rank`, { method: "POST", body: JSON.stringify({ rankId }) });
+      }
+      activeGuildDetail = await adminFetch(`/guilds/${activeGuildId}`);
+      renderGuildTabBody();
+      const listRow = guilds.find((x) => x.id === activeGuildId);
+      if (listRow) { listRow.memberCount = activeGuildDetail.members.length; }
+      renderGuildsTable();
+    } catch (err) {
+      showGuildFormMsg("gMembersMsg", false, err.message);
+    }
+  }
+
+  function bindGuildMembersTab() {
+    const body = document.getElementById("guildModalBody");
+    body.querySelectorAll("button[data-act]").forEach((btn) => {
+      btn.addEventListener("click", () => guildMemberAction(btn.dataset.act, btn.dataset.id));
+    });
+    body.querySelectorAll("select[data-act='rank']").forEach((sel) => {
+      sel.addEventListener("change", () => {
+        if (!sel.value) return;
+        guildMemberAction("rank", sel.dataset.id, sel.value);
+      });
+    });
+  }
+
+  // ---- ยศ: ระบบสร้างยศเองของหัวหน้ากิลด์ (แอดมินทำแทนได้ทุกกิลด์) ----
+  let _admSelectedCreatePerms = {};
+
+  function admRankPermChips(catalog, permissions) {
+    return catalog.map((p) => {
+      const on = !!(permissions && permissions[p.key]);
+      return `<span class="adm-rank-perm-chip${on ? "" : " off"}">${escapeHtml(p.label)}</span>`;
+    }).join("");
+  }
+
+  function guildRanksTabHtml() {
+    const catalog = activeGuildDetail.permissionCatalog || [];
+    const ranks = activeGuildDetail.ranks || [];
+    const maxPoints = activeGuildDetail.rankPointsMax ?? 998;
+    const leaderPoints = activeGuildDetail.leaderRankPoints ?? 999;
+    const officerPoints = activeGuildDetail.officerRankPoints ?? 500;
+    _admSelectedCreatePerms = {};
+    const createPermChecks = catalog.map((p) => `
+      <label><input type="checkbox" data-perm="${p.key}" /> <span>${escapeHtml(p.label)}</span></label>
+    `).join("");
+    const rankCards = ranks.map((r) => `
+      <div class="adm-rank-card" data-rank="${r.id}">
+        <div class="adm-rank-card-name">
+          <span>${escapeHtml(r.name)} <span class="adm-hint" style="margin:0">(แต้มยศ ${r.rankPoints})</span></span>
+          <span class="adm-hint" style="margin:0">${r.memberCount} คน</span>
+        </div>
+        <div class="adm-rank-perm-list">${admRankPermChips(catalog, r.permissions)}</div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button data-ract="rename" data-id="${r.id}" data-name="${escapeHtml(r.name)}" data-points="${r.rankPoints}">แก้ไข</button>
+          <button class="danger" data-ract="delete" data-id="${r.id}">ลบยศ</button>
+        </div>
+      </div>
+    `).join("");
+    return `
+      <div class="adm-section-title">สร้างยศใหม่</div>
+      <div class="adm-field">
+        <label>ชื่อยศ</label>
+        <input type="text" id="gNewRankName" maxlength="16" placeholder="เช่น ฝ่ายรับสมัคร" />
+      </div>
+      <div class="adm-field">
+        <label>แต้มยศ (0-${maxPoints})</label>
+        <input type="number" id="gNewRankPoints" min="0" max="${maxPoints}" value="0" />
+        <p class="adm-hint">คนที่ถือยศจะมอบยศต่อได้เฉพาะยศที่แต้มไม่เกินของตัวเอง (หัวหน้า = ${leaderPoints}, รองหัวหน้า = ${officerPoints}) — แอดมินตั้งค่าได้อิสระไม่ติดข้อจำกัดนี้</p>
+      </div>
+      <div class="adm-field">
+        <label>สิทธิ์ในกิลด์ที่ยศนี้ทำได้</label>
+        <div class="adm-perm-check-list" id="gNewRankPerms">${createPermChecks}</div>
+      </div>
+      ${guildFormMsgHtml("gRanksMsg")}
+      <button id="gCreateRankBtn" style="width:100%">สร้างยศ</button>
+      <hr class="adm-divider" />
+      <div class="adm-section-title">ยศทั้งหมดในกิลด์นี้ (${ranks.length}/10)</div>
+      ${rankCards || '<p class="adm-mini-empty">ยังไม่มียศที่สร้างเอง — ไปมอบยศให้สมาชิกได้ที่แท็บ "สมาชิก" หลังสร้าง</p>'}
+    `;
+  }
+
+  function bindGuildRanksTab() {
+    document.getElementById("gNewRankPerms").querySelectorAll("input[type=checkbox]").forEach((cb) => {
+      cb.addEventListener("change", () => { _admSelectedCreatePerms[cb.dataset.perm] = cb.checked; });
+    });
+
+    document.getElementById("gCreateRankBtn").addEventListener("click", async () => {
+      const name = document.getElementById("gNewRankName").value.trim();
+      if (!name) return showGuildFormMsg("gRanksMsg", false, "กรุณาตั้งชื่อยศ");
+      const rankPoints = Number(document.getElementById("gNewRankPoints").value) || 0;
+      try {
+        await adminFetch(`/guilds/${activeGuildId}/ranks`, { method: "POST", body: JSON.stringify({ name, permissions: _admSelectedCreatePerms, rankPoints }) });
+        activeGuildDetail = await adminFetch(`/guilds/${activeGuildId}`);
+        renderGuildTabBody();
+      } catch (err) {
+        showGuildFormMsg("gRanksMsg", false, err.message);
+      }
+    });
+
+    document.getElementById("guildModalBody").querySelectorAll("button[data-ract]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
+        try {
+          if (btn.dataset.ract === "delete") {
+            if (!(await uiConfirm("ลบยศนี้? สมาชิกที่ถือยศนี้จะกลายเป็นสมาชิกทั่วไปทันที"))) return;
+            await adminFetch(`/guilds/${activeGuildId}/ranks/${id}`, { method: "DELETE" });
+          } else if (btn.dataset.ract === "rename") {
+            const newName = prompt("ชื่อยศใหม่:", btn.dataset.name);
+            if (newName === null || !newName.trim()) return;
+            const newPointsRaw = prompt("แต้มยศใหม่:", btn.dataset.points);
+            if (newPointsRaw === null) return;
+            const payload = { name: newName.trim() };
+            if (newPointsRaw.trim() !== "") payload.rankPoints = Number(newPointsRaw);
+            await adminFetch(`/guilds/${activeGuildId}/ranks/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+          }
+          activeGuildDetail = await adminFetch(`/guilds/${activeGuildId}`);
+          renderGuildTabBody();
+        } catch (err) {
+          showGuildFormMsg("gRanksMsg", false, err.message);
+        }
+      });
+    });
+  }
+
+  // ---- ปิดกิลด์ (ยุบถาวร) ----
+  function guildDangerTabHtml() {
+    const g = activeGuildDetail.guild;
+    return `
+      <p style="color:var(--muted);font-size:13px;line-height:1.6;margin-bottom:16px">
+        กิลด์ "<strong>[${escapeHtml(g.tag)}] ${escapeHtml(g.name)}</strong>" จะถูกปิดและลบอย่างถาวร
+        รวมถึงคลังกิลด์ สมาชิกทั้งหมด ยศที่สร้างไว้ ประวัติแชท และข้อมูลบอสกิลด์ การกระทำนี้ไม่สามารถย้อนกลับได้
+      </p>
+      ${guildFormMsgHtml("gDangerMsg")}
+      <button id="gDisbandBtn" class="danger" style="width:100%">ปิดกิลด์ถาวร (ยุบกิลด์)</button>
+    `;
+  }
+
+  function bindGuildDangerTab() {
+    document.getElementById("gDisbandBtn").addEventListener("click", async () => {
+      const g = activeGuildDetail.guild;
+      if (!(await uiConfirm(`ยืนยันปิดกิลด์ "[${g.tag}] ${g.name}" ถาวร? สมาชิกทุกคนจะออกจากกิลด์ทันที`))) return;
+      try {
+        await adminFetch(`/guilds/${activeGuildId}/disband`, { method: "POST" });
+        closeGuildModal();
+        loadGuilds();
+      } catch (err) {
+        showGuildFormMsg("gDangerMsg", false, err.message);
       }
     });
   }

@@ -8,6 +8,7 @@
   <meta name="theme-color" content="#0c121b" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <script src="../js/core/ui-scale.js"></script>
+<script src="../js/core/scroll-lock.js"></script>
   <script src="../js/core/pwa-register.js" defer></script>
   <link rel="stylesheet" href="../css/game.css" />
   <link rel="stylesheet" href="../css/skills.css" />
@@ -51,6 +52,19 @@
     .role-leader{ background:rgba(250,204,21,.18); color:#facc15; }
     .role-officer{ background:rgba(96,165,250,.18); color:#60a5fa; }
     .role-member{ background:rgba(255,255,255,.08); color:var(--muted); }
+    .rank-pill{ font-size:11px; padding:2px 7px; border-radius:999px; font-weight:700; margin-left:6px; background:rgba(167,139,250,.18); color:#a78bfa; border:1px solid rgba(167,139,250,.35); }
+
+    .rank-card{ padding:12px; border-radius:12px; background:rgba(255,255,255,.04); border:1px solid var(--border); margin-bottom:10px; }
+    .rank-card-name{ font-weight:800; font-size:14px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .rank-card-meta{ color:var(--muted); font-size:12px; margin-top:2px; }
+    .rank-perm-list{ display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
+    .rank-perm-chip{ font-size:11px; padding:2px 8px; border-radius:999px; background:rgba(123,214,255,.12); color:var(--accent-2); border:1px solid rgba(123,214,255,.3); }
+    .rank-perm-chip.off{ background:rgba(255,255,255,.04); color:var(--muted); border-color:var(--border); text-decoration:line-through; }
+    .rank-card-actions{ display:flex; gap:6px; margin-top:10px; }
+    .perm-check-list{ display:flex; flex-direction:column; gap:6px; }
+    .perm-check-list label{ display:flex; align-items:flex-start; gap:8px; font-size:12.5px; }
+    .perm-check-list input{ width:auto; margin-top:2px; }
+    .rank-assign-select{ font-size:12px; padding:4px 6px; }
 
     .accept-btn{ background:linear-gradient(135deg,#1f7a3d,#124d26); border:1px solid rgba(74,222,128,.4); color:#d7ffe4; }
     .accept-btn:hover{ background:linear-gradient(135deg,#249149,#155c2d); }
@@ -160,6 +174,7 @@
     <button class="mode-button guild-tab-btn active" data-tab="overview">ภาพรวม</button>
     <button class="mode-button guild-tab-btn" data-tab="members">สมาชิก</button>
     <button class="mode-button guild-tab-btn" data-tab="requests" id="tabRequestsBtn" style="display:none">คำร้อง</button>
+    <button class="mode-button guild-tab-btn" data-tab="ranks" id="tabRanksBtn" style="display:none">ยศ</button>
     <button class="mode-button guild-tab-btn" data-tab="chat">แชท</button>
     <button class="mode-button guild-tab-btn" data-tab="shop">ร้านค้า</button>
     <button class="mode-button guild-tab-btn" data-tab="boss">บอส</button>
@@ -219,11 +234,37 @@
     </section>
   </div>
 
-  <!-- ---- คำร้อง (หัวหน้า/รองหัวหน้า) ---- -->
+  <!-- ---- คำร้อง (หัวหน้า/รองหัวหน้า/สิทธิ์จัดการคำขอ) ---- -->
   <div class="guild-tab-panel" data-panel="requests">
     <section class="panel">
       <h3><span class=gicon-note></span> คำขอเข้าร่วม</h3>
       <div id="incomingRequestsMount"></div>
+    </section>
+  </div>
+
+  <!-- ---- ยศ (ระบบยศที่หัวหน้าสร้างเอง) ---- -->
+  <div class="guild-tab-panel" data-panel="ranks">
+    <section class="panel" id="createRankPanel" style="display:none">
+      <h3><span class=gicon-plus></span> สร้างยศใหม่ (หัวหน้าเท่านั้น)</h3>
+      <div class="form-field">
+        <label>ชื่อยศ</label>
+        <input id="rankNameInput" type="text" maxlength="16" placeholder="เช่น ฝ่ายรับสมัคร" />
+      </div>
+      <div class="form-field">
+        <label>แต้มยศ</label>
+        <input id="rankPointsInput" type="number" min="0" value="0" />
+        <p class="empty-hint" id="rankPointsHint" style="margin-top:4px"></p>
+      </div>
+      <div class="form-field">
+        <label>สิทธิ์ที่ยศนี้ทำได้</label>
+        <div class="perm-check-list" id="rankPermCheckMount"></div>
+      </div>
+      <button id="createRankBtn" style="width:100%">สร้างยศ</button>
+      <p class="empty-hint" id="rankLimitHint" style="margin-top:6px"></p>
+    </section>
+    <section class="panel">
+      <h3><span class=gicon-star></span> ยศในกิลด์</h3>
+      <div id="ranksListMount"></div>
     </section>
   </div>
 
@@ -319,6 +360,9 @@
     if (role === 'officer') return '<span class="role-pill role-officer">รองหัวหน้า</span>';
     return '<span class="role-pill role-member">สมาชิก</span>';
   }
+  function rankLabel(rankName) {
+    return rankName ? `<span class="rank-pill">${escapeHtml(rankName)}</span>` : '';
+  }
   function joinModeLabel(mode) {
     if (mode === 'open') return 'เข้าร่วมได้ทันที';
     if (mode === 'invite') return 'ต้องรับเชิญเท่านั้น';
@@ -331,6 +375,7 @@
     if (chatPollTimer) { clearInterval(chatPollTimer); chatPollTimer = null; }
     if (tab === "members") renderMembers();
     else if (tab === "requests") renderIncomingRequests();
+    else if (tab === "ranks") renderRanks();
     else if (tab === "chat") { renderChat(true); chatPollTimer = setInterval(() => renderChat(false), 4000); }
     else if (tab === "shop") renderShop();
     else if (tab === "boss") renderBoss();
@@ -518,8 +563,9 @@
       expandPanel.style.display = "none";
     }
 
+    const perms = myGuildState.myPermissions || {};
     const leaderPanel = document.getElementById("leaderSettingsPanel");
-    if (myGuildState.myRole === 'leader') {
+    if (perms.editSettings) {
       leaderPanel.style.display = "";
       document.getElementById("editDescInput").value = g.description || "";
       editSelectedJoinMode = g.joinMode;
@@ -532,10 +578,10 @@
       ? "<span class=gicon-door></span> ออกจากกิลด์ (ต้องโอนตำแหน่งก่อน)"
       : myGuildState.myRole === 'leader' ? "<span class=gicon-warning></span> ยุบกิลด์ (คุณเป็นสมาชิกคนเดียว)" : "<span class=gicon-door></span> ออกจากกิลด์";
 
-    document.getElementById("tabRequestsBtn").style.display =
-      (myGuildState.myRole === 'leader' || myGuildState.myRole === 'officer') ? "" : "none";
-    document.getElementById("invitePanel").style.display =
-      (myGuildState.myRole === 'leader' || myGuildState.myRole === 'officer') ? "" : "none";
+    document.getElementById("tabRequestsBtn").style.display = perms.manageApplications ? "" : "none";
+    document.getElementById("invitePanel").style.display = perms.invite ? "" : "none";
+    document.getElementById("tabRanksBtn").style.display = (myGuildState.myRole === 'leader' || perms.manageRanks) ? "" : "none";
+    document.getElementById("createRankPanel").style.display = myGuildState.myRole === 'leader' ? "" : "none";
   }
 
   document.getElementById("expandCapacityBtn").addEventListener("click", async () => {
@@ -577,14 +623,24 @@
   });
 
   // ================= สมาชิก =================
+  let _rankCacheForMembers = []; // ยศทั้งหมดในกิลด์ ใช้ทำ dropdown มอบยศในแท็บสมาชิก
   async function renderMembers() {
     const mount = document.getElementById("membersListMount");
     mount.innerHTML = '<p class="empty-hint">กำลังโหลด…</p>';
-    const members = await GameAPI.guildMembers();
+    const [members, ranksData] = await Promise.all([GameAPI.guildMembers(), GameAPI.guildRanks()]);
     document.getElementById("memberCountLabel").textContent = members.length;
     document.getElementById("memberMaxLabel").textContent = myGuildState.guild.maxMembers;
+    _rankCacheForMembers = ranksData?.ranks || [];
 
     const myRole = myGuildState.myRole;
+    const perms = myGuildState.myPermissions || {};
+    const canKick = !!perms.kickMembers;
+    const canManageRanks = !!perms.manageRanks;
+    const myRankPoints = myGuildState.myRankPoints || 0;
+    // เลือกได้เฉพาะยศที่มีแต้มไม่เกินแต้มยศของตัวเอง (server บังคับอยู่แล้ว นี่แค่กรองไว้ก่อนกันสับสน)
+    const assignableRanks = _rankCacheForMembers.filter((r) => r.rankPoints <= myRankPoints);
+    const rankOptions = assignableRanks.map((r) => `<option value="${r.id}">${escapeHtml(r.name)} (${r.rankPoints})</option>`).join("");
+
     mount.innerHTML = members.map((m) => {
       let actions = "";
       const isMe = m.playerId === myGuildState.myPlayerId;
@@ -594,24 +650,44 @@
           if (m.role === 'officer') actions += `<button onclick="demoteMember('${m.playerId}')">ปลดจากรองหัวหน้า</button>`;
           actions += `<button onclick="transferLeadership('${m.playerId}')">โอนหัวหน้า</button>`;
         }
-        if (myRole === 'leader' || (myRole === 'officer' && m.role === 'member')) {
+        if (myRole === 'leader' && m.role !== 'leader') {
+          actions += `<button class="danger-btn" onclick="kickMember('${m.playerId}')">เตะออก</button>`;
+        } else if (myRole !== 'leader' && canKick && m.role === 'member') {
           actions += `<button class="danger-btn" onclick="kickMember('${m.playerId}')">เตะออก</button>`;
         }
       }
+      const rankControl = (!isMe && m.role !== 'leader' && canManageRanks && assignableRanks.length > 0)
+        ? `
+          <select class="rank-assign-select" onchange="if(this.value) assignRankToMember('${m.playerId}', this.value); this.value='';">
+            <option value="">${m.rankName ? "เปลี่ยนยศ..." : "มอบยศ..."}</option>
+            ${rankOptions}
+          </select>
+          ${m.rankName ? `<button onclick="unassignRankFromMember('${m.playerId}')">ถอดยศ</button>` : ""}`
+        : "";
       return `
         <div class="row">
           <div>
             <div class="row-name-line">
-              <span class="row-name">${escapeHtml(m.username)}</span> ${roleLabel(m.role)}
+              <span class="row-name">${escapeHtml(m.username)}</span> ${roleLabel(m.role)} ${rankLabel(m.rankName)}
               ${Presence.presenceMountHtml({ accountStatus: m.accountStatus, suspendedUntil: m.suspendedUntil, lastSeenAt: m.lastSeenAt })}
             </div>
             <div class="row-sub">แต้มบริจาค ${fmtNum(m.contributionLifetime)} · ดาเมจบอสสัปดาห์นี้ ${fmtNum(m.bossDamageCycle)} · เข้าร่วม ${fmtDate(m.joinedAt)}</div>
           </div>
-          <div class="row-actions">${actions}</div>
+          <div class="row-actions">${actions}${rankControl}</div>
         </div>
       `;
     }).join("") || '<p class="empty-hint">ไม่มีสมาชิก</p>';
     Presence.refreshMounts(mount);
+  }
+  async function assignRankToMember(playerId, rankId) {
+    const r = await GameAPI.guildAssignRank(rankId, playerId);
+    if (r?.error) return alert(r.error);
+    renderMembers();
+  }
+  async function unassignRankFromMember(playerId) {
+    const r = await GameAPI.guildUnassignRank(playerId);
+    if (r?.error) return alert(r.error);
+    renderMembers();
   }
   async function promoteMember(id) { const r = await GameAPI.guildPromote(id); if (r?.error) return alert(r.error); renderMembers(); }
   async function demoteMember(id) { const r = await GameAPI.guildDemote(id); if (r?.error) return alert(r.error); renderMembers(); }
@@ -654,6 +730,98 @@
   }
   async function acceptJoinRequest(id) { const r = await GameAPI.guildAcceptRequest(id); if (r?.error) return alert(r.error); renderIncomingRequests(); refreshGuildData(); }
   async function rejectJoinRequest(id) { const r = await GameAPI.guildRejectRequest(id); if (r?.error) return alert(r.error); renderIncomingRequests(); }
+
+  // ================= ยศ (ระบบยศที่หัวหน้าสร้างเอง) =================
+  let _rankPermCatalog = [];
+  let _selectedCreatePerms = {};
+
+  function buildRankPermCheckboxes(mountId, catalog, selected, onToggle) {
+    const mount = document.getElementById(mountId);
+    mount.innerHTML = catalog.map((p) => `
+      <label>
+        <input type="checkbox" data-perm="${p.key}" ${selected[p.key] ? "checked" : ""} />
+        <span>${escapeHtml(p.label)}</span>
+      </label>
+    `).join("");
+    mount.querySelectorAll("input[type=checkbox]").forEach((cb) => {
+      cb.addEventListener("change", () => onToggle(cb.dataset.perm, cb.checked));
+    });
+  }
+
+  function rankPermChipsHtml(catalog, permissions) {
+    return catalog.map((p) => {
+      const on = !!(permissions && permissions[p.key]);
+      return `<span class="rank-perm-chip${on ? "" : " off"}">${escapeHtml(p.label)}</span>`;
+    }).join("");
+  }
+
+  async function renderRanks() {
+    const mount = document.getElementById("ranksListMount");
+    mount.innerHTML = '<p class="empty-hint">กำลังโหลด…</p>';
+    const data = await GameAPI.guildRanks();
+    if (!data || data.error) { mount.innerHTML = `<p class="empty-hint">โหลดไม่สำเร็จ</p>`; return; }
+    _rankPermCatalog = data.permissionCatalog || [];
+
+    const canCreate = !!data.canCreateRanks;
+    document.getElementById("rankLimitHint").textContent = `สร้างได้สูงสุด ${data.maxRanks} ยศต่อกิลด์ (ตอนนี้มี ${data.ranks.length})`;
+    if (canCreate) {
+      _selectedCreatePerms = {};
+      buildRankPermCheckboxes("rankPermCheckMount", _rankPermCatalog, _selectedCreatePerms, (key, val) => { _selectedCreatePerms[key] = val; });
+      document.getElementById("rankPointsInput").max = data.rankPointsMax;
+      document.getElementById("rankPointsHint").textContent =
+        `ตั้งได้ ${data.rankPointsMin}-${data.rankPointsMax} — คนที่ถือยศจะมอบยศต่อได้เฉพาะยศที่มีแต้มไม่เกินแต้มของตัวเอง (หัวหน้ามี ${data.leaderRankPoints}, รองหัวหน้ามี ${data.officerRankPoints})`;
+    }
+
+    mount.innerHTML = data.ranks.length === 0
+      ? '<p class="empty-hint">กิลด์นี้ยังไม่มียศที่สร้างเอง — สมาชิกทุกคนใช้สิทธิ์ตามตำแหน่งปกติ (หัวหน้า/รองหัวหน้า/สมาชิก)</p>'
+      : data.ranks.map((r) => `
+        <div class="rank-card">
+          <div class="rank-card-name">
+            <span>${escapeHtml(r.name)}</span>
+            <span class="empty-hint">${r.memberCount} คน</span>
+          </div>
+          <div class="rank-card-meta">แต้มยศ ${r.rankPoints} · สิทธิ์ที่ยศนี้มี:</div>
+          <div class="rank-perm-list">${rankPermChipsHtml(_rankPermCatalog, r.permissions)}</div>
+          ${canCreate ? `
+            <div class="rank-card-actions">
+              <button onclick="editRankPrompt('${r.id}', '${escapeHtml(r.name).replace(/'/g, "&#39;")}', ${r.rankPoints})">แก้ไข</button>
+              <button class="danger-btn" onclick="deleteRank('${r.id}')">ลบยศ</button>
+            </div>` : ""}
+        </div>
+      `).join("");
+  }
+
+  document.getElementById("createRankBtn").addEventListener("click", async () => {
+    const name = document.getElementById("rankNameInput").value.trim();
+    if (!name) return alert("กรุณาตั้งชื่อยศ");
+    const rankPoints = Number(document.getElementById("rankPointsInput").value) || 0;
+    const r = await GameAPI.guildCreateRank({ name, permissions: _selectedCreatePerms, rankPoints });
+    if (r?.error) return alert(r.error);
+    document.getElementById("rankNameInput").value = "";
+    document.getElementById("rankPointsInput").value = "0";
+    await renderRanks();
+    alert(`สร้างยศ "${name}" แล้ว ไปมอบให้สมาชิกได้ที่แท็บ "สมาชิก"`);
+  });
+
+  async function editRankPrompt(rankId, currentName, currentPoints) {
+    const newName = prompt("ชื่อยศใหม่ (เว้นว่างไว้ถ้าไม่เปลี่ยน):", currentName);
+    if (newName === null) return;
+    const newPointsRaw = prompt("แต้มยศใหม่ (เว้นว่างไว้ถ้าไม่เปลี่ยน):", String(currentPoints));
+    if (newPointsRaw === null) return;
+    const payload = {};
+    if (newName.trim() && newName.trim() !== currentName) payload.name = newName.trim();
+    if (newPointsRaw.trim() !== "" && Number(newPointsRaw) !== currentPoints) payload.rankPoints = Number(newPointsRaw);
+    if (Object.keys(payload).length === 0) return;
+    const r = await GameAPI.guildUpdateRank(rankId, payload);
+    if (r?.error) return alert(r.error);
+    renderRanks();
+  }
+  async function deleteRank(rankId) {
+    if (!confirm("ยืนยันลบยศนี้? สมาชิกที่ถือยศนี้จะกลายเป็นสมาชิกทั่วไปทันที")) return;
+    const r = await GameAPI.guildDeleteRank(rankId);
+    if (r?.error) return alert(r.error);
+    renderRanks();
+  }
 
   // ================= แชท =================
   async function renderChat(scrollToBottom) {
@@ -851,8 +1019,7 @@
   setInterval(() => Presence.refreshMounts(), 30000);
 </script>
 <script src="../js/core/nav-fab.js"></script>
-<script src="../js/core/mail-fab.js"></script>
-<script src="../js/core/daily-fab.js"></script>
+
 <script src="../js/core/account-panel.js"></script>
 </body>
 </html>
