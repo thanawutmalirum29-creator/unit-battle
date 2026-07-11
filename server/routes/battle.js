@@ -26,12 +26,14 @@ const { mergeBag, getOrCreateEconomy } = require('../db/economyHelpers');
 const engine = require('../battle/engine');
 const { STAGES, BOSSES } = require('../battle/stage-data');
 const { generateInfStage, MAX_INF_STAGE: INF_MAX_FROM_DATA } = require('../battle/inf-data');
-const { buildPlayerUnit, buildEnemyUnit, buildBossUnit } = require('../battle/team-builder');
+const { buildPlayerUnit, buildEnemyUnit, buildBossUnit, buildGuildBossUnit } = require('../battle/team-builder');
 const {
   STAGE_DROPS, STAGE_REWARDS,
   MAX_INF_STAGE, infStageReward, infShardDrop,
   BOSS_REWARD_TIERS, rollRange,
 } = require('../game-data/economy-data');
+const { GUILD_BOSS_NAME, GUILD_BOSS_COMBAT } = require('../game-data/guild-data');
+const { getMembership, reserveGuildBossAttackTx, applyGuildBossDamageDeltaTx } = require('../db/guildHelpers');
 
 const router = express.Router();
 const INF_CHECKPOINT_INTERVAL = 25;
@@ -72,7 +74,7 @@ function snapshot(state) {
 // ---------------------------------------------------------------------------
 router.post('/start', requireAuth, asyncHandler(async (req, res) => {
   const { mode, cardIds } = req.body || {};
-  if (!['normal', 'boss', 'inf'].includes(mode)) {
+  if (!['normal', 'boss', 'inf', 'guildboss'].includes(mode)) {
     return res.status(400).json({ error: 'invalid mode' });
   }
 
@@ -88,7 +90,7 @@ router.post('/start', requireAuth, asyncHandler(async (req, res) => {
       return res.status(400).json({ error: 'invalid team selection' });
     }
 
-    let enemyTeam, refKey, runId = null;
+    let enemyTeam, refKey, runId = null, guildAttackRowId = null;
 
     if (mode === 'normal') {
       const stage = Number(req.body?.stage);
@@ -137,6 +139,22 @@ router.post('/start', requireAuth, asyncHandler(async (req, res) => {
       runId = runRow.id;
       enemyTeam = [buildBossUnit(bossDef, bossKey)];
       refKey = bossKey;
+    } else if (mode === 'guildboss') {
+      const membership = await getMembership(client, req.playerId);
+      if (!membership) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'คุณยังไม่ได้อยู่ในกิลด์' });
+      }
+      const reserved = await reserveGuildBossAttackTx(client, membership.guild_id, req.playerId);
+      if (reserved.error) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: reserved.error });
+      }
+      enemyTeam = [buildGuildBossUnit(GUILD_BOSS_NAME, reserved.currentHp, GUILD_BOSS_COMBAT)];
+      refKey = membership.guild_id;
+      guildAttackRowId = reserved.attackRowId;
+      // no `runs` row — guild boss doesn't feed the solo leaderboard/progress tables;
+      // battle_sessions.state below tracks its own guildId/attackRowId/appliedHp instead
     } else {
       // inf
       const stage = Number(req.body?.stage) || 1;
@@ -185,7 +203,10 @@ router.post('/start', requireAuth, asyncHandler(async (req, res) => {
       refKey = String(stage);
     }
 
-    const state = { playerTeam, enemyTeam, mode, bossDamageDealt: 0, damageStats: {} };
+    const state = {
+      playerTeam, enemyTeam, mode, bossDamageDealt: 0, damageStats: {},
+      ...(mode === 'guildboss' ? { guildId: refKey, guildAttackRowId, guildHpApplied: 0 } : {}),
+    };
     const session = await client.query(
       `INSERT INTO battle_sessions (player_id, mode, ref_key, run_id, round, state, status)
        VALUES ($1, $2, $3, $4, 0, $5, 'active') RETURNING id`,
@@ -284,8 +305,22 @@ router.post('/:battleId/turn', requireAuth, asyncHandler(async (req, res) => {
       if (bossRewards) rewards = bossRewards;
     }
 
+    // 🏰 GUILDBOSS: เหมือนกัน แต่เขียนลง guild_boss_state (HP กองกลางของกิลด์) จริงทุกเทิร์น
+    // ที่มีดาเมจใหม่ — ไม่ต้องรอไฟต์จบ กันเคสเน็ตหลุด/ยกเลิกกลางคันแล้วดาเมจที่ทำไปแล้วหาย
+    if (state.mode === 'guildboss') {
+      const delta = (state.bossDamageDealt || 0) - (state.guildHpApplied || 0);
+      if (delta > 0) {
+        const applied = await applyGuildBossDamageDeltaTx(client, state.guildId, req.playerId, state.guildAttackRowId, delta);
+        state.guildHpApplied = state.bossDamageDealt;
+        rewards = {
+          damage: applied.damageApplied, currentHp: applied.currentHp, maxHp: applied.maxHp,
+          defeated: applied.defeated, guildLevel: applied.guildLevel, leveledUp: applied.leveledUp,
+        };
+      }
+    }
+
     if (finished) {
-      if (win && state.mode !== 'boss') {
+      if (win && state.mode !== 'boss' && state.mode !== 'guildboss') {
         rewards = await grantWinRewards(client, req.playerId, session, state);
       } else if (!win) {
         // แพ้/ตายทั้งทีม → ปิด run (ถ้ามี — normal/inf/boss ทุกโหมดมี run ผูกอยู่แล้วตอนนี้)
